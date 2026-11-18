@@ -25,14 +25,15 @@
   // ...and only the three oldest dates on a roll can do it, however closely the rest crowd in behind.
   var KILL_MOST = 3;
 
-  // The five foes of a daily wall: the tier of question each asks, how much
-  // damage it takes to fell, and the seconds between its steps.
+  // The five foes of a daily wall: the tier of question each asks and what it is about,
+  // how much damage it takes to fell, and the seconds between its steps. Everyday
+  // knowledge and history take turns; the last foe may ask either.
   var DAILY_ENEMIES = [
-    { kind: 'cultist',  stage: 0, tier: 1, hp: 4, interval: 3.3 },
-    { kind: 'wolf',     stage: 1, tier: 1, hp: 5, interval: 3.2 },
-    { kind: 'skeleton', stage: 2, tier: 1, hp: 6, interval: 3.1 },
-    { kind: 'wraith',   stage: 3, tier: 2, hp: 6, interval: 3.1 },
-    { kind: 'dread',    stage: 4, tier: 2, hp: 8, interval: 3.0 }
+    { kind: 'cultist',  stage: 0, tier: 1, topic: 'everyday', hp: 4, interval: 3.3 },
+    { kind: 'wolf',     stage: 1, tier: 1, topic: 'history',  hp: 5, interval: 3.2 },
+    { kind: 'skeleton', stage: 2, tier: 1, topic: 'everyday', hp: 6, interval: 3.1 },
+    { kind: 'wraith',   stage: 3, tier: 2, topic: 'history',  hp: 6, interval: 3.1 },
+    { kind: 'dread',    stage: 4, tier: 2, topic: null,       hp: 8, interval: 3.0 }
   ];
 
   function dayNumber(now) {
@@ -76,7 +77,7 @@
       DAILY_ENEMIES.forEach(function (e) {
         var best = null, bestKey = null;
         (pools[e.tier] || []).forEach(function (p) {
-          if (taken[p.id] || famToday[p.family]) return;
+          if (taken[p.id] || famToday[p.family] || (e.topic && p.topic !== e.topic)) return;
           var gap = cal.lastUse[p.id] == null ? 999 : day - cal.lastUse[p.id];
           var famGap = cal.lastFam[p.family] == null ? 999 : day - cal.lastFam[p.family];
           var key = [gap >= MIN_GAP[e.tier] ? 0 : 1, famGap >= 2 ? 0 : 1, count[p.id] || 0, famGap >= 3 ? 0 : 1, rng()];

@@ -8,8 +8,9 @@
  * Nothing is sent but the name that was typed.
  *
  * KINDS says, roll by roll, what an answer must be and which date counts. A
- * roll that is not in it is a closed set (every president is already listed)
- * or one whose dates Wikidata does not hold well; those rely on the roll alone.
+ * roll that is not in it is a closed set (every president, every Bond film, is
+ * already listed) or one whose dates Wikidata does not hold well; those rely
+ * on the roll alone.
  */
 (function (root) {
   'use strict';
@@ -30,9 +31,9 @@
   var WITHIN = 4;      // and the larger event a thing is part of (a battle, in a campaign, on a front, of a war)
   var ACTIVE = 30;     // years after birth at which a person's deeds are taken to begin
 
-  // P31 instance of, P106 occupation, P279 subclass of, P361 part of, P710 participant;
+  // P17 country, P31 instance of, P106 occupation, P279 subclass of, P361 part of, P710 participant;
   // P569 birth, P571 inception, P577 publication, P580 start, P585 point in time,
-  // P606 first flight, P619 launch, P729 entry into service
+  // P606 first flight, P619 launch, P729 entry into service, P6949 announcement
   /**
    * People of a calling, or of any calling beneath it (a poet is a writer). Dated by
    * birth, or `shift` years after it for a roll dated by what a person did.
@@ -79,7 +80,11 @@
     'board-games': things(['Q131436', 'Q3244175', 'Q142714'], ['P571', 'P577']), // board game, tabletop game, card game
     documents: things(['Q131569', 'Q62662439', 'Q727002'], ['P585', 'P571', 'P577', 'P580']), // treaty, declaration, charter
     empires: things(['Q48349'], ['P571', 'P580']),
-    space: things(['Q2133344', 'Q60054001', 'Q40218'], ['P619', 'P580', 'P571']) // space mission, space program, spacecraft
+    space: things(['Q2133344', 'Q60054001', 'Q40218'], ['P619', 'P580', 'P571']), // space mission, space program, spacecraft
+    // everyday knowledge
+    'video-games': things(['Q7889'], ['P577']),
+    phones: things(['Q19723444'], ['P577', 'P571', 'P6949']),             // cell phone model (a smartphone model is one)
+    'football-clubs': things(['Q476028'], ['P571'], null, ['P17', 'Q145']) // association football club, in the United Kingdom
   };
 
   // ---------- reading what the archives say ----------
@@ -114,11 +119,20 @@
     return { year: year, approx: precision < 9 };
   }
 
-  /** The date that counts for a kind: the first of its date properties that the archives hold. */
+  /**
+   * The date that counts for a kind: from the first of its date properties that the archives
+   * hold, the value they prefer or, failing a preference, the earliest (a game is dated by
+   * its first release, not by each later one).
+   */
   function dateOf(kind, claims) {
     for (var i = 0; i < kind.dates.length; i++) {
-      var held = standing(claims, kind.dates[i])[0], when = held ? yearOf(held.time, held.precision) : null;
-      if (when) return { year: when.year + kind.shift, approx: when.approx || kind.shift > 0 };
+      var held = (claims[kind.dates[i]] || []).filter(function (c) {
+        return c.rank !== 'deprecated' && c.mainsnak && c.mainsnak.snaktype === 'value';
+      }).map(function (c) {
+        var v = c.mainsnak.datavalue.value, when = yearOf(v.time, v.precision);
+        return when && { year: when.year, approx: when.approx, preferred: c.rank === 'preferred' };
+      }).filter(Boolean).sort(function (a, b) { return (b.preferred - a.preferred) || (a.year - b.year); });
+      if (held.length) return { year: held[0].year + kind.shift, approx: held[0].approx || kind.shift > 0 };
     }
     return null;
   }

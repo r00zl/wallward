@@ -209,10 +209,27 @@
    *   { empty: true }            nothing typed
    *   { }                        not on the roll
    */
+  // What people add to a football club's name that the rolls leave off: "Arsenal FC" is Arsenal.
+  var CLUB = /^a?fc | a?fc$| f c$| football club$/;
+
+  /**
+   * Judge a typed answer against a question. Returns one of
+   *   { ok, ans, exact }   a name on the roll (exact: false when a slip was forgiven)
+   *   { vague }            a spelling shared by several names still unused
+   *   { used, ans }        a name already given
+   *   { outside, ans }     a real name the question does not ask for
+   *   { empty }            nothing typed
+   *   {}                   no such name
+   */
   function check(input, prompt, used) {
-    used = used || {};
-    var inF = norm(input);
-    if (!inF) return { empty: true };
+    var typed = norm(input);
+    if (!typed) return { empty: true };
+    var res = judge(typed, prompt, used || {}), plainer = typed.replace(CLUB, '').trim();
+    if (!res.ok && !res.vague && !res.used && !res.outside && plainer && plainer !== typed) res = judge(plainer, prompt, used || {});
+    return res;
+  }
+
+  function judge(inF, prompt, used) {
     var inB = stripNoise(inF), index = ix(prompt);
 
     var hit = lookup(index, inF, inB);

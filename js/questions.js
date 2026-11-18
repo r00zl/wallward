@@ -1,4 +1,8 @@
-/* Predate question bank: history only.
+/* Predate question bank: history, and everyday knowledge.
+ *
+ * Most rolls are history: emperors, battles, inventions. The rest are the things
+ * people grew up with (games, phones, films, records, football, sweets), marked
+ * by TOPIC so that the daily wall can mix the two.
  *
  * Every question is a roll of names. The player may give any name on the roll,
  * and each name carries a date. The older the answer, the harder it hits:
@@ -29,7 +33,8 @@
   'use strict';
   var WW = root.WW = root.WW || {};
   var LISTS = [], VARIANTS = [];
-  function L(id, tier, q, by, cut, roll, flag) { LISTS.push({ id: id, tier: tier, q: q, by: by, cut: cut, roll: roll, people: flag === 'P' }); }
+  var TOPIC = 'history'; // what the rolls being declared are about: 'history' or 'everyday'
+  function L(id, tier, q, by, cut, roll, flag) { LISTS.push({ id: id, tier: tier, q: q, by: by, cut: cut, roll: roll, people: flag === 'P', topic: TOPIC }); }
   function V(id, base, tier, q, cut, from, to, pattern) { VARIANTS.push({ id: id, base: base, tier: tier, q: q, cut: cut, from: from, to: to, pattern: pattern || null }); }
 
   // ======================= tier 1 =======================
@@ -3234,6 +3239,1187 @@ Pyeongchang|2018
 Beijing|2022|Peking
 Milan|2026|Milano;Milan Cortina;Milano Cortina`);
 
+  // ======================= everyday knowledge =======================
+  // Not history out of books but the things people grew up with: games, phones, films,
+  // records, football, sweets. The rule is the same, and so is the catch: everybody
+  // can name one, but who can name the oldest?
+  TOPIC = 'everyday';
+
+  L('gta-games', 1, 'Name a Grand Theft Auto game.', 'release', [2000, 2005], `
+Grand Theft Auto|1997|GTA;GTA 1;Grand Theft Auto 1
+Grand Theft Auto: London 1969|1999|GTA London;GTA London 1969;London 1969
+Grand Theft Auto: London 1961|1999|GTA London 1961;London 1961
+Grand Theft Auto 2|1999|GTA 2;GTA2
+Grand Theft Auto III|2001|GTA 3;GTA III;GTA3
+Grand Theft Auto: Vice City|2002|GTA Vice City;Vice City;GTA VC
+Grand Theft Auto Advance|2004|GTA Advance
+Grand Theft Auto: San Andreas|2004|GTA San Andreas;San Andreas;GTA SA
+Grand Theft Auto: Liberty City Stories|2005|GTA Liberty City Stories;Liberty City Stories
+Grand Theft Auto: Vice City Stories|2006|GTA Vice City Stories;Vice City Stories
+Grand Theft Auto IV|2008|GTA 4;GTA IV;GTA4
+Grand Theft Auto: The Lost and Damned|2009|The Lost and Damned;Lost and Damned;GTA The Lost and Damned
+Grand Theft Auto: Chinatown Wars|2009|GTA Chinatown Wars;Chinatown Wars
+Grand Theft Auto: The Ballad of Gay Tony|2009|The Ballad of Gay Tony;Ballad of Gay Tony;GTA The Ballad of Gay Tony
+Grand Theft Auto: Episodes from Liberty City|2009|Episodes from Liberty City
+Grand Theft Auto V|2013|GTA 5;GTA V;GTA5
+Grand Theft Auto Online|2013|GTA Online
+Grand Theft Auto: The Trilogy|2021|GTA Trilogy;The Trilogy;The Definitive Edition;GTA The Trilogy;Grand Theft Auto: The Trilogy – The Definitive Edition
+Grand Theft Auto VI|2026|GTA 6;GTA VI;GTA6
+`);
+
+  L('consoles', 1, 'Name a video game console.', 'release', [1979, 1994], `
+Magnavox Odyssey|1972|Odyssey
+Home Pong|1975|Pong;Atari Pong;Pong console
+Coleco Telstar|1976|Telstar
+Fairchild Channel F|1976|Channel F
+Atari 2600|1977|Atari VCS;Atari Video Computer System;Atari
+Color TV-Game|1977|Nintendo Color TV-Game;Color TV Game
+Magnavox Odyssey 2|1978|Odyssey 2;Philips Videopac;Videopac
+Intellivision|1979|Mattel Intellivision
+Microvision|1979|Milton Bradley Microvision
+Game & Watch|1980|Game and Watch;Nintendo Game & Watch
+ColecoVision|1982|Coleco Vision
+Atari 5200|1982
+Vectrex|1982
+Nintendo Entertainment System|1983|NES;Famicom;Family Computer;Nintendo
+SG-1000|1983|Sega SG-1000
+Master System|1985|Sega Master System;Sega Mark III
+Atari 7800|1986
+TurboGrafx-16|1987|PC Engine;TurboGrafx 16;TurboGrafx
+Sega Mega Drive|1988|Mega Drive;Sega Genesis;Genesis;Megadrive
+Game Boy|1989|Nintendo Game Boy;Gameboy;Game Boy Pocket
+Atari Lynx|1989|Lynx
+Super Nintendo Entertainment System|1990|SNES;Super Nintendo;Super Famicom;Super NES
+Game Gear|1990|Sega Game Gear
+Neo Geo|1990|Neo Geo AES;NeoGeo
+Philips CD-i|1991|CD-i;CDi
+Sega CD|1991|Mega-CD;Mega CD
+Atari Jaguar|1993|Jaguar
+3DO|1993|3DO Interactive Multiplayer;Panasonic 3DO
+Amiga CD32|1993|CD32
+Sega Saturn|1994|Saturn
+Neo Geo CD|1994
+PlayStation|1994|PS1;PSX;PS One;PSone;Sony PlayStation;PlayStation 1
+Sega 32X|1994|32X
+Virtual Boy|1995|Nintendo Virtual Boy
+Nintendo 64|1996|N64
+Game Boy Color|1998|Gameboy Color;GBC
+Dreamcast|1998|Sega Dreamcast
+Neo Geo Pocket|1998
+WonderSwan|1999
+PlayStation 2|2000|PS2
+Game Boy Advance|2001|GBA;Gameboy Advance;Game Boy Advance SP;GBA SP
+GameCube|2001|Nintendo GameCube;Game Cube
+Xbox|2001|Original Xbox;Microsoft Xbox
+N-Gage|2003|Nokia N-Gage
+Nintendo DS|2004|DS;DS Lite;Nintendo DS Lite;DSi;Nintendo DSi
+PlayStation Portable|2004|PSP;PSP Go
+Xbox 360|2005
+PlayStation 3|2006|PS3
+Wii|2006|Nintendo Wii
+Nintendo 3DS|2011|3DS;2DS;Nintendo 2DS;New Nintendo 3DS
+PlayStation Vita|2011|PS Vita;Vita
+Wii U|2012|WiiU
+Ouya|2013
+PlayStation 4|2013|PS4;PS4 Pro;PlayStation 4 Pro
+Xbox One|2013|Xbox One X;Xbox One S
+Nintendo Switch|2017|Switch;Switch OLED;Nintendo Switch OLED
+Nintendo Switch Lite|2019|Switch Lite
+Xbox Series X|2020|Xbox Series S;Xbox Series X/S;Series X;Series S
+PlayStation 5|2020|PS5;PS5 Pro;PlayStation 5 Pro
+Steam Deck|2022
+Playdate|2022
+PlayStation Portal|2023|PS Portal
+Nintendo Switch 2|2025|Switch 2
+Steam Machine|2026
+`);
+
+  L('video-games', 1, 'Name a video game.', 'release', [1981, 1993], `
+Cathode-ray tube amusement device|1947|Cathode ray tube amusement device;CRT amusement device
+Bertie the Brain|1950
+Nimrod|1951
+OXO|1952
+Tennis for Two|1958
+Spacewar!|1962|Spacewar
+Computer Space|1971
+The Oregon Trail|1971|Oregon Trail
+Pong|1972
+Gun Fight|1975
+Breakout|1976
+Colossal Cave Adventure|1976|Colossal Cave
+Zork|1977
+Space Invaders|1978
+Asteroids|1979
+Galaxian|1979
+Lunar Lander|1979
+Pac-Man|1980|Pacman;Pac Man
+Missile Command|1980
+Rogue|1980
+Battlezone|1980
+Centipede|1981
+Defender|1981
+Donkey Kong|1981
+Frogger|1981
+Galaga|1981
+Ms. Pac-Man|1982|Ms Pac-Man;Ms Pacman
+Pitfall!|1982|Pitfall
+Q*bert|1982|Qbert;Q bert
+Dig Dug|1982
+Pole Position|1982
+E.T. the Extra-Terrestrial|1982|E.T.;ET
+Mario Bros.|1983
+Dragon's Lair|1983
+Tetris|1984
+Elite|1984
+Duck Hunt|1984
+Super Mario Bros.|1985
+Gauntlet|1985
+The Legend of Zelda|1986|Legend of Zelda;Zelda
+Metroid|1986
+Dragon Quest|1986
+Castlevania|1986
+Out Run|1986|OutRun
+Final Fantasy|1987
+Mega Man|1987|Megaman
+Metal Gear|1987
+Street Fighter|1987
+Contra|1987
+Super Mario Bros. 3|1988
+Prince of Persia|1989
+SimCity|1989|Sim City
+Super Mario World|1990
+The Secret of Monkey Island|1990|Monkey Island;Secret of Monkey Island
+Sonic the Hedgehog|1991|Sonic
+Street Fighter II|1991
+Civilization|1991|Sid Meier's Civilization
+Lemmings|1991
+The Legend of Zelda: A Link to the Past|1991|A Link to the Past;Link to the Past
+Mortal Kombat|1992
+Super Mario Kart|1992|Mario Kart
+Wolfenstein 3D|1992
+Doom|1993
+Myst|1993
+FIFA International Soccer|1993|FIFA;FIFA 94
+Super Metroid|1994
+Donkey Kong Country|1994
+Warcraft: Orcs & Humans|1994|Warcraft
+Command & Conquer|1995|Command and Conquer
+Chrono Trigger|1995
+Tomb Raider|1996
+Super Mario 64|1996|Mario 64
+Pokémon Red and Blue|1996|Pokemon Red;Pokemon Blue;Pokemon Red and Blue;Pokemon Red and Green;Pokemon
+Resident Evil|1996
+Crash Bandicoot|1996
+Quake|1996
+Diablo|1997
+Final Fantasy VII|1997|FF7
+GoldenEye 007|1997|GoldenEye
+Gran Turismo|1997
+Grand Theft Auto|1997|GTA
+Age of Empires|1997
+Fallout|1997
+The Legend of Zelda: Ocarina of Time|1998|Ocarina of Time
+Half-Life|1998|Half Life
+Metal Gear Solid|1998
+StarCraft|1998
+Spyro the Dragon|1998|Spyro
+Super Smash Bros.|1999|Smash Bros
+Tony Hawk's Pro Skater|1999|Tony Hawk;Tony Hawks Pro Skater
+Counter-Strike|1999|Counter Strike
+RollerCoaster Tycoon|1999
+The Sims|2000|Sims
+Deus Ex|2000
+Diablo II|2000
+Halo: Combat Evolved|2001|Halo
+Grand Theft Auto III|2001|GTA 3;GTA III
+RuneScape|2001
+Animal Crossing|2001
+Super Smash Bros. Melee|2001|Melee
+Grand Theft Auto: Vice City|2002|GTA Vice City;Vice City
+Kingdom Hearts|2002
+Call of Duty|2003|COD
+World of Warcraft|2004|WoW
+Half-Life 2|2004|Half Life 2
+Grand Theft Auto: San Andreas|2004|GTA San Andreas;San Andreas
+God of War|2005
+Guitar Hero|2005
+Resident Evil 4|2005
+Wii Sports|2006
+The Elder Scrolls IV: Oblivion|2006|Oblivion
+BioShock|2007
+Portal|2007
+Call of Duty 4: Modern Warfare|2007|Modern Warfare;COD 4;Call of Duty 4
+Assassin's Creed|2007|Assassins Creed
+Mass Effect|2007
+Super Mario Galaxy|2007|Mario Galaxy
+Halo 3|2007
+Grand Theft Auto IV|2008|GTA 4;GTA IV
+Fallout 3|2008
+LittleBigPlanet|2008|Little Big Planet
+Angry Birds|2009
+League of Legends|2009
+Uncharted 2: Among Thieves|2009|Uncharted 2
+Red Dead Redemption|2010
+Mass Effect 2|2010
+Minecraft|2011
+The Elder Scrolls V: Skyrim|2011|Skyrim
+Dark Souls|2011
+Portal 2|2011
+Candy Crush Saga|2012|Candy Crush
+Journey|2012
+The Last of Us|2013|Last of Us
+Grand Theft Auto V|2013|GTA 5;GTA V
+Flappy Bird|2013
+Destiny|2014
+The Witcher 3: Wild Hunt|2015|Witcher 3;The Witcher 3
+Bloodborne|2015
+Rocket League|2015
+Undertale|2015
+Overwatch|2016
+Pokémon Go|2016|Pokemon Go
+The Legend of Zelda: Breath of the Wild|2017|Breath of the Wild;BOTW
+Fortnite|2017
+PUBG: Battlegrounds|2017|PUBG;PlayerUnknown's Battlegrounds
+Super Mario Odyssey|2017|Mario Odyssey
+Red Dead Redemption 2|2018|RDR2
+Among Us|2018
+Fall Guys|2020
+Animal Crossing: New Horizons|2020|New Horizons
+The Last of Us Part II|2020|Last of Us 2;The Last of Us 2
+Cyberpunk 2077|2020|Cyberpunk
+Hades|2020
+Genshin Impact|2020
+Wordle|2021
+Elden Ring|2022
+Hogwarts Legacy|2023
+Baldur's Gate 3|2023|Baldurs Gate 3
+The Legend of Zelda: Tears of the Kingdom|2023|Tears of the Kingdom;TOTK
+Palworld|2024
+Astro Bot|2024
+Black Myth: Wukong|2024|Wukong
+Clair Obscur: Expedition 33|2025|Expedition 33;Clair Obscur
+Mario Kart World|2025
+Hollow Knight: Silksong|2025|Silksong
+Grand Theft Auto VI|2026|GTA 6;GTA VI
+`);
+
+  L('phones', 1, 'Name a mobile phone.', 'release', [1999, 2007], `
+Motorola DynaTAC 8000X|1983|DynaTAC;Motorola DynaTAC;DynaTAC 8000X
+Mobira Cityman 900|1987|Mobira Cityman;Nokia Cityman;Cityman
+Motorola MicroTAC|1989|MicroTAC
+Nokia 1011|1992
+IBM Simon|1994|IBM Simon Personal Communicator
+Motorola StarTAC|1996|StarTAC
+Nokia 8110|1996
+Nokia 9000 Communicator|1996|Nokia Communicator;Nokia 9000
+Nokia 6110|1997
+Siemens S10|1997
+Nokia 5110|1998
+Nokia 3210|1999
+Nokia 7110|1999
+Nokia 8210|1999
+Ericsson T28|1999
+Nokia 3310|2000
+Sharp J-SH04|2000|J-SH04
+Ericsson R380|2000
+Ericsson T68|2001|Sony Ericsson T68i
+Nokia 8310|2001
+Nokia 7650|2002
+BlackBerry 5810|2002
+Danger Hiptop|2002|T-Mobile Sidekick;Sidekick;Hiptop
+Sony Ericsson T610|2003
+Nokia 1100|2003
+Nokia N-Gage|2003|N-Gage
+Nokia 6600|2003
+BlackBerry 7230|2003
+Motorola Razr V3|2004|Razr;Motorola Razr;Razr V3;Moto Razr
+Nokia 6230|2004
+Sony Ericsson K750|2005|K750i;Sony Ericsson K750i
+Motorola ROKR E1|2005|ROKR;Motorola ROKR
+Nokia N70|2005
+Sony Ericsson W800|2005|W800i;Sony Ericsson Walkman
+LG Chocolate|2006
+BlackBerry Pearl|2006
+Nokia N73|2006
+Nokia N95|2007
+LG Prada|2007
+iPhone|2007|Apple iPhone;Original iPhone;iPhone 1;iPhone 2G;First iPhone
+HTC Dream|2008|T-Mobile G1;G1
+iPhone 3G|2008
+BlackBerry Bold|2008|BlackBerry Bold 9000
+BlackBerry Storm|2008
+Nokia 5800 XpressMusic|2008|Nokia 5800
+iPhone 3GS|2009
+Motorola Droid|2009|Droid;Motorola Milestone
+Palm Pre|2009
+HTC Hero|2009
+Nexus One|2010|Google Nexus One
+iPhone 4|2010
+Samsung Galaxy S|2010|Galaxy S;Galaxy S1
+HTC Desire|2010
+Nokia N8|2010
+Samsung Galaxy S II|2011|Galaxy S2;Galaxy S II
+iPhone 4S|2011
+Samsung Galaxy Note|2011|Galaxy Note
+Nokia Lumia 800|2011|Lumia 800
+Samsung Galaxy S III|2012|Galaxy S3;Galaxy S III
+iPhone 5|2012
+Nexus 4|2012
+Nokia Lumia 920|2012|Lumia 920
+Samsung Galaxy S4|2013|Galaxy S4
+iPhone 5S|2013
+iPhone 5C|2013
+Moto G|2013|Motorola Moto G
+Nexus 5|2013
+HTC One|2013|HTC One M7
+Sony Xperia Z|2013|Xperia Z
+OnePlus One|2014
+iPhone 6|2014|iPhone 6 Plus
+Samsung Galaxy S5|2014|Galaxy S5
+Amazon Fire Phone|2014|Fire Phone
+iPhone 6S|2015|iPhone 6S Plus
+Samsung Galaxy S6|2015|Galaxy S6;Galaxy S6 Edge
+iPhone SE|2016
+iPhone 7|2016|iPhone 7 Plus
+Google Pixel|2016|Pixel;Pixel 1;Pixel XL
+Samsung Galaxy S7|2016|Galaxy S7
+Samsung Galaxy Note 7|2016|Galaxy Note 7;Note 7
+iPhone 8|2017|iPhone 8 Plus
+iPhone X|2017
+Samsung Galaxy S8|2017|Galaxy S8
+Google Pixel 2|2017|Pixel 2
+iPhone XS|2018|iPhone XS Max
+iPhone XR|2018
+Samsung Galaxy S9|2018|Galaxy S9
+Huawei P20 Pro|2018|P20 Pro;Huawei P20
+Google Pixel 3|2018|Pixel 3
+iPhone 11|2019|iPhone 11 Pro;iPhone 11 Pro Max
+Samsung Galaxy S10|2019|Galaxy S10
+Samsung Galaxy Fold|2019|Galaxy Fold
+Huawei P30 Pro|2019|P30 Pro;Huawei P30
+Google Pixel 4|2019|Pixel 4
+iPhone 12|2020|iPhone 12 Pro;iPhone 12 mini;iPhone 12 Pro Max
+Samsung Galaxy S20|2020|Galaxy S20
+Samsung Galaxy Z Flip|2020|Galaxy Z Flip;Z Flip
+Google Pixel 5|2020|Pixel 5
+iPhone 13|2021|iPhone 13 Pro;iPhone 13 mini;iPhone 13 Pro Max
+Samsung Galaxy S21|2021|Galaxy S21
+Google Pixel 6|2021|Pixel 6
+iPhone 14|2022|iPhone 14 Pro;iPhone 14 Plus;iPhone 14 Pro Max
+Samsung Galaxy S22|2022|Galaxy S22
+Nothing Phone (1)|2022|Nothing Phone;Nothing Phone 1
+Google Pixel 7|2022|Pixel 7
+iPhone 15|2023|iPhone 15 Pro;iPhone 15 Plus;iPhone 15 Pro Max
+Samsung Galaxy S23|2023|Galaxy S23
+Google Pixel 8|2023|Pixel 8
+iPhone 16|2024|iPhone 16 Pro;iPhone 16 Plus;iPhone 16 Pro Max
+Samsung Galaxy S24|2024|Galaxy S24
+Google Pixel 9|2024|Pixel 9
+iPhone 16e|2025
+iPhone 17|2025|iPhone 17 Pro;iPhone 17 Pro Max
+iPhone Air|2025
+Samsung Galaxy S25|2025|Galaxy S25
+Google Pixel 10|2025|Pixel 10
+Samsung Galaxy S26|2026|Galaxy S26
+Google Pixel 11|2026|Pixel 11
+iPhone 18 Pro|2026|iPhone 18;iPhone 18 Pro Max
+iPhone Duo|2026
+`);
+
+  L('mario-games', 1, 'Name a game that has Mario in it.', 'release', [1985, 1996], `
+Donkey Kong|1981
+Donkey Kong Jr.|1982|Donkey Kong Junior
+Mario Bros.|1983
+Wrecking Crew|1985
+Super Mario Bros.|1985|Super Mario
+Super Mario Bros.: The Lost Levels|1986|The Lost Levels;Lost Levels
+Super Mario Bros. 2|1988
+Super Mario Bros. 3|1988
+Super Mario Land|1989
+Dr. Mario|1990|Doctor Mario
+Super Mario World|1990
+Super Mario Kart|1992|Mario Kart
+Super Mario Land 2: 6 Golden Coins|1992|Super Mario Land 2;6 Golden Coins
+Mario Paint|1992
+Super Mario All-Stars|1993|Mario All-Stars
+Yoshi's Island|1995|Super Mario World 2: Yoshi's Island;Yoshis Island;Super Mario World 2
+Super Mario RPG|1996
+Super Mario 64|1996|Mario 64
+Mario Kart 64|1996
+Mario Party|1998
+Super Smash Bros.|1999|Smash Bros
+Mario Golf|1999
+Paper Mario|2000
+Mario Tennis|2000
+Super Smash Bros. Melee|2001|Melee
+Luigi's Mansion|2001|Luigis Mansion
+Super Mario Sunshine|2002|Mario Sunshine
+Mario Kart: Double Dash|2003|Double Dash
+Mario & Luigi: Superstar Saga|2003|Mario and Luigi Superstar Saga;Superstar Saga;Mario & Luigi;Mario and Luigi
+Mario Kart DS|2005
+New Super Mario Bros.|2006
+Super Paper Mario|2007
+Super Mario Galaxy|2007|Mario Galaxy
+Mario Kart Wii|2008
+Super Smash Bros. Brawl|2008|Brawl
+New Super Mario Bros. Wii|2009
+Super Mario Galaxy 2|2010|Mario Galaxy 2
+Super Mario 3D Land|2011|3D Land
+Mario Kart 7|2011
+New Super Mario Bros. 2|2012
+New Super Mario Bros. U|2012
+Super Mario 3D World|2013|3D World
+Mario Kart 8|2014
+Super Mario Maker|2015|Mario Maker
+Super Mario Run|2016|Mario Run
+Super Mario Odyssey|2017|Mario Odyssey
+Mario Kart 8 Deluxe|2017
+Mario + Rabbids Kingdom Battle|2017|Mario and Rabbids;Mario + Rabbids;Mario Rabbids
+Super Smash Bros. Ultimate|2018|Smash Ultimate;Smash Bros Ultimate
+Super Mario Maker 2|2019|Mario Maker 2
+Mario Kart Tour|2019
+Super Mario Bros. Wonder|2023|Mario Wonder;Super Mario Wonder
+Mario Kart World|2025
+Mario Tennis Fever|2026
+`);
+
+  L('disney-films', 1, 'Name a Disney animated film (not Pixar).', 'release', [1950, 1989], `
+Snow White and the Seven Dwarfs|1937|Snow White
+Pinocchio|1940
+Fantasia|1940
+Dumbo|1941
+Bambi|1942
+Saludos Amigos|1942
+The Three Caballeros|1944|Three Caballeros
+Make Mine Music|1946
+Fun and Fancy Free|1947
+Melody Time|1948
+The Adventures of Ichabod and Mr. Toad|1949|Ichabod and Mr. Toad;Ichabod and Mr Toad
+Cinderella|1950
+Alice in Wonderland|1951
+Peter Pan|1953
+Lady and the Tramp|1955
+Sleeping Beauty|1959
+One Hundred and One Dalmatians|1961|101 Dalmatians;101 Dalmations;One Hundred and One Dalmations
+The Sword in the Stone|1963|Sword in the Stone
+The Jungle Book|1967|Jungle Book
+The Aristocats|1970|Aristocats
+Robin Hood|1973
+The Many Adventures of Winnie the Pooh|1977|Many Adventures of Winnie the Pooh
+The Rescuers|1977|Rescuers
+The Fox and the Hound|1981|Fox and the Hound
+The Black Cauldron|1985|Black Cauldron
+The Great Mouse Detective|1986|Great Mouse Detective;Basil the Great Mouse Detective
+Oliver & Company|1988|Oliver and Company
+The Little Mermaid|1989|Little Mermaid
+The Rescuers Down Under|1990|Rescuers Down Under
+Beauty and the Beast|1991
+Aladdin|1992
+The Lion King|1994|Lion King
+Pocahontas|1995
+The Hunchback of Notre Dame|1996|Hunchback of Notre Dame
+Hercules|1997
+Mulan|1998
+Tarzan|1999
+Fantasia 2000|1999
+Dinosaur|2000
+The Emperor's New Groove|2000|Emperor's New Groove;Emperors New Groove
+Atlantis: The Lost Empire|2001|Atlantis
+Lilo & Stitch|2002|Lilo and Stitch
+Treasure Planet|2002
+Brother Bear|2003
+Home on the Range|2004
+Chicken Little|2005
+Meet the Robinsons|2007
+Bolt|2008
+The Princess and the Frog|2009|Princess and the Frog
+Tangled|2010
+Winnie the Pooh|2011
+Wreck-It Ralph|2012|Wreck It Ralph
+Frozen|2013
+Big Hero 6|2014
+Zootopia|2016|Zootropolis
+Moana|2016
+Ralph Breaks the Internet|2018|Wreck-It Ralph 2
+Frozen II|2019|Frozen 2
+Raya and the Last Dragon|2021|Raya
+Encanto|2021
+Strange World|2022
+Wish|2023
+Moana 2|2024
+Zootopia 2|2025|Zootropolis 2
+`);
+
+  L('pixar-films', 1, 'Name a Pixar film.', 'release', [1999, 2009], `
+Toy Story|1995
+A Bug's Life|1998|Bug's Life;Bugs Life
+Toy Story 2|1999
+Monsters, Inc.|2001|Monsters Inc;Monsters Incorporated
+Finding Nemo|2003
+The Incredibles|2004|Incredibles
+Cars|2006
+Ratatouille|2007
+WALL-E|2008|Wall E;WallE
+Up|2009
+Toy Story 3|2010
+Cars 2|2011
+Brave|2012
+Monsters University|2013
+Inside Out|2015
+The Good Dinosaur|2015|Good Dinosaur
+Finding Dory|2016
+Cars 3|2017
+Coco|2017
+Incredibles 2|2018|The Incredibles 2
+Toy Story 4|2019
+Onward|2020
+Soul|2020
+Luca|2021
+Turning Red|2022
+Lightyear|2022
+Elemental|2023
+Inside Out 2|2024
+Elio|2025
+Hoppers|2026
+Toy Story 5|2026
+`);
+
+  L('bond-films', 1, 'Name a James Bond film.', 'release', [1965, 1979], `
+Dr. No|1962|Dr No;Doctor No
+From Russia with Love|1963
+Goldfinger|1964
+Thunderball|1965
+You Only Live Twice|1967
+On Her Majesty's Secret Service|1969|On Her Majestys Secret Service;OHMSS
+Diamonds Are Forever|1971
+Live and Let Die|1973
+The Man with the Golden Gun|1974|Man with the Golden Gun
+The Spy Who Loved Me|1977|Spy Who Loved Me
+Moonraker|1979
+For Your Eyes Only|1981
+Octopussy|1983
+Never Say Never Again|1983
+A View to a Kill|1985|View to a Kill
+The Living Daylights|1987|Living Daylights
+Licence to Kill|1989|License to Kill
+GoldenEye|1995|Golden Eye
+Tomorrow Never Dies|1997
+The World Is Not Enough|1999|World Is Not Enough
+Die Another Day|2002
+Casino Royale|2006
+Quantum of Solace|2008
+Skyfall|2012
+Spectre|2015
+No Time to Die|2021
+`);
+
+  L('star-wars-films', 1, 'Name a Star Wars film.', 'release', [1977, 1985], `
+Star Wars|1977|A New Hope;Episode IV;Star Wars: A New Hope;Episode 4
+The Star Wars Holiday Special|1978|Star Wars Holiday Special;Holiday Special
+The Empire Strikes Back|1980|Empire Strikes Back;Episode V;Episode 5
+Return of the Jedi|1983|Episode VI;Episode 6
+Caravan of Courage: An Ewok Adventure|1984|Caravan of Courage;The Ewok Adventure;Ewok Adventure
+Ewoks: The Battle for Endor|1985|The Battle for Endor;Battle for Endor
+The Phantom Menace|1999|Phantom Menace;Episode I;Episode 1
+Attack of the Clones|2002|Episode II;Episode 2
+Revenge of the Sith|2005|Episode III;Episode 3
+Star Wars: The Clone Wars|2008|The Clone Wars;Clone Wars
+The Force Awakens|2015|Force Awakens;Episode VII;Episode 7
+Rogue One|2016|Rogue One: A Star Wars Story
+The Last Jedi|2017|Last Jedi;Episode VIII;Episode 8
+Solo: A Star Wars Story|2018|Solo
+The Rise of Skywalker|2019|Rise of Skywalker;Episode IX;Episode 9
+The Mandalorian and Grogu|2026|Mandalorian and Grogu;The Mandalorian & Grogu
+`);
+
+  L('marvel-films', 1, 'Name a Marvel Cinematic Universe film.', 'release', [2009, 2013], `
+Iron Man|2008.33
+The Incredible Hulk|2008.45|Incredible Hulk
+Iron Man 2|2010
+Thor|2011
+Captain America: The First Avenger|2011|The First Avenger;First Avenger;Captain America
+The Avengers|2012|Avengers;Avengers Assemble
+Iron Man 3|2013
+Thor: The Dark World|2013|The Dark World;Thor 2
+Captain America: The Winter Soldier|2014|The Winter Soldier;Winter Soldier
+Guardians of the Galaxy|2014
+Avengers: Age of Ultron|2015|Age of Ultron
+Ant-Man|2015|Antman
+Captain America: Civil War|2016|Civil War
+Doctor Strange|2016|Dr Strange
+Guardians of the Galaxy Vol. 2|2017|Guardians of the Galaxy 2;Guardians 2
+Spider-Man: Homecoming|2017|Homecoming;Spiderman Homecoming
+Thor: Ragnarok|2017|Ragnarok
+Black Panther|2018
+Avengers: Infinity War|2018|Infinity War
+Ant-Man and the Wasp|2018|Antman and the Wasp
+Captain Marvel|2019
+Avengers: Endgame|2019|Endgame
+Spider-Man: Far From Home|2019|Far From Home
+Black Widow|2021
+Shang-Chi and the Legend of the Ten Rings|2021|Shang-Chi;Shang Chi
+Eternals|2021|The Eternals
+Spider-Man: No Way Home|2021|No Way Home
+Doctor Strange in the Multiverse of Madness|2022|Multiverse of Madness;Doctor Strange 2
+Thor: Love and Thunder|2022|Love and Thunder
+Black Panther: Wakanda Forever|2022|Wakanda Forever;Black Panther 2
+Ant-Man and the Wasp: Quantumania|2023|Quantumania
+Guardians of the Galaxy Vol. 3|2023|Guardians of the Galaxy 3;Guardians 3
+The Marvels|2023|Marvels
+Deadpool & Wolverine|2024|Deadpool and Wolverine
+Captain America: Brave New World|2025|Brave New World
+Thunderbolts|2025|Thunderbolts*;The New Avengers
+The Fantastic Four: First Steps|2025|Fantastic Four;First Steps;Fantastic Four First Steps
+Spider-Man: Brand New Day|2026|Brand New Day
+`);
+
+  L('harry-potter-books', 1, 'Name a Harry Potter book.', 'publication', [1997, 1999], `
+Harry Potter and the Philosopher's Stone|1997|Philosopher's Stone;Philosophers Stone;Sorcerer's Stone;Sorcerers Stone;Harry Potter and the Sorcerer's Stone
+Harry Potter and the Chamber of Secrets|1998|Chamber of Secrets
+Harry Potter and the Prisoner of Azkaban|1999|Prisoner of Azkaban
+Harry Potter and the Goblet of Fire|2000|Goblet of Fire
+Fantastic Beasts and Where to Find Them|2001|Fantastic Beasts
+Quidditch Through the Ages|2001
+Harry Potter and the Order of the Phoenix|2003|Order of the Phoenix
+Harry Potter and the Half-Blood Prince|2005|Half-Blood Prince;Half Blood Prince
+Harry Potter and the Deathly Hallows|2007|Deathly Hallows
+The Tales of Beedle the Bard|2008|Tales of Beedle the Bard;Beedle the Bard
+Harry Potter and the Cursed Child|2016|Cursed Child;The Cursed Child
+`);
+
+  L('taylor-swift-albums', 1, 'Name a Taylor Swift album.', 'release', [2008, 2014], `
+Taylor Swift|2006|Debut;Self-titled
+Fearless|2008|Fearless (Taylor's Version)
+Speak Now|2010|Speak Now (Taylor's Version)
+Red|2012|Red (Taylor's Version)
+1989|2014|1989 (Taylor's Version)
+Reputation|2017
+Lover|2019
+Folklore|2020
+Evermore|2020
+Midnights|2022
+The Tortured Poets Department|2024|Tortured Poets Department;TTPD
+The Life of a Showgirl|2025|Life of a Showgirl;The Life of a Showgirl: The Encore;Showgirl
+`);
+
+  L('disney-princesses', 1, 'Name a Disney princess.', 'first film', [1950, 1992], `
+Snow White|1937
+Cinderella|1950
+Aurora|1959|Sleeping Beauty;Princess Aurora;Briar Rose
+Eilonwy|1985|Princess Eilonwy
+Ariel|1989|The Little Mermaid
+Belle|1991
+Jasmine|1992
+Pocahontas|1995
+Mulan|1998|Fa Mulan
+Kida|2001|Kidagakash
+Tiana|2009
+Rapunzel|2010
+Merida|2012
+Anna|2013
+Elsa|2013
+Moana|2016
+Raya|2021
+`);
+
+  L('world-cup-winners', 1, "Name a country that has won the men's football World Cup.", 'first title', [1934, 1966], `
+Uruguay|1930
+Italy|1934
+Germany|1954|West Germany
+Brazil|1958|Brasil
+England|1966
+Argentina|1978
+France|1998
+Spain|2010
+`);
+
+  L('apple-products', 1, 'Name an Apple product line.', 'release', [1984, 2001], `
+Apple I|1976|Apple 1;Apple-1
+Apple II|1977|Apple 2
+Apple III|1980|Apple 3
+Apple Lisa|1983|Lisa
+Macintosh|1984|Mac;Apple Macintosh;Macintosh 128K
+LaserWriter|1985
+Macintosh Portable|1989
+PowerBook|1991|Macintosh PowerBook
+Apple Newton|1993|Newton;MessagePad;Newton MessagePad
+QuickTake|1994|Apple QuickTake
+Pippin|1996|Apple Pippin
+iMac|1998|iMac G3
+iBook|1999
+AirPort|1999|Apple AirPort
+Power Mac G4 Cube|2000|G4 Cube
+iPod|2001
+Xserve|2002
+iPod Mini|2004
+Mac Mini|2005
+iPod Nano|2005
+iPod Shuffle|2005
+MacBook|2006
+MacBook Pro|2006
+Mac Pro|2006
+Apple TV|2007
+iPhone|2007
+iPod Touch|2007
+MacBook Air|2008
+iPad|2010
+iPad Mini|2012
+Apple Watch|2015
+Apple Pencil|2015
+iPad Pro|2015
+AirPods|2016
+HomePod|2018
+AirPods Pro|2019
+AirPods Max|2020
+AirTag|2021|AirTags
+Mac Studio|2022
+Apple Vision Pro|2024|Vision Pro
+`);
+
+  L('football-clubs', 1, 'Name a British football club.', 'founding', [1870, 1885], `
+Sheffield F.C.|1857|Sheffield FC
+Cray Wanderers|1860
+Hallam F.C.|1860|Hallam;Hallam FC
+Notts County|1862
+Stoke City|1863|Stoke
+Wrexham|1864
+Nottingham Forest|1865|Forest;Notts Forest
+Chesterfield|1866
+Sheffield Wednesday|1867|Wednesday
+Queen's Park|1867|Queens Park
+Kilmarnock|1869
+Reading|1871
+Rangers|1872|Glasgow Rangers
+Dumbarton|1872
+Aston Villa|1874|Villa
+Bolton Wanderers|1874|Bolton
+Heart of Midlothian|1874|Hearts
+Blackburn Rovers|1875|Blackburn
+Birmingham City|1875|Birmingham
+Hibernian|1875|Hibs
+Middlesbrough|1876|Boro
+Port Vale|1876
+Partick Thistle|1876
+Wolverhampton Wanderers|1877|Wolves
+Crewe Alexandra|1877|Crewe
+St Mirren|1877|Saint Mirren
+Everton|1878
+Manchester United|1878|Man United;Man Utd;Man U;Newton Heath
+West Bromwich Albion|1878|West Brom;WBA
+Ipswich Town|1878|Ipswich
+Grimsby Town|1878|Grimsby
+Fulham|1879
+Sunderland|1879
+Doncaster Rovers|1879|Doncaster
+Cliftonville|1879
+Manchester City|1880|Man City
+Preston North End|1880|Preston
+Leyton Orient|1881|Orient
+Watford|1881
+Burnley|1882
+Tottenham Hotspur|1882|Tottenham;Spurs
+Queens Park Rangers|1882|QPR
+Glentoran|1882
+Coventry City|1883|Coventry
+Bristol Rovers|1883
+Stockport County|1883|Stockport
+Derby County|1884|Derby
+Leicester City|1884|Leicester
+Tranmere Rovers|1884|Tranmere
+Lincoln City|1884|Lincoln
+St Johnstone|1884|Saint Johnstone
+Luton Town|1885|Luton
+Millwall|1885
+Southampton|1885|Saints
+Bury|1885
+Arsenal|1886|Woolwich Arsenal
+Plymouth Argyle|1886|Plymouth
+Motherwell|1886
+Linfield|1886
+Barnsley|1887
+Celtic|1887|Glasgow Celtic
+Blackpool|1887
+Wycombe Wanderers|1887|Wycombe
+Sheffield United|1889|Sheffield Utd
+Brentford|1889
+Forest Green Rovers|1889|Forest Green
+Liverpool|1892
+Newcastle United|1892|Newcastle
+Dundee|1893
+Oxford United|1893|Oxford
+Bristol City|1894
+West Ham United|1895|West Ham;Thames Ironworks
+Oldham Athletic|1895|Oldham
+Portsmouth|1898|Pompey
+Bournemouth|1899|AFC Bournemouth
+Cardiff City|1899|Cardiff
+Brighton & Hove Albion|1901|Brighton;Brighton and Hove Albion
+Norwich City|1902|Norwich
+Aberdeen|1903
+Hull City|1904|Hull
+Chelsea|1905
+Charlton Athletic|1905|Charlton
+Crystal Palace|1905|Palace
+Huddersfield Town|1908|Huddersfield
+Dundee United|1909
+Swansea City|1912|Swansea
+Cambridge United|1912
+Newport County|1912|Newport
+Leeds United|1919|Leeds
+Rotherham United|1925|Rotherham
+Wigan Athletic|1932|Wigan
+Peterborough United|1934|Peterborough
+Salford City|1940|Salford
+AFC Wimbledon|2002
+MK Dons|2004|Milton Keynes Dons
+`);
+
+  L('soft-drinks', 1, 'Name a soft drink.', 'first sold', [1886, 1929], `
+Schweppes|1783
+R. White's Lemonade|1845|R Whites;R. White's;R Whites Lemonade
+Vernors|1866|Vernor's
+Hires Root Beer|1876|Hires
+Dr Pepper|1885|Dr. Pepper;Doctor Pepper
+Coca-Cola|1886|Coke;Coca Cola
+Pepsi|1893|Pepsi-Cola;Pepsi Cola;Brad's Drink
+Barq's|1898|Barqs
+Irn-Bru|1901|Irn Bru;Iron Brew
+Canada Dry|1904|Canada Dry Ginger Ale
+RC Cola|1905|Royal Crown Cola
+Vimto|1908
+Orange Crush|1911|Crush
+A&W Root Beer|1919|A&W;A and W
+Guaraná Antarctica|1921|Guarana Antarctica;Guarana
+Tizer|1924
+Lucozade|1927
+7 Up|1929|7UP;Seven Up
+Inca Kola|1935
+Orangina|1936
+Ribena|1938
+Mountain Dew|1940|Mtn Dew
+Fanta|1940
+Tango|1950
+Mirinda|1959
+Sprite|1961
+Tab|1963
+Diet Pepsi|1964
+Fresca|1966
+Appletiser|1966
+Capri-Sun|1969|Capri Sun
+Lilt|1975
+Ting|1976
+Sunkist|1979
+Mello Yello|1979
+Diet Coke|1982|Diet Coca-Cola;Coca-Cola Light;Coke Light
+Cherry Coke|1985|Coca-Cola Cherry
+Red Bull|1987
+Pepsi Max|1993
+J2O|1998
+Monster Energy|2002|Monster
+Coca-Cola Zero|2005|Coke Zero;Coke Zero Sugar;Coca-Cola Zero Sugar
+`);
+
+  L('chocolate-bars', 1, 'Name a chocolate bar or chocolate sweet.', 'first sold', [1908, 1937], `
+Fry's Chocolate Cream|1866|Frys Chocolate Cream;Fry's;Chocolate Cream
+Hershey's Milk Chocolate|1900|Hershey Bar;Hershey's;Hersheys;Hershey's bar
+Milka|1901
+Cadbury Dairy Milk|1905|Dairy Milk
+Hershey's Kisses|1907|Hershey Kisses;Kisses
+Toblerone|1908
+Bournville|1908|Cadbury Bournville
+Fry's Turkish Delight|1914|Turkish Delight
+Milk Tray|1915|Cadbury Milk Tray
+Flake|1920|Cadbury Flake
+Baby Ruth|1921
+Milky Way|1923
+Butterfinger|1923
+Fruit & Nut|1926|Cadbury Fruit & Nut;Fruit and Nut
+Reese's Peanut Butter Cups|1928|Reese's;Reeses;Reese's Cups
+Crunchie|1929|Cadbury Crunchie
+Snickers|1930|Marathon
+Freddo|1930
+Mars|1932|Mars bar
+3 Musketeers|1932|Three Musketeers
+Terry's Chocolate Orange|1932|Chocolate Orange
+Whole Nut|1933|Cadbury Whole Nut
+Kit Kat|1935|KitKat
+Aero|1935
+Milkybar|1936|Milky Bar
+Maltesers|1936
+Quality Street|1936
+Rolo|1937
+Smarties|1937
+Roses|1938|Cadbury Roses
+Nestlé Crunch|1938|Crunch;Nestle Crunch
+M&M's|1941|M&Ms;M and Ms
+Fudge|1948|Cadbury Fudge
+Lindor|1949|Lindt Lindor
+Bounty|1951
+Daim|1953|Dime
+Munchies|1957
+Picnic|1958|Cadbury Picnic
+Caramac|1959
+Galaxy|1960
+After Eight|1962
+Toffee Crisp|1963
+Creme Egg|1963|Cadbury Creme Egg
+Twix|1967
+Revels|1967
+Kinder Chocolate|1968|Kinder
+Matchmakers|1968
+Star Bar|1968
+Ripple|1969|Galaxy Ripple
+Curly Wurly|1970
+Kinder Surprise|1974|Kinder Egg
+Yorkie|1976
+Double Decker|1976
+Lion|1976|Lion bar
+Minstrels|1976|Galaxy Minstrels
+Ferrero Rocher|1979
+Drifter|1980
+Wispa|1981
+Boost|1985
+Twirl|1985
+Kinder Bueno|1990|Bueno
+Time Out|1992
+Celebrations|1997
+Heroes|1999|Cadbury Heroes
+`);
+
+  L('superheroes', 1, 'Name a Marvel or DC superhero.', 'first appearance', [1941, 1964], `
+Doctor Occult|1935|Dr Occult;Dr. Occult
+Superman|1938|Clark Kent;Man of Steel
+Batman|1939|Bruce Wayne;The Dark Knight;Dark Knight
+Namor|1939|Namor the Sub-Mariner;Sub-Mariner;Submariner
+Human Torch|1939|The Human Torch
+Sandman|1939|Wesley Dodds
+The Flash|1940|Flash;Jay Garrick;Barry Allen
+Hawkman|1940
+The Spectre|1940|Spectre
+Shazam|1940|Billy Batson;Captain Marvel (DC)
+Robin|1940|Dick Grayson;Nightwing
+Green Lantern|1940|Alan Scott;Hal Jordan
+Captain America|1941|Steve Rogers
+Bucky|1941|Bucky Barnes;Winter Soldier;The Winter Soldier
+Plastic Man|1941
+Wonder Woman|1941|Diana Prince
+Aquaman|1941
+Green Arrow|1941|Oliver Queen
+Martian Manhunter|1955
+Supergirl|1959|Kara Zor-El
+Groot|1960
+Batgirl|1961|Barbara Gordon
+Fantastic Four|1961|Mister Fantastic;Mr Fantastic;Invisible Woman;The Thing;Reed Richards
+Ant-Man|1962|Antman;Hank Pym
+Hulk|1962|The Hulk;The Incredible Hulk;Incredible Hulk;Bruce Banner
+Spider-Man|1962|Spiderman;Peter Parker;Spidey
+Thor|1962
+Iron Man|1963|Tony Stark;Ironman
+Nick Fury|1963
+The Wasp|1963|Wasp
+Doctor Strange|1963|Dr Strange;Dr. Strange;Stephen Strange
+X-Men|1963|Cyclops;Professor X;Jean Grey;Beast;Iceman
+Scarlet Witch|1964|Wanda Maximoff;Wanda
+Quicksilver|1964
+Daredevil|1964|Matt Murdock
+Black Widow|1964|Natasha Romanoff
+Teen Titans|1964|Titans
+Hawkeye|1964|Clint Barton
+Silver Surfer|1966
+Black Panther|1966|T'Challa
+Captain Marvel|1967|Carol Danvers;Mar-Vell
+Vision|1968|The Vision
+Falcon|1969|The Falcon;Sam Wilson
+Luke Cage|1972|Power Man
+Ghost Rider|1972
+Blade|1973
+Shang-Chi|1973|Shang Chi
+The Punisher|1974|Punisher;Frank Castle
+Wolverine|1974|Logan
+Storm|1975|Ororo Munroe
+Nightcrawler|1975
+Colossus|1975
+Moon Knight|1975
+Star-Lord|1976|Star Lord;Peter Quill
+Rocket Raccoon|1976|Rocket
+Ms. Marvel|1977|Ms Marvel;Kamala Khan
+Spider-Woman|1977|Spiderwoman
+War Machine|1979|James Rhodes;Rhodey
+She-Hulk|1980|She Hulk
+Cyborg|1980
+Starfire|1980
+Raven|1980
+Elektra|1981
+Rogue|1981
+Venom|1988|Eddie Brock
+Cable|1990
+Gambit|1990
+Deadpool|1991|Wade Wilson
+Jessica Jones|2001
+Miles Morales|2011
+`);
+
+  // ----- tier 2 -----
+
+  L('zelda-games', 2, 'Name a Legend of Zelda game.', 'release', [1987, 1998], `
+The Legend of Zelda|1986|Legend of Zelda;Zelda;Zelda 1
+Zelda II: The Adventure of Link|1987|Zelda 2;Zelda II;The Adventure of Link;Adventure of Link
+A Link to the Past|1991|Link to the Past;The Legend of Zelda: A Link to the Past
+Link's Awakening|1993|Links Awakening
+Link: The Faces of Evil|1993|The Faces of Evil;Faces of Evil
+Zelda: The Wand of Gamelon|1993|The Wand of Gamelon;Wand of Gamelon
+Zelda's Adventure|1994|Zeldas Adventure
+Ocarina of Time|1998|OOT;Ocarina
+Majora's Mask|2000|Majoras Mask
+Oracle of Seasons|2001|Oracle of Ages;Oracle of Seasons and Oracle of Ages
+Four Swords|2002
+The Wind Waker|2002|Wind Waker;Windwaker
+Four Swords Adventures|2004
+The Minish Cap|2004|Minish Cap
+Twilight Princess|2006
+Phantom Hourglass|2007
+Link's Crossbow Training|2007|Links Crossbow Training;Crossbow Training
+Spirit Tracks|2009
+Skyward Sword|2011
+A Link Between Worlds|2013|Link Between Worlds
+Hyrule Warriors|2014
+Tri Force Heroes|2015|Triforce Heroes
+Breath of the Wild|2017|BOTW
+Cadence of Hyrule|2019
+Hyrule Warriors: Age of Calamity|2020|Age of Calamity
+Tears of the Kingdom|2023|TOTK
+Echoes of Wisdom|2024
+Hyrule Warriors: Age of Imprisonment|2025|Age of Imprisonment
+`);
+
+  L('final-fantasy-games', 2, 'Name a Final Fantasy game.', 'release', [1990, 1997], `
+Final Fantasy|1987|Final Fantasy I;Final Fantasy 1;FF1
+Final Fantasy II|1988|FF2
+Final Fantasy III|1990|FF3
+Final Fantasy IV|1991|FF4
+Final Fantasy Adventure|1991
+Final Fantasy V|1992|FF5
+Final Fantasy Mystic Quest|1992|Mystic Quest
+Final Fantasy VI|1994|FF6
+Final Fantasy VII|1997|FF7
+Final Fantasy Tactics|1997|FF Tactics
+Final Fantasy VIII|1999|FF8
+Final Fantasy IX|2000|FF9
+Final Fantasy X|2001|FF10;FFX
+Final Fantasy XI|2002|FF11
+Final Fantasy X-2|2003|FFX-2
+Final Fantasy Crystal Chronicles|2003|Crystal Chronicles
+Final Fantasy XII|2006|FF12
+Crisis Core: Final Fantasy VII|2007|Crisis Core
+Dissidia Final Fantasy|2008|Dissidia
+Final Fantasy XIII|2009|FF13
+Final Fantasy XIV|2010|FF14;A Realm Reborn
+Final Fantasy Type-0|2011|Type-0
+Final Fantasy XV|2016|FF15
+World of Final Fantasy|2016
+Final Fantasy VII Remake|2020|FF7 Remake
+Stranger of Paradise: Final Fantasy Origin|2022|Stranger of Paradise
+Final Fantasy XVI|2023|FF16
+Final Fantasy VII Rebirth|2024|FF7 Rebirth
+`);
+
+  L('beatles-albums', 2, 'Name a Beatles studio album.', 'release', [1964, 1966], `
+Please Please Me|1963.2
+With the Beatles|1963.9
+A Hard Day's Night|1964|Hard Day's Night;A Hard Days Night
+Beatles for Sale|1964
+Help!|1965|Help
+Rubber Soul|1965
+Revolver|1966
+Sgt. Pepper's Lonely Hearts Club Band|1967|Sgt Pepper;Sgt. Pepper;Sergeant Pepper;Sgt Peppers;Sgt. Pepper's
+Magical Mystery Tour|1967
+The Beatles|1968|The White Album;White Album
+Yellow Submarine|1969
+Abbey Road|1969
+Let It Be|1970
+`);
+
+  L('f1-champions', 2, 'Name a Formula One world champion.', 'first title', [1959, 1980], `
+Giuseppe Farina|1950|Nino Farina
+Juan Manuel Fangio|1951
+Alberto Ascari|1952
+Mike Hawthorn|1958
+Jack Brabham|1959
+Phil Hill|1961
+Graham Hill|1962
+Jim Clark|1963
+John Surtees|1964
+Denny Hulme|1967|Denis Hulme
+Jackie Stewart|1969
+Jochen Rindt|1970
+Emerson Fittipaldi|1972
+Niki Lauda|1975
+James Hunt|1976
+Mario Andretti|1978
+Jody Scheckter|1979
+Alan Jones|1980
+Nelson Piquet|1981
+Keke Rosberg|1982
+Alain Prost|1985
+Ayrton Senna|1988
+Nigel Mansell|1992
+Michael Schumacher|1994
+Damon Hill|1996
+Jacques Villeneuve|1997
+Mika Häkkinen|1998|Mika Hakkinen
+Fernando Alonso|2005
+Kimi Räikkönen|2007|Kimi Raikkonen
+Lewis Hamilton|2008
+Jenson Button|2009
+Sebastian Vettel|2010
+Nico Rosberg|2016
+Max Verstappen|2021
+Lando Norris|2025
+Kimi Antonelli|2026|Andrea Kimi Antonelli
+`, 'P');
+
+  L('euro-winners', 2, "Name a country that has won the men's European Championship.", 'first title', [1964, 1976], `
+Soviet Union|1960|USSR
+Spain|1964
+Italy|1968
+Germany|1972|West Germany
+Czechoslovakia|1976
+France|1984
+Netherlands|1988|Holland
+Denmark|1992
+Greece|2004
+Portugal|2016
+`);
+
+  L('champions-league-winners', 2, 'Name a club that has won the European Cup or Champions League.', 'first title', [1964, 1979], `
+Real Madrid|1956
+Benfica|1961
+AC Milan|1963|Milan
+Inter Milan|1964|Inter;Internazionale
+Celtic|1967
+Manchester United|1968|Man United;Man Utd;Man U
+Feyenoord|1970
+Ajax|1971
+Bayern Munich|1974|Bayern
+Liverpool|1977
+Nottingham Forest|1979|Forest
+Aston Villa|1982|Villa
+Hamburg|1983|Hamburger SV;HSV
+Juventus|1985|Juve
+Steaua Bucharest|1986|Steaua;FCSB
+Porto|1987|FC Porto
+PSV Eindhoven|1988|PSV
+Red Star Belgrade|1991|Red Star;Crvena Zvezda
+Barcelona|1992|Barca;FC Barcelona
+Marseille|1993|Olympique de Marseille
+Borussia Dortmund|1997|Dortmund
+Chelsea|2012
+Manchester City|2023|Man City
+Paris Saint-Germain|2025|PSG;Paris St Germain
+`);
+
+  TOPIC = 'history';
+
   // ======================= narrower questions from the rolls above =======================
   var N = null;
   V('us-presidents-1900s', 'us-presidents', 1, 'Name a US president who took office in the 20th century.', [1923, 1961], 1901, 2000);
@@ -3289,6 +4475,22 @@ Milan|2026|Milano;Milan Cortina;Milano Cortina`);
   V('uk-pms-1800s', 'uk-pms', 3, 'Name a British prime minister who first took office in the 19th century.', [1812, 1834.9], 1800, 1899.99);
   V('roman-emperors-200-on', 'roman-emperors', 3, 'Name a Roman emperor who took power in the year 200 or later.', [244, 305], 200, N);
   V('pharaohs-new-kingdom', 'pharaohs', 3, 'Name a pharaoh of the New Kingdom.', [-1479, -1319], -1550, -1070);
+
+  // everyday knowledge
+  V('consoles-nintendo', 'consoles', 1, 'Name a Nintendo console.', [1983, 1996], N, N, /Nintendo|Game Boy|Game & Watch|Color TV-Game|Virtual Boy|GameCube|^Wii/);
+  V('consoles-since-2000', 'consoles', 1, 'Name a video game console released since 2000.', [2001, 2006], 2000, N);
+  V('video-games-1990s', 'video-games', 1, 'Name a video game from the 1990s.', [1991, 1995], 1990, 1999.99);
+  V('video-games-2000s', 'video-games', 1, 'Name a video game from the 2000s.', [2001, 2004], 2000, 2009.99);
+  V('phones-pre2007', 'phones', 1, 'Name a mobile phone from before the iPhone.', [1996, 2001], N, 2006.99);
+  V('disney-films-since-1989', 'disney-films', 1, 'Name a Disney animated film made since 1989 (not Pixar).', [1992, 1999], 1989, N);
+  V('video-games-pre1985', 'video-games', 2, 'Name a video game from before 1985.', [1972, 1979], N, 1984.99);
+  V('disney-films-pre1970', 'disney-films', 2, 'Name a Disney animated film from before 1970.', [1942, 1950], N, 1969.99);
+  V('chocolate-bars-since-1950', 'chocolate-bars', 1, 'Name a chocolate bar or chocolate sweet launched since 1950.', [1960, 1976], 1950, N);
+  V('soft-drinks-since-1940', 'soft-drinks', 1, 'Name a soft drink launched since 1940.', [1961, 1979], 1940, N);
+  V('apple-products-since-2000', 'apple-products', 1, 'Name an Apple product line launched since 2000.', [2001, 2007], 2000, N);
+  V('bond-films-since-1980', 'bond-films', 1, 'Name a James Bond film made since 1980.', [1985, 1999], 1980, N);
+  V('mario-games-since-2000', 'mario-games', 1, 'Name a game with Mario in it released since 2000.', [2002, 2008], 2000, N);
+  V('pixar-films-since-2010', 'pixar-films', 1, 'Name a Pixar film made since 2010.', [2012, 2017], 2010, N);
 
   // ======================= more names for the rolls above =======================
   // Kept apart so the rolls stay readable. M(id, roll) adds lines to a roll.
@@ -5589,7 +6791,7 @@ Verdun|1792.67|Siege of Verdun`);
     return (q.from == null || a.year >= q.from) && (q.to == null || a.year <= q.to) && (!q.pattern || q.pattern.test(a.name));
   }
 
-  function makePrompt(def, family, source, people, by) {
+  function makePrompt(def, family, source, people, by, topic) {
     var inside = [], outside = [];
     source.forEach(function (a) {
       if (!within(def, a)) { outside.push(a); return; }
@@ -5601,7 +6803,7 @@ Verdun|1792.67|Siege of Verdun`);
       if (a.year < oldest.year) oldest = a;
       if (a.year > newest.year) newest = a;
     });
-    return { id: def.id, family: family, tier: def.tier, q: def.q, by: by, cut: def.cut.slice(), people: people,
+    return { id: def.id, family: family, tier: def.tier, topic: topic, q: def.q, by: by, cut: def.cut.slice(), people: people,
       from: def.from, to: def.to, pattern: def.pattern,
       answers: inside, outside: outside, oldest: oldest, span: newest.year - oldest.year,
       total: total, hpCap: Math.max(3, Math.floor(total / 2)) };
@@ -5612,12 +6814,12 @@ Verdun|1792.67|Siege of Verdun`);
     var bank = [], rolls = {};
     LISTS.forEach(function (def) {
       var roll = rolls[def.id] = { def: def, answers: parseRoll(def) };
-      bank.push(makePrompt(def, def.id, roll.answers, def.people, def.by));
+      bank.push(makePrompt(def, def.id, roll.answers, def.people, def.by, def.topic));
     });
     VARIANTS.forEach(function (def) {
       var roll = rolls[def.base];
       if (!roll) throw new Error('variant ' + def.id + ' has no roll ' + def.base);
-      bank.push(makePrompt(def, def.base, roll.answers, roll.def.people, roll.def.by));
+      bank.push(makePrompt(def, def.base, roll.answers, roll.def.people, roll.def.by, roll.def.topic));
     });
     return bank;
   }
