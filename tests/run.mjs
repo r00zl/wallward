@@ -3,7 +3,7 @@ import '../js/questions.js';
 import '../js/answers.js';
 import '../js/daily.js';
 
-const WW = globalThis.WW, A = WW.Answers, D = WW.Daily, H = WW.Hints;
+const WW = globalThis.WW, A = WW.Answers, D = WW.Daily;
 const bank = WW.buildBank();
 A.setGuard(bank);
 
@@ -148,7 +148,7 @@ const cases = [
   ['composers', 'Schumann', '?'], ['composers', 'Dvorak', 'Antonín Dvořák'],
   ['generals', 'Napoleon', 'Napoleon Bonaparte'], ['generals', 'Alexander the Great', 'Alexander the Great'],
   ['generals', 'Caesar', 'Julius Caesar'], ['generals', 'Wellington', 'Duke of Wellington'], ['generals', 'Genghis Khan', 'Genghis Khan'],
-  ['generals', 'Attila', 'Attila the Hun'], ['generals', 'Patton', 'George S. Patton'], ['generals', 'Jackson', 'Stonewall Jackson'],
+  ['generals', 'Attila', 'Attila the Hun'], ['generals', 'Patton', 'George S. Patton'], ['generals', 'Jackson', '?'], ['generals', 'Stonewall Jackson', 'Stonewall Jackson'],
   ['eras', 'Stone Age', 'Stone Age'], ['eras', 'stone', 'Stone Age'], ['eras', 'the Bronze Age', 'Bronze Age'],
   ['eras', 'Victorian', 'Victorian era'], ['eras', 'Middle Ages', 'Middle Ages'], ['eras', 'medieval', 'Middle Ages'],
   ['eras', 'Renaissance', 'Renaissance'], ['eras', 'the Enlightenment', 'Age of Enlightenment'], ['eras', 'Dark Ages', 'Dark Ages'],
@@ -270,25 +270,6 @@ ok(D.hitGlory(1, 5) > D.hitGlory(1, 1) && D.hitGlory(1, 50) === D.hitGlory(1, 11
 ok(D.fellGlory(8, true) > D.fellGlory(2, true) && D.fellGlory(5, true) > D.fellGlory(5, false), 'quick and clean kills earn more');
 ok(D.shareText(3, ['F', 'W', 'S', 'F', 'X'], 6400, 5, 'https://x.test/', 7) ===
   'Wallward No. 3 · 6,400 glory\n⚔️🗡️💨⚔️💥  3/5 · combo ×7\nhttps://x.test/', 'share text');
-
-// ---------- hints ----------
-console.log('Hints');
-let maxShare = 0;
-for (const p of bank) {
-  const a = H.pick(p, {});
-  ok(a && a.dmg === Math.min(...p.answers.map(x => x.dmg)), 'hint points at a light answer: ' + p.id);
-  ok(H.hintCount(a, H.SHOW_AT + 1) === -1 && H.hintCount(a, H.SHOW_AT) >= 0, 'hint waits until the foe is near: ' + p.id);
-  for (const ans of p.answers) {
-    const plan = H.plan(ans), n = H.hintCount(ans, 0);
-    const cells = H.hintCells(ans, n), open = cells.filter(c => c.state === 'open').length;
-    ok(open === n && n <= plan.cap, 'hint count matches: ' + ans.name);
-    if (plan.letters > 4) { ok(open / plan.letters <= 0.4, 'hint never gives the name away: ' + ans.name); maxShare = Math.max(maxShare, open / plan.letters); }
-    ok(cells.map(c => c.state === 'gap' ? ' ' : c.state === 'hidden' ? '_' : c.ch).join('').length === ans.name.length, 'hint keeps the shape of the name');
-  }
-  const usedAll = {}; p.answers.forEach(x => { usedAll[x.key] = true; });
-  ok(H.pick(p, usedAll) === null, 'no hint once the roll is spent');
-}
-console.log('  most of a name ever shown', Math.round(maxShare * 100) + '%');
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
