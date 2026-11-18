@@ -20,8 +20,15 @@
   var STORE_KEY = 'wallward.v3';
   var EMBER = ['#fff1c9', '#f5c044', '#f08a2c', '#d9432e'];
   var AURA = [null, ['#fff1c9', '#f5c044'], ['#f5c044', '#f08a2c', '#d9432e'], ['#ffffff', '#9fd8ff', '#5fa8ff']];
-  // Sword angles in degrees: 0 points ahead, 90 straight up, 270 straight down.
-  var SWORD = { rest: 55, raised: 150, low: -55, up: 90, down: 270 };
+  // Sword angles in degrees: 0 points ahead, 90 straight up, 270 straight down. The blade is
+  // drawn at the nearest of sixteen clean angles (Sprites.cleanAngle), so it turns in firm steps.
+  var SWORD = { rest: 63, raised: 153, low: -45, up: 90, down: 270 };
+  // The pose the knight holds through each part of a blow: one each, held, so the motion reads cleanly.
+  var POSE = Sp.POSE;
+  var STRIKE_POSE = { out: POSE.lunge, cut: POSE.lunge, back: POSE.pass,
+    leap: POSE.air, hang: POSE.air, plunge: POSE.air, hold: POSE.air, rip: POSE.air, land: POSE.lunge, pose: POSE.stand };
+  var GHOST = { gap: 7, life: 0.2 }; // after-images of a dash: pixels apart, and seconds each lasts
+  var BLINK = { every: 4.2, lasts: 0.13 }; // seconds
   // Seconds each part of a strike takes.
   var CUT = { quick: 0.085, last: 0.16, cleave: 0.2, back: 0.3 };
   var FINISH = { run: 0.18, leap: 0.42, hang: 0.2, plunge: 0.07, hold: 0.6, rip: 0.16, land: 0.3, pose: 0.6 };
@@ -437,7 +444,7 @@
       h.sword = SWORD.up + Math.sin(s.t * 9) * 3;
       if (s.t >= FINISH.pose) { next('back'); s.from = h.dx; s.swordFrom = SWORD.up; }
     }
-    if (s.stage === 'leap' || s.stage === 'plunge' || s.stage === 'rip') G.trail.push({ dx: h.dx, dy: h.dy, life: 0.18 });
+    if (s.stage === 'leap' || s.stage === 'plunge' || s.stage === 'rip') ghost();
   }
 
   /** The point goes in: the foe is finished, but still standing. */
@@ -787,22 +794,36 @@
     return e.spr.floats ? 4 + Math.round(Math.sin(scene.t * 3) * 2) : Math.round(Math.sin(Math.PI * e.hop) * 3);
   }
 
+  /** Which frame of the knight to draw: walking, standing, or the pose of the blow he is striking. */
+  function heroFrame() {
+    var s = G.strike, h = G.hero;
+    if (h.dy < -2) return POSE.air;
+    if (s) return s.stage === 'run' ? Math.floor(s.t * 16) % 2 : STRIKE_POSE[s.stage];
+    return G.phase === 'title' || G.phase === 'walk' ? Math.floor(h.walkT * 8) % 2 : POSE.stand;
+  }
+
   /** Where the knight is drawn this frame: the top-left of his sprite, and which frame of it. */
   function heroPose() {
-    var p = scene.plane(), h = G.hero, moving = G.phase === 'title' || G.phase === 'walk' || !!G.strike;
+    var p = scene.plane(), h = G.hero, frame = heroFrame();
     var home = scene.warriorX() + p.x, feet = scene.groundY + 4 + p.y;
-    return { home: home, feet: feet, moving: moving,
-      frame: moving ? Math.floor(h.walkT * 8 + (G.strike ? scene.t * 14 : 0)) % 2 : 2,
+    return { home: home, feet: feet, frame: frame, still: frame === POSE.stand && !G.strike,
       x: home + Math.round(h.dx) - 9 - (h.hurt > 0.45 ? 3 : 0), y: feet - SPR.warrior.h + Math.round(h.dy) };
   }
 
   /** The knight's shoulder, sword hand and the point of his blade, for a pose. */
   function swordAt(pose) {
-    var ws = SPR.warrior, a = G.hero.sword * Math.PI / 180;
-    var breathe = !pose.moving && Math.sin(scene.t * 2.4) > 0.6 ? 1 : 0;
+    var ws = SPR.warrior, deg = Sp.cleanAngle(G.hero.sword), a = deg * Math.PI / 180;
+    var breathe = pose.still && Math.sin(scene.t * 2.4) > 0.6 ? 1 : 0;
     var sx = pose.x + ws.shoulder[0], sy = pose.y + ws.shoulder[1] + ws.bob[pose.frame] + breathe;
     var hx = sx + Math.round(Math.cos(a) * 3 + 2), hy = sy + Math.round(-Math.sin(a) * 3 + 2);
-    return { sx: sx, sy: sy, hx: hx, hy: hy, tipX: hx + Math.cos(a) * 15, tipY: hy - Math.sin(a) * 15 };
+    return { deg: deg, sx: sx, sy: sy, hx: hx, hy: hy, tipX: hx + Math.cos(a) * 15, tipY: hy - Math.sin(a) * 15 };
+  }
+
+  /** Leave an after-image where the knight is, once he has moved clear of the last one. */
+  function ghost() {
+    var h = G.hero, last = G.trail[G.trail.length - 1];
+    if (calm || (last && Math.abs(h.dx - last.dx) + Math.abs(h.dy - last.dy) < GHOST.gap)) return;
+    G.trail.push({ dx: h.dx, dy: h.dy, frame: heroFrame(), life: GHOST.life });
   }
 
   /** With no blow in hand the knight settles back to his post and his guard. */
@@ -863,7 +884,7 @@
       h.sword = from + (SWORD.rest - from) * ease(b);
       if (b >= 1) { h.dx = 0; h.dy = 0; G.strike = null; }
     }
-    if (!calm && (s.stage !== 'cut' || s.level > 0)) G.trail.push({ dx: h.dx, dy: h.dy, life: 0.16 });
+    if (s.stage !== 'cut') ghost();
   }
 
   /** Move the run on: the walk between foes, the foe's advance, and what follows its end. */
@@ -1079,15 +1100,17 @@
     var ws = SPR.warrior, s = G.strike, wf = pose.frame, wx = pose.x, wy = pose.y, sw = swordAt(pose);
     shadow(g, wx + 9, feet, h.dy < -6 ? 12 : 16);
     for (i = 0; i < G.trail.length; i++) {
-      // pale after-images mark the dash
-      g.globalAlpha = Math.min(0.4, G.trail[i].life * 2.2);
-      g.drawImage(ws.flash[wf], home + Math.round(G.trail[i].dx) - 9, feet - ws.h + Math.round(G.trail[i].dy));
+      // a few pale after-images mark the dash, each fading in three plain steps
+      var past = G.trail[i];
+      g.globalAlpha = past.life > GHOST.life * 2 / 3 ? 0.42 : past.life > GHOST.life / 3 ? 0.26 : 0.12;
+      g.drawImage(ws.flash[past.frame], home + Math.round(past.dx) - 9, feet - ws.h + Math.round(past.dy));
     }
     g.globalAlpha = 1;
     heroCape.draw(g);
     rim(g, ws.flash[wf], wx, wy);
-    var blink = h.hurt > 0 && Math.floor(h.hurt * 16) % 2 === 0;
-    g.drawImage(blink ? ws.flash[wf] : lit('warrior', 'frames', wf), wx, wy);
+    var struck = h.hurt > 0 && Math.floor(h.hurt * 16) % 2 === 0;
+    var eyes = pose.still && scene.t % BLINK.every < BLINK.lasts ? 'shut' : 'frames';
+    g.drawImage(struck ? ws.flash[wf] : lit('warrior', eyes, wf), wx, wy);
     // sword arm, from the shoulder
     var hx = sw.hx, hy = sw.hy;
     g.fillStyle = '#5d6779'; g.fillRect(Math.min(sw.sx, hx), Math.min(sw.sy, hy), Math.abs(hx - sw.sx) + 2, Math.abs(hy - sw.sy) + 2);
@@ -1095,10 +1118,10 @@
     if (s && s.embed && e) {
       // the blade is buried in the foe's head: only what stands above the skull shows
       g.save(); g.beginPath(); g.rect(0, 0, scene.W, skullY(e) + 1); g.clip();
-      Sp.drawWeapon(g, hx + 1, hy, h.sword, 'sword');
+      Sp.drawWeapon(g, hx + 1, hy, sw.deg, 'sword');
       g.restore();
     } else {
-      Sp.drawWeapon(g, hx + 1, hy, h.sword, 'sword');
+      Sp.drawWeapon(g, hx + 1, hy, sw.deg, 'sword');
     }
     // the sweep of the blade: white for a plain cut, gold for two damage, fire for three
     for (i = 0; i < G.arcs.length; i++) {
@@ -1106,9 +1129,11 @@
       var r1 = arc.big ? 27 : arc.tier === 2 ? 22 : 20;
       g.fillStyle = arc.tier === 3 ? (fresh ? '#fff1c9' : '#f08a2c') : arc.tier === 2 ? (fresh ? '#ffffff' : '#f5c044')
         : arc.level === 3 ? (fresh ? '#ffffff' : '#9fd8ff') : (fresh ? '#ffffff' : '#bfe6ff');
-      for (k = 0; k <= 1; k += 0.1) {
-        var ang = (arc.a0 + (arc.a1 - arc.a0) * k) * Math.PI / 180;
-        for (r = 13; r <= r1; r += 1) g.fillRect(Math.round(hx + Math.cos(ang) * r), Math.round(hy - Math.sin(ang) * r), 1, 1);
+      // a solid crescent out by the point of the blade: two steps for each pixel of its outer edge leave no gaps
+      var steps = Math.max(1, Math.ceil(Math.abs(arc.a1 - arc.a0) * Math.PI / 180 * r1 * 2));
+      for (k = 0; k <= steps; k++) {
+        var ang = (arc.a0 + (arc.a1 - arc.a0) * k / steps) * Math.PI / 180;
+        for (r = r1 - 6; r <= r1; r++) g.fillRect(Math.round(hx + Math.cos(ang) * r), Math.round(hy - Math.sin(ang) * r), 1, 1);
       }
     }
 

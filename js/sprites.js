@@ -105,21 +105,23 @@
   };
 
   // ---------- the warrior: a knight of the wall ----------
+  // An open nasal helm: steel dome, a dark brow band, and under it a face turned towards the
+  // foe. s/S skin, w and k the eyes, the bar of the helm running down between them.
   var WARRIOR = {
-    pal: { k: K, m: '#c9d1dc', M: '#7b8798', w: '#ffffff', e: '#bfe6ff', c: '#8f1d2c', a: '#9aa3b3', A: '#5d6779',
-      g: '#d9a441', t: '#2b2f45', b: '#3a2a22', r: '#2b2f45', R: '#1e2133', p: '#7b8798', P: '#5a6476' },
+    pal: { k: K, m: '#c9d1dc', M: '#7b8798', w: '#ffffff', s: '#e8b48c', S: '#b87a56', n: '#5a2f24', c: '#8f1d2c',
+      a: '#9aa3b3', A: '#5d6779', g: '#d9a441', t: '#2b2f45', b: '#3a2a22', r: '#2b2f45', R: '#1e2133', p: '#7b8798', P: '#5a6476' },
     body: [
-      '........kkkk',
-      '......kkmmmmkk',
-      '.....kmmwmmmmMk',
-      '....kmmwmmmmmMMk',
-      '....kmmmmmmmmMMk',
-      '....kmkeekkeekMk',
-      '....kmmmmkmmmMMk',
-      '....kmMmMkMmMMMk',
-      '....kmmmmmmmmMMk',
-      '.....kmmmmmmMMk',
-      '......kkMMMMkk',
+      '.......kkkkkk',
+      '.....kkmwwmmMkk',
+      '....kmwwmmmmmMMk',
+      '....kmwmmmmmmMMk',
+      '....kAAgAAAAAgAk',
+      '....kmMkSwkmwkMk',
+      '....kmMksssMssMk',
+      '....kmMkSssnnsMk',
+      '....kaAAkssssSk',
+      '.....kaAAkSSSk',
+      '......kkAaAAkk',
       '....kccccccccck',
       '..kkaaccccccaaakk',
       '.kaawaagaaagaaaak',
@@ -131,8 +133,39 @@
       '.....kbbbgbbbk',
       '.....ktttttttk'
     ],
+    // the same face with the eyes closed, for a blink: row number and what replaces it
+    shut: { 5: '....kmMkSSSmSSMk' },
+    // poses of his own, after the three every human figure has (see POSE)
+    poses: [
+      { bob: 2, legs: [ // lunge: front knee bent over the foot, back leg thrown out straight
+        '',
+        '',
+        '....krrrrrrrrrk',
+        '....krRrrrrrRrrk',
+        '...kkppkkkpppppk',
+        '..kppkk.....kPPk',
+        '.kPPk.......kPPk',
+        'kbbk........kbbk',
+        'kbbbk.......kbbbbk',
+        'kkkkk.......kkkkkk'
+      ] },
+      { bob: 0, legs: [ // air: front knee driven up, back leg trailing
+        '....krrrrrrrrrk',
+        '....krRrrrrrRrk',
+        '....kppkkkpppppk',
+        '...kppk...kkkPPk',
+        '..kPPk.......kbbk',
+        '.kbbk........kbbbk',
+        'kbbk.........kkkkk',
+        'kkkk',
+        '',
+        ''
+      ] }
+    ],
     shoulder: [13, 14], neck: [5, 12]
   };
+  /** Which frame of a human figure is which pose. The last two are the knight's alone. */
+  var POSE = { stride: 0, pass: 1, stand: 2, lunge: 3, air: 4 };
 
   // ---------- enemies ----------
   var CULTIST = {
@@ -358,15 +391,16 @@
   function build() {
     if (built) return built;
     function human(def, mirror, extra) {
-      var frames = [compose(def.body, LEGS.split, def.pal, 1), compose(def.body, LEGS.pass, def.pal, 0),
-        compose(def.body, LEGS.stand, def.pal, 0)];
-      var w = frames[0].width;
-      extra = extra || {};
-      extra.bob = [1, 0, 0];
-      if (mirror) {
-        frames = frames.map(flipped);
-        if (def.hand) extra.hand = [w - 1 - def.hand[0], def.hand[1]];
+      var poses = [{ legs: LEGS.split, bob: 1 }, { legs: LEGS.pass, bob: 0 }, { legs: LEGS.stand, bob: 0 }].concat(def.poses || []);
+      function framesOf(body) {
+        var frames = poses.map(function (p) { return compose(body, p.legs, def.pal, p.bob); });
+        return mirror ? frames.map(flipped) : frames;
       }
+      var frames = framesOf(def.body);
+      extra = extra || {};
+      extra.bob = poses.map(function (p) { return p.bob; });
+      if (mirror && def.hand) extra.hand = [frames[0].width - 1 - def.hand[0], def.hand[1]];
+      if (def.shut) extra.shut = framesOf(def.body.map(function (row, y) { return def.shut[y] || row; }));
       return pack(frames, extra);
     }
     var wolf = [compose(WOLF.body, WOLF.legs[0], WOLF.pal, 0), compose(WOLF.body, WOLF.legs[1], WOLF.pal, 0)].map(flipped);
@@ -387,6 +421,29 @@
     return built;
   }
 
+  // The sixteen directions a line of pixels can take and stay clean: flat, upright, the
+  // true diagonal, and the one-in-two slopes between them.
+  var SLOPE = Math.atan(0.5) * 180 / Math.PI;
+  var CLEAN = [0, SLOPE, 45, 90 - SLOPE];
+  /** The nearest clean direction to `deg`, so a blade never shimmers as it turns. */
+  function cleanAngle(deg) {
+    var turn = ((deg % 360) + 360) % 360, quarter = Math.floor(turn / 90), within = turn - quarter * 90, best = 90, i;
+    for (i = 0; i < CLEAN.length; i++) if (Math.abs(CLEAN[i] - within) < Math.abs(best - within)) best = CLEAN[i];
+    return quarter * 90 + best;
+  }
+
+  /**
+   * A run of pixels from (x, y) in the direction `deg`, between the distances `from` and
+   * `to`. It steps whole pixels along its longer axis, which keeps the run even.
+   */
+  function stroke(g, x, y, deg, from, to, colour, ox, oy) {
+    var a = deg * Math.PI / 180, c = Math.cos(a), s = -Math.sin(a), m = Math.max(Math.abs(c), Math.abs(s));
+    g.fillStyle = colour;
+    for (var j = Math.round(from * m); j <= Math.round(to * m); j++) {
+      g.fillRect(Math.round(x + c / m * j) + (ox || 0), Math.round(y + s / m * j) + (oy || 0), 1, 1);
+    }
+  }
+
   /**
    * Draw a straight weapon from a hand, pointing at `deg` degrees (0 = right, 90 = up).
    * kind: sword, dagger, spear or halberd.
@@ -399,13 +456,13 @@
       g.fillRect(Math.round(hx + cx * d + px * off), Math.round(hy + sy * d + py * off), 1, 1);
     }
     if (kind === 'sword' || kind === 'dagger') {
-      var len = kind === 'sword' ? 17 : 10;
-      var edge = kind === 'sword' ? '#8f9fb4' : '#6a6478', steel = kind === 'sword' ? '#eef3f8' : '#b9b2c6';
-      for (i = -3; i <= 0; i++) dot(i, 0, '#3a2a22');                       // grip
-      dot(-4, 0, '#d9a441');                                                // pommel
-      for (i = -3; i <= 3; i++) dot(1, i, kind === 'sword' ? '#d9a441' : '#55505e'); // guard
-      for (i = 2; i <= len; i++) { dot(i, 0, steel); if (i < len - 1) dot(i, 1, edge); }
-      dot(len + 1, 0, '#ffffff');
+      var sword = kind === 'sword', len = sword ? 17 : 10, flat = Math.abs(cx) >= Math.abs(sy);
+      stroke(g, hx, hy, deg, -3, 0, '#3a2a22');                                        // grip
+      stroke(g, hx, hy, deg, -4, -4, '#d9a441');                                       // pommel
+      stroke(g, hx, hy, deg, 2, len, sword ? '#eef3f8' : '#b9b2c6');                   // blade
+      stroke(g, hx, hy, deg, 2, len - 2, sword ? '#8f9fb4' : '#6a6478', flat ? 0 : 1, flat ? 1 : 0); // its shaded edge
+      stroke(g, Math.round(hx + cx), Math.round(hy + sy), deg + 90, -3, 3, sword ? '#d9a441' : '#55505e'); // guard
+      stroke(g, hx, hy, deg, len + 1, len + 1, '#ffffff');                             // point
     } else {
       var shaft = kind === 'spear' ? 30 : 34;
       for (i = -10; i <= shaft; i++) dot(i, 0, i % 7 === 0 ? '#2e2018' : '#4e3626');
@@ -431,6 +488,6 @@
     return c.toDataURL('image/png');
   }
 
-  WW.Sprites = { build: build, paint: paint, makeCanvas: makeCanvas, flipped: flipped, silhouette: silhouette,
-    tinted: tinted, drawWeapon: drawWeapon, iconURL: iconURL, OUTLINE: K };
+  WW.Sprites = { build: build, makeCanvas: makeCanvas, tinted: tinted, drawWeapon: drawWeapon, cleanAngle: cleanAngle,
+    iconURL: iconURL, POSE: POSE, OUTLINE: K };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
