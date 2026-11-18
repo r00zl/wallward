@@ -1,7 +1,7 @@
 /* Wallward: game flow, drawing of the characters, and the page controls. */
 (function () {
   'use strict';
-  var WW = window.WW, D = WW.Daily, A = WW.Answers, Hints = WW.Hints, Scene = WW.Scene, Sp = WW.Sprites;
+  var WW = window.WW, D = WW.Daily, A = WW.Answers, Scene = WW.Scene, Sp = WW.Sprites;
 
   // ---------- rules you may want to tune ----------
   var CONFIG = {
@@ -25,7 +25,7 @@
   ['app', 'cv', 'veil', 'hud', 'lives', 'progress', 'score', 'quitBtn', 'banner', 'floats', 'combo', 'comboN', 'titleBlock',
     'menu', 'playDaily', 'dailyNo', 'dailyDone', 'doneMarks', 'doneLine', 'doneCopy', 'doneNext',
     'playEndless', 'endlessBest', 'howBtn', 'soundBtn', 'stats',
-    'fightTop', 'cat', 'foe', 'qText', 'rule', 'chips', 'hint', 'fightBottom', 'answerForm', 'answer', 'skipBtn', 'strikeBtn', 'feedback',
+    'fightTop', 'cat', 'foe', 'qText', 'rule', 'chips', 'fightBottom', 'answerForm', 'answer', 'skipBtn', 'strikeBtn', 'feedback',
     'end', 'endKicker', 'endTitle', 'endScore', 'endRank', 'endMarks', 'copyBtn', 'againBtn', 'homeBtn', 'nextIn',
     'copyBox', 'copyText', 'howto', 'howClose'].forEach(function (id) { el[id] = $(id); });
 
@@ -89,6 +89,8 @@
     },
     combo: function (n) { [0, 1, 2].forEach(function (i) { tone(392 * Math.pow(1.26, i) * (1 + n / 30), 0.09, 'triangle', 0.05, 0, i * 0.06); }); },
     wrong: function () { tone(210, 0.12, 'square', 0.04, 120); },
+    leap: function () { tone(180, 0.4, 'triangle', 0.05, 900); },
+    thud: function () { tone(110, 0.3, 'sawtooth', 0.09, 34); tone(60, 0.45, 'triangle', 0.08, 30, 0.02); },
     miss: function () { tone(160, 0.25, 'sawtooth', 0.06, 60); },
     step: function () { tone(80, 0.05, 'triangle', 0.04, 55); },
     fell: function () { tone(392, 0.1, 'square', 0.05); tone(523, 0.1, 'square', 0.05, 0, 0.09); tone(659, 0.2, 'square', 0.05, 0, 0.18); },
@@ -103,7 +105,7 @@
   function Cape(n, seg, widths, cols) {
     this.n = n; this.seg = seg; this.widths = widths; this.cols = cols;
     this.x = []; this.y = []; this.px = []; this.py = [];
-    this.acc = 0; this.ready = false;
+    this.acc = 0; this.ready = false; this.dir = -1;
   }
   Cape.prototype.reset = function (ax, ay, dir) {
     for (var i = 0; i < this.n; i++) {
@@ -112,7 +114,8 @@
     }
     this.ready = true;
   };
-  Cape.prototype.step = function (ax, ay, dir, dt, t) {
+  Cape.prototype.step = function (ax, ay, dir, dt, t, floor) {
+    this.dir = dir;
     if (!this.ready || Math.abs(this.x[0] - ax) > 90) this.reset(ax, ay, dir);
     this.acc = Math.min(0.1, this.acc + dt);
     var h = 1 / 60, i, k;
@@ -125,6 +128,12 @@
         var flutter = 110 * Math.sin(t * 9 - i * 0.9) * (i / this.n);
         this.x[i] += vx + dir * gust * h * h;
         this.y[i] += vy + (70 + flutter) * h * h;
+        // a cloak is pinned behind the shoulders: it may flare when its wearer stops short,
+        // but it is drawn back rather than swinging round in front, and it does not sink into the stone
+        var ahead = (this.x[i] - ax) * -dir;
+        if (ahead > 0) this.x[i] += dir * ahead * 0.3;
+        if (this.y[i] < ay - 3) this.y[i] += (ay - 3 - this.y[i]) * 0.3; // nor does it stand up over the head
+        if (floor != null && this.y[i] > floor - this.widths[i] * 0.4) this.y[i] = floor - this.widths[i] * 0.4;
       }
       this.x[0] = ax; this.y[0] = ay;
       for (k = 0; k < 3; k++) {
@@ -137,23 +146,63 @@
     }
     this.x[0] = ax; this.y[0] = ay;
   };
+  /**
+   * Drawn as one unbroken ribbon of cloth. The chain is its upper edge; at every point
+   * the cloth hangs off it at right angles, and neighbouring points share that angle,
+   * so the pieces meet exactly and nothing gaps or doubles up when the cape bends.
+   * Stretches running downhill fall into shade, which is what makes it read as folds.
+   */
   Cape.prototype.draw = function (g) {
-    var i, s, k;
-    for (i = 0; i < this.n - 1; i++) {
-      var dx = this.x[i + 1] - this.x[i], dy = this.y[i + 1] - this.y[i];
-      var d = Math.sqrt(dx * dx + dy * dy) || 1, nx = -dy / d, ny = dx / d;
-      if (ny < 0) { nx = -nx; ny = -ny; } // "down" side of the cloth
-      var w0 = this.widths[i], w1 = this.widths[i + 1];
-      for (s = 0; s <= 1; s += 0.34) {
-        var cx = this.x[i] + dx * s, cy = this.y[i] + dy * s, w = w0 + (w1 - w0) * s;
-        var last = i === this.n - 2;
-        for (k = -1; k < w; k += 0.5) {
-          // the hem is ragged
-          if (last && s > 0.5 && ((Math.round(k) + i) % 3 === 0)) continue;
-          g.fillStyle = k < 0.5 ? this.cols[0] : k > w * 0.6 ? this.cols[2] : this.cols[1];
-          g.fillRect(Math.round(cx + nx * k), Math.round(cy + ny * k), 1, 1);
+    var n = this.n, s = -this.dir, i, j, top = [], bot = [], slope = [], cols = {}, xs = [];
+    for (i = 0; i < n; i++) {
+      var a = Math.max(0, i - 1), b = Math.min(n - 1, i + 1);
+      var tx = this.x[b] - this.x[a], ty = this.y[b] - this.y[a];
+      var d = Math.sqrt(tx * tx + ty * ty) || 1;
+      tx /= d; ty /= d;
+      var nx = ty * s, ny = -tx * s; // towards the hanging side of the cloth
+      top.push([this.x[i] - nx, this.y[i] - ny]);
+      bot.push([this.x[i] + nx * this.widths[i], this.y[i] + ny * this.widths[i]]);
+      slope.push(ty);
+    }
+    // each stretch between two points is a four-sided patch: find the pixels of every column it covers
+    for (i = 0; i < n - 1; i++) {
+      var q = [top[i], top[i + 1], bot[i + 1], bot[i]];
+      var x0 = Math.min(q[0][0], q[1][0], q[2][0], q[3][0]), x1 = Math.max(q[0][0], q[1][0], q[2][0], q[3][0]);
+      var along = top[i + 1][0] - top[i][0];
+      var fold = (slope[i] + slope[i + 1]) / 2;
+      for (var px = Math.round(x0); px <= Math.round(x1 - 0.001); px++) {
+        var cx = Math.min(x1, Math.max(x0, px + 0.5)), lo = 1e9, hi = -1e9;
+        for (j = 0; j < 4; j++) {
+          var p0 = q[j], p1 = q[(j + 1) % 4], ex0 = Math.min(p0[0], p1[0]), ex1 = Math.max(p0[0], p1[0]);
+          if (cx < ex0 || cx > ex1) continue;
+          if (ex1 - ex0 < 0.001) { lo = Math.min(lo, p0[1], p1[1]); hi = Math.max(hi, p0[1], p1[1]); continue; }
+          var y = p0[1] + (p1[1] - p0[1]) * (cx - p0[0]) / (p1[0] - p0[0]);
+          if (y < lo) lo = y;
+          if (y > hi) hi = y;
         }
+        if (hi < lo) continue;
+        var u = Math.abs(along) > 0.01 ? Math.max(0, Math.min(1, (cx - top[i][0]) / along)) : 0;
+        var y0 = Math.round(lo), y1 = Math.max(y0, Math.round(hi) - 1);
+        // the hem is torn: notches cut up into the last stretch, fixed to the cloth so they do not crawl
+        if (i === n - 2 && Math.floor(u * 3) === 1) y1 = Math.max(y0, y1 - 2);
+        if (i === n - 3 && Math.floor(u * 3) === 2) y1 = Math.max(y0, y1 - 1);
+        // neighbouring patches share their boundary columns: keep one span for each column
+        var c = cols[px];
+        if (!c) { cols[px] = [y0, y1, fold]; xs.push(px); }
+        else { if (y0 < c[0]) c[0] = y0; if (y1 > c[1]) c[1] = y1; c[2] = (c[2] + fold) / 2; }
       }
+    }
+    // a dark edge all round, like the figures have, then the cloth itself
+    g.fillStyle = Sp.OUTLINE;
+    for (i = 0; i < xs.length; i++) { var o = cols[xs[i]]; g.fillRect(xs[i] - 1, o[0] - 1, 3, o[1] - o[0] + 3); }
+    for (i = 0; i < xs.length; i++) {
+      var x = xs[i], t0 = cols[x][0], h = cols[x][1] - t0 + 1, f = cols[x][2];
+      // how deep the lit band and the mid band run: more light on a rising fold, more shade on a falling one
+      var lit = f < -0.12 ? Math.ceil(h * 0.5) : f > 0.3 ? 0 : Math.min(2, Math.ceil(h * 0.25));
+      var mid = f < -0.12 ? h - 1 : f > 0.3 ? Math.ceil(h * 0.35) : Math.ceil(h * 0.62);
+      g.fillStyle = this.cols[2]; g.fillRect(x, t0, 1, h);
+      if (mid > 0) { g.fillStyle = this.cols[1]; g.fillRect(x, t0, 1, Math.min(h, mid)); }
+      if (lit > 0) { g.fillStyle = this.cols[0]; g.fillRect(x, t0, 1, Math.min(h, lit)); }
     }
   };
 
@@ -164,8 +213,8 @@
   var G = {
     mode: null, phase: 'title', phaseT: 0, num: 0, plan: null, idx: 0, total: 0,
     lives: CONFIG.LIVES, score: 0, results: [], flawless: true, combo: 0, bestCombo: 0,
-    enemy: null, def: null, prompt: null, used: {}, usedList: [], hintAns: null, hintShown: -2,
-    reveal: '', recent: [], skipArmed: 0,
+    enemy: null, def: null, prompt: null, used: {}, usedList: [],
+    reveal: '', recent: [], skipArmed: 0, told: false,
     camFrom: 0, camTo: 0, walkDur: 2.4, spawned: false,
     strike: null, bits: [], arcs: [], trail: [], fx: [], shake: 0, stop: 0, emberT: 0, tip: null,
     hero: { dx: 0, dy: 0, walkT: 0, hurt: 0, sword: 55 },
@@ -216,7 +265,7 @@
     el.titleBlock.hidden = view !== 'menu';
     el.fightTop.hidden = el.fightBottom.hidden = el.hud.hidden = view !== 'fight';
     el.end.hidden = view !== 'end';
-    if (view !== 'fight') { el.combo.hidden = true; el.floats.innerHTML = ''; }
+    if (view !== 'fight') { el.combo.hidden = true; el.floats.innerHTML = ''; el.banner.hidden = true; }
     skyline();
   }
 
@@ -281,37 +330,13 @@
     skyline();
   }
 
-  /** Letters of one answer not yet given, uncovered as the foe closes in. */
-  function drawHint() {
-    var e = G.enemy, p = G.prompt, n = -1;
-    if (p && e && G.phase === 'fight') {
-      if (!G.hintAns || G.used[G.hintAns.key]) { G.hintAns = Hints.pick(p, G.used); G.hintShown = -2; }
-      if (G.hintAns) n = Hints.hintCount(G.hintAns, e.pace);
-    }
-    if (n === G.hintShown) return;
-    G.hintShown = n;
-    if (n < 0) { el.hint.innerHTML = ''; el.hint.hidden = true; skyline(); return; }
-    var cells = Hints.hintCells(G.hintAns, n), html = '<span class="lead">One more name:</span><span class="word">', i;
-    for (i = 0; i < cells.length; i++) {
-      var c = cells[i];
-      if (c.state === 'gap') html += '</span><span class="word">';
-      else if (c.state === 'mark') html += '<i class="mark">' + esc(c.ch) + '</i>';
-      else html += '<i class="' + c.state + '">' + esc(c.ch || '') + '</i>';
-    }
-    el.hint.innerHTML = html + '</span>';
-    el.hint.hidden = false;
-    el.hint.setAttribute('aria-label', 'A hint: one more answer, ' + (n ? n + ' letters shown' : 'letters hidden'));
-    skyline();
-  }
-
   function setPrompt(p, note) {
-    G.prompt = p; G.hintAns = null;
+    G.prompt = p;
     if (p) { G.used = {}; G.usedList = []; }
     el.qText.textContent = p ? p.q : (note || '');
-    el.rule.textContent = p ? 'Older hits harder. Dated by ' + p.by + '.' : '';
-    el.answer.placeholder = p ? 'A name' : '';
+    el.rule.textContent = p ? 'Give the oldest answer you can. Dated by ' + p.by + '.' : '';
+    el.answer.placeholder = p ? 'Oldest you know' : '';
     drawChips();
-    drawHint();
   }
 
   /** What to say of a question once its foe is done with: the oldest name on the roll. */
@@ -346,7 +371,7 @@
   function startRun(mode, resume) {
     audio();
     G.mode = mode; G.results = []; G.score = 0; G.lives = CONFIG.LIVES; G.idx = 0;
-    G.combo = 0; G.bestCombo = 0; G.recent = []; G.reveal = '';
+    G.combo = 0; G.bestCombo = 0; G.recent = []; G.reveal = ''; G.told = false;
     G.bits = []; G.arcs = []; G.trail = []; G.fx = [];
     G.enemy = null; G.strike = null; G.hero.dx = 0; G.hero.dy = 0;
     G.used = {}; G.usedList = [];
@@ -419,6 +444,9 @@
     G.enemy.stepT = 0;
     setPrompt(G.def.prompt);
     drawFoe();
+    // every foe opens with the one thing to remember; the first of a run says it large
+    feedback('tip', 'Give the oldest answer you can: the older it is, the harder the blow.', 6000);
+    if (!G.told) { G.told = true; banner('Name the oldest you can'); }
   }
 
   function stepEnemy(quiet) {
@@ -426,7 +454,6 @@
     e.pace = Math.max(0, e.pace - 1);
     e.hop = 1; e.foot ^= 1;
     if (!quiet) sfx.step();
-    drawHint();
     if (e.pace <= 0) { e.attack = 0.0001; e.struck = false; }
   }
 
@@ -443,6 +470,70 @@
     G.strike = { stage: 'out', t: 0, from: G.hero.dx, onImpact: onImpact, landed: false,
       tier: tier, cuts: cuts, cut: 0, ticked: false, leap: tier === 3 && !calm, level: comboLevel() };
     sfx.dash();
+  }
+
+  /**
+   * The finishing blow, for the dread knight that ends a wall (and each one met on the
+   * endless march): a run, a leap, a held breath at the top with the sword reversed, then
+   * the point driven down through the helm. The knight stays there a moment before
+   * wrenching the blade free, and only then does the foe come apart.
+   */
+  function finisher(e, onImpact, onBurst) {
+    if (G.strike && !G.strike.landed) { G.strike.landed = true; G.strike.onImpact(); }
+    G.strike = { finisher: true, stage: 'run', t: 0, from: G.hero.dx, onImpact: onImpact, onBurst: onBurst,
+      landed: false, embed: false, tier: 3, level: comboLevel(), spark: 0 };
+    sfx.dash();
+  }
+
+  /** Where the knight must be for the reversed blade to stand in the middle of the foe's helm. */
+  function finisherMark(e) {
+    return { dx: foeX(e) - 8, dy: SPR.warrior.h - e.spr.h - 26 };
+  }
+
+  function updateFinisher(dt) {
+    var s = G.strike, h = G.hero, e = G.enemy, m = finisherMark(e), u;
+    s.t += dt;
+    if (s.stage === 'run') {
+      u = Math.min(1, s.t / 0.18);
+      h.dx = s.from + (m.dx - 30 - s.from) * easeOut(u);
+      h.sword = 150;
+      if (u >= 1) { s.stage = 'leap'; s.t = 0; s.from = h.dx; sfx.leap(); }
+    } else if (s.stage === 'leap') {
+      u = Math.min(1, s.t / 0.42);
+      h.dx = s.from + (m.dx - s.from) * easeOut(u);
+      h.dy = (m.dy - 10) * easeOut(u);
+      h.sword = 150 + 120 * ease(u); // the blade comes over and round to point straight down
+      if (u >= 1) { s.stage = 'hang'; s.t = 0; if (G.tip) G.fx.push({ kind: 'glint', x: G.tip.x, y: G.tip.y + 3, t: 0, life: 0.2 }); }
+    } else if (s.stage === 'hang') {
+      u = Math.min(1, s.t / 0.2);
+      h.dx = m.dx; h.dy = m.dy - 10 - Math.sin(u * Math.PI) * 2; h.sword = 270;
+      if (u >= 1) { s.stage = 'plunge'; s.t = 0; }
+    } else if (s.stage === 'plunge') {
+      u = Math.min(1, s.t / 0.07);
+      h.dx = m.dx; h.dy = m.dy - 10 + 10 * u * u; h.sword = 270;
+      if (u >= 1) { s.stage = 'hold'; s.t = 0; s.landed = true; s.embed = true; s.onImpact(); }
+    } else if (s.stage === 'hold') {
+      u = Math.min(1, s.t / 0.6);
+      h.dx = m.dx; h.dy = m.dy; h.sword = 270;
+      s.spark -= dt;
+      if (s.spark <= 0) { s.spark = 0.05; s.n = (s.n || 0) + 1; embers(e, 2); if (s.n % 4 === 0) e.flash = 0.04; }
+      if (u >= 1) { s.stage = 'rip'; s.t = 0; s.embed = false; s.onBurst(); }
+    } else if (s.stage === 'rip') {
+      u = Math.min(1, s.t / 0.16);
+      var before = h.sword;
+      h.dy = m.dy - 7 * Math.sin(u * Math.PI / 2);
+      h.sword = 270 + 180 * easeOut(u); // wrenched free and swept up overhead
+      G.arcs.push({ a0: before, a1: h.sword, life: 0.16, tier: 3, level: s.level, big: true });
+      if (u >= 1) { s.stage = 'land'; s.t = 0; s.from = h.dy; h.sword = 90; }
+    } else if (s.stage === 'land') {
+      u = Math.min(1, s.t / 0.3);
+      h.dy = s.from * (1 - u * u); h.sword = 90;
+      if (u >= 1) { s.stage = 'pose'; s.t = 0; h.dy = 0; if (!calm) G.shake = 0.14; }
+    } else if (s.stage === 'pose') {
+      h.sword = 90 + Math.sin(s.t * 9) * 3;
+      if (s.t >= 0.6) { s.stage = 'back'; s.t = 0; s.from = h.dx; s.swordFrom = 90; s.finisher = false; }
+    }
+    if (s.stage === 'leap' || s.stage === 'plunge' || s.stage === 'rip') G.trail.push({ dx: h.dx, dy: h.dy, life: 0.18 });
   }
 
   function submit(text) {
@@ -481,8 +572,26 @@
     }
     G.score += gain;
     showCombo(combo);
-    strike(dmg, combo, function () { impact(e, a, dmg, combo, killed); });
-    drawChips(); drawHud(); drawFoe(); drawHint();
+    if (killed && e.kind === 'dread' && !calm) {
+      finisher(e, function () {
+        // the point goes in: the foe is finished but still standing
+        e.hpShown = 0; e.flash = 0.3;
+        floatDamage(e, a, dmg);
+        embers(e, 30); bolt(e); ring(e); veil('flash');
+        sfx.hit(3, combo); sfx.thud();
+        G.shake = 0.6; G.stop = 0.2;
+      }, function () {
+        // the blade is wrenched free and it comes apart
+        e.gone = true;
+        burst(e, 70); embers(e, 40); ring(e); bolt(e);
+        sfx.fell(); sfx.thud();
+        G.shake = 0.5; G.stop = 0.07;
+        banner(G.mode === 'daily' ? 'The wall holds' : 'A dread knight falls');
+      });
+    } else {
+      strike(dmg, combo, function () { impact(e, a, dmg, combo, killed); });
+    }
+    drawChips(); drawHud(); drawFoe();
   }
 
   /** The moment the blade lands: the damage shows, the foe is thrown back, and the sparks fly. */
@@ -500,7 +609,6 @@
     if (killed) { e.gone = true; sfx.fell(); }
     sfx.hit(dmg, combo);
     if (!calm) { G.shake = [0, 0.16, 0.24, 0.44][dmg] + (killed ? 0.1 : 0); G.stop = [0, 0.04, 0.06, 0.11][dmg]; }
-    drawHint();
   }
 
   /** A name that is not on the roll: the foe gains ground and the combo is lost. No torch goes out. */
@@ -529,7 +637,7 @@
       G.phase = 'falling'; G.phaseT = 0;
       feedback('miss', text + ' The last torch goes out.', 6000);
       el.qText.textContent = oldest(G.prompt); el.rule.textContent = '';
-      G.prompt = null; drawHint();
+      G.prompt = null;
       sfx.fall();
       return false;
     }
@@ -567,7 +675,6 @@
     G.prompt = null;
     el.qText.textContent = G.reveal; el.rule.textContent = '';
     el.cat.textContent = 'Slipped past';
-    drawHint();
   }
 
   // ---------- sparks and such ----------
@@ -773,6 +880,7 @@
       h.sword += (55 - h.sword) * (1 - Math.exp(-dt * 10));
       return;
     }
+    if (s.finisher) { updateFinisher(dt); return; }
     s.t += dt;
     var reach = e ? foeX(e) - (e.spr.w / 2 + 11) : 40;
     if (s.stage === 'out') {
@@ -812,7 +920,8 @@
       var b = Math.min(1, s.t / 0.3);
       h.dx = s.from * (1 - ease(b));
       h.dy *= 0.6;
-      h.sword = -55 + 110 * ease(b);
+      var sw = s.swordFrom == null ? -55 : s.swordFrom;
+      h.sword = sw + (55 - sw) * ease(b);
       if (b >= 1) { h.dx = 0; h.dy = 0; G.strike = null; }
     }
     if (!calm && (s.stage !== 'cut' || s.level > 0)) G.trail.push({ dx: h.dx, dy: h.dy, life: 0.16 });
@@ -844,7 +953,6 @@
       }
       if (u >= 1) engage();
     } else if (G.phase === 'fight') {
-      drawHint();
       if (e.attack > 0) {
         // it has reached the warrior: it strikes, then is thrown back to where it began
         e.attack += dt;
@@ -852,14 +960,14 @@
           e.struck = true;
           loseTorch('The ' + NAMES[e.kind].toLowerCase() + ' reaches you.');
         }
-        if (e.attack > 0.55 && G.phase === 'fight') { e.attack = 0; e.pace = CONFIG.START; e.stepT = 0; drawHint(); }
+        if (e.attack > 0.55 && G.phase === 'fight') { e.attack = 0; e.pace = CONFIG.START; e.stepT = 0; }
       } else if (!G.strike) {
         e.stepT += dt;
         if (e.stepT >= e.interval) { e.stepT -= e.interval; stepEnemy(); }
       }
     } else if (G.phase === 'felled') {
       if (e && e.gone && !G.strike && G.phaseT > 1.5) afterEnemy();
-      else if (G.phaseT > 3.2) afterEnemy();
+      else if (G.phaseT > 6) afterEnemy();
     } else if (G.phase === 'fleeing') {
       // it runs on past the knight and off along the wall
       e.pace -= dt * 26;
@@ -907,10 +1015,10 @@
     var moving = G.phase === 'title' || G.phase === 'walk' || G.strike;
     var wf = moving ? Math.floor(h.walkT * 8 + (G.strike ? scene.t * 14 : 0)) % 2 : 2;
     var hx = scene.warriorX() + p.x + Math.round(h.dx) - 9;
-    heroCape.step(hx + ws.neck[0], feet - ws.h + ws.neck[1] + ws.bob[wf] + Math.round(h.dy), -1, dt, scene.t);
+    heroCape.step(hx + ws.neck[0], feet - ws.h + ws.neck[1] + ws.bob[wf] + Math.round(h.dy), -1, dt, scene.t, feet);
     if (e && !e.gone && e.spr.cape) {
       var ex = scene.warriorX() + p.x + foeX(e);
-      foeCape.step(Math.round(ex - e.spr.w / 2) + e.spr.cape[0], feet - e.spr.h + e.spr.cape[1], 1, dt, scene.t + 2);
+      foeCape.step(Math.round(ex - e.spr.w / 2) + e.spr.cape[0], feet - e.spr.h + e.spr.cape[1], 1, dt, scene.t + 2, feet);
     }
   }
 
@@ -963,6 +1071,16 @@
         for (k = 1; k < f.fork.length; k++) line(g, f.fork[k - 1][0], f.fork[k - 1][1], f.fork[k][0], f.fork[k][1], 1);
         g.fillStyle = '#ffffff';
         for (k = 1; k < f.pts.length; k++) line(g, f.pts[k - 1][0], f.pts[k - 1][1], f.pts[k][0], f.pts[k][1], 1);
+      } else if (f.kind === 'glint') {
+        // a four-pointed gleam on the point of the sword
+        var arm = Math.round(1 + 5 * Math.sin(u * Math.PI));
+        g.fillStyle = '#ffffff';
+        g.fillRect(Math.round(f.x) - arm, Math.round(f.y), arm * 2 + 1, 1);
+        g.fillRect(Math.round(f.x), Math.round(f.y) - arm, 1, arm * 2 + 1);
+        g.fillStyle = '#9fd8ff';
+        g.fillRect(Math.round(f.x) - 1, Math.round(f.y) - 1, 3, 3);
+        g.fillStyle = '#ffffff';
+        g.fillRect(Math.round(f.x), Math.round(f.y), 1, 1);
       } else if (f.kind === 'slash') {
         var half = f.tier === 3 ? 13 : f.tier === 2 ? 10 : 8;
         g.fillStyle = u < 0.5 ? '#ffffff' : f.tier === 3 ? '#f08a2c' : f.tier === 2 ? '#f5c044' : '#bfe6ff';
@@ -984,7 +1102,9 @@
         : spr.frames.length === 2 ? (e.hop > 0 ? e.foot : (spr.runs ? 0 : 1))
           : (e.hop > 0 ? e.foot : 2);
       var lunge = e.attack > 0 ? -Math.round(Math.sin(Math.min(1, e.attack / 0.3) * Math.PI) * 9) : 0;
-      var sx = Math.round(ex - spr.w / 2) + lunge, sy = feet - spr.h - hopY;
+      var held = G.strike && G.strike.stage === 'hold'; // run through, and shuddering
+      var sx = Math.round(ex - spr.w / 2) + lunge + (held && Math.floor(scene.t * 40) % 2 ? 1 : 0), sy = feet - spr.h - hopY;
+      G.foeTop = sy;
       shadow(g, ex + lunge, feet, Math.round(spr.w * (spr.floats ? 0.5 : 0.75)));
       if (spr.cape) foeCape.draw(g);
       rim(g, spr.flash[frame], sx, sy);
@@ -995,7 +1115,7 @@
         var rest = spr.weapon === 'dagger' ? 118 : 96;
         Sp.drawWeapon(g, sx + spr.hand[0], sy + spr.hand[1] + spr.bob[frame], rest + swing + Math.sin(scene.t * 2) * 2, spr.weapon);
       }
-      if (G.phase === 'fight' || G.phase === 'felled' || G.phase === 'falling') {
+      if ((G.phase === 'fight' || G.phase === 'felled' || G.phase === 'falling') && !(G.strike && G.strike.finisher)) {
         // its health, one pip for each point of damage it can still take, and the time before its next step
         var pw = e.maxHp <= 8 ? 4 : e.maxHp <= 10 ? 3 : 2, w = e.maxHp * (pw + 1) + 1;
         var cx = Math.round(ex) + lunge, left = cx - Math.floor(w / 2), top = sy - (spr.weapon && spr.weapon !== 'dagger' ? 22 : 9);
@@ -1037,7 +1157,14 @@
     var hx = shx + Math.round(Math.cos(a) * 3 + 2), hy = shy + Math.round(-Math.sin(a) * 3 + 2);
     g.fillStyle = '#5d6779'; g.fillRect(Math.min(shx, hx), Math.min(shy, hy), Math.abs(hx - shx) + 2, Math.abs(hy - shy) + 2);
     g.fillStyle = '#9aa3b3'; g.fillRect(hx, hy, 2, 2);
-    Sp.drawWeapon(g, hx + 1, hy, h.sword, 'sword');
+    if (s && s.embed && e) {
+      // the blade is buried in the helm: only what stands above it shows
+      g.save(); g.beginPath(); g.rect(0, 0, scene.W, G.foeTop + 5); g.clip();
+      Sp.drawWeapon(g, hx + 1, hy, h.sword, 'sword');
+      g.restore();
+    } else {
+      Sp.drawWeapon(g, hx + 1, hy, h.sword, 'sword');
+    }
     G.tip = { x: hx + Math.cos(a) * 15, y: hy - Math.sin(a) * 15 };
     // the sweep of the blade: white for a plain cut, gold for two damage, fire for three
     for (i = 0; i < G.arcs.length; i++) {

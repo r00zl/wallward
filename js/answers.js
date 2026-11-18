@@ -169,9 +169,8 @@
   }
 
   function lookup(index, inF, inB) {
-    var a = index.map[inF], b = inB !== inF ? index.map[inB] : null;
-    if (a && b) return b.pri < a.pri ? b : a;
-    return a || b || null;
+    // what was typed, as typed, comes first; only then the same with titles and filler words dropped
+    return index.map[inF] || (inB !== inF ? index.map[inB] : null) || null;
   }
 
   /**
@@ -224,67 +223,6 @@
     if (used[best.key]) return { used: true, ans: best };
     return { ok: true, ans: best, exact: false };
   }
-
-  // ---------- letter hints ----------
-  // As a foe closes in, the letters of one name still unused are uncovered: the first
-  // letter of each word, then others in a fixed scrambled order. Never more than about
-  // 40%, and the name is always one of the weakest left, so a hint is a lifeline and
-  // not a free heavy blow.
-  var SHOW_AT = 5;                      // paces at which the blank tiles appear
-  var REVEAL_AT = [4, 3, 3, 2, 2, 1, 1]; // paces at which one more letter appears
-
-  /** The name to hint at: weakest damage first, well-known names before obscure ones. */
-  function pick(prompt, used) {
-    var left = prompt.answers.filter(function (a) { return !used[a.key]; });
-    if (!left.length) return null;
-    left.sort(function (a, b) {
-      return (a.dmg - b.dmg) || ((b.star ? 1 : 0) - (a.star ? 1 : 0)) ||
-        (WW.hashStr(prompt.id + a.name) - WW.hashStr(prompt.id + b.name));
-    });
-    return left[0];
-  }
-
-  function plan(ans) {
-    if (ans._hint) return ans._hint;
-    var text = ans.name, starts = [], rest = [], i, prev = false;
-    for (i = 0; i < text.length; i++) {
-      var isLetter = /[A-Za-z0-9À-ɏ]/.test(text.charAt(i));
-      if (isLetter) (prev ? rest : starts).push(i);
-      prev = isLetter;
-    }
-    var n = starts.length + rest.length;
-    var cap = n <= 2 ? 0 : n <= 4 ? 1 : Math.floor(n * 0.4);
-    var seed = WW.hashStr(ans.key);
-    for (i = rest.length - 1; i > 0; i--) {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-      var j = seed % (i + 1), x = rest[i]; rest[i] = rest[j]; rest[j] = x;
-    }
-    ans._hint = { text: text, order: starts.concat(rest), cap: cap, letters: n };
-    return ans._hint;
-  }
-
-  /** How many letters to show when the foe is `pace` paces away; -1 while it is still far off. */
-  function hintCount(ans, pace) {
-    if (pace > SHOW_AT) return -1;
-    var n = 0, i;
-    for (i = 0; i < REVEAL_AT.length; i++) if (pace <= REVEAL_AT[i]) n++;
-    return Math.min(plan(ans).cap, n);
-  }
-
-  /** The name as cells: { ch, state } where state is 'open', 'hidden', 'gap' or 'mark'. */
-  function hintCells(ans, count) {
-    var h = plan(ans), open = {}, i, out = [];
-    for (i = 0; i < Math.min(count, h.cap); i++) open[h.order[i]] = true;
-    for (i = 0; i < h.text.length; i++) {
-      var ch = h.text.charAt(i);
-      if (ch === ' ') out.push({ ch: ' ', state: 'gap' });
-      else if (!/[A-Za-z0-9À-ɏ]/.test(ch)) out.push({ ch: ch, state: 'mark' });
-      else out.push({ ch: open[i] ? ch : '', state: open[i] ? 'open' : 'hidden' });
-    }
-    return out;
-  }
-
-  WW.Hints = { SHOW_AT: SHOW_AT, REVEAL_AT: REVEAL_AT, pick: pick, plan: plan, hintCount: hintCount, hintCells: hintCells };
 
   WW.Answers = { norm: norm, stripNoise: stripNoise, distance: distance, tolerance: tolerance, parts: parts,
     index: ix, setGuard: setGuard, check: check };
