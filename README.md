@@ -1,9 +1,17 @@
-# Wallward
+# Predate
+
+*The oldest answer wins.*
 
 A daily dark-fantasy pixel history game. A lone knight holds a great wall; each
 foe that comes along it demands a name from history, such as "Name a Roman
 emperor". Any true answer strikes it, and **the older your answer, the harder
-the blow**.
+the blow**: to win, give an answer that predates the rest.
+
+The name is set in blackletter with a sword, point down, standing for its t;
+the knight's helm is the icon. The game was built under the working title
+Wallward, which survives in the repository's name, the `WW` namespace in the
+code and the `wallward` key under which progress is saved (so that nobody's
+streak was lost to the change of name).
 
 No build step, no server, no dependencies: open `index.html` and play. It is
 laid out for phones as well as desktops, and can be added to a phone's home
@@ -66,7 +74,7 @@ Gate at dawn to the Ashen Gate at night. It is the same for everyone and can be
 played once a day. The result can be copied as a spoiler-free row:
 
 ```
-Wallward No. 1 · 8,765 glory
+Predate No. 1 · 8,765 glory
 🗡️⚔️💨⚔️⚔️  4/5 · combo ×8
 ```
 
@@ -225,6 +233,14 @@ otherwise. Pressing Skip or Strike keeps the keyboard open.
 In the repository settings choose **Pages → Deploy from a branch → main / (root)**.
 The game is then served at `https://<user>.github.io/<repo>/`, and copied
 results include that address automatically.
+
+To serve it from a domain of its own, such as `playpredate.quest`: at the
+registrar, point the domain's four `A` records at GitHub Pages
+(`185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`)
+and a `www` `CNAME` at `<user>.github.io`; then enter the domain under
+**Pages → Custom domain** and tick **Enforce HTTPS** once the certificate is
+issued. Do this only after the DNS records exist, or the old address will
+redirect to a domain that does not answer yet.
 
 ## Inspirations
 

@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<title>Wallward</title>
-<meta name="description" content="A daily dark-fantasy pixel history game. Hold the wall: name what each foe demands, and the older your answer, the harder the blow.">
+<title>Predate: the oldest answer wins</title>
+<meta name="description" content="Predate: a daily dark-fantasy pixel history game. Hold the wall by naming what each foe demands. The oldest answer wins.">
 <meta name="theme-color" content="#0d0b12">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Wallward">
+<meta name="apple-mobile-web-app-title" content="Predate">
 <meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -83,6 +83,8 @@ button { cursor: pointer; }
   font-size: clamp(76px, 21vw, 200px); color: var(--bone);
   text-shadow: 4px 4px 0 var(--ink), -2px 0 0 var(--ink), 0 -2px 0 var(--ink), 2px 0 0 var(--ink), 0 6px 0 rgba(94, 18, 32, 0.9);
 }
+.title-block h1 .sword { display: inline-block; height: 0.96em; width: 0.352em; vertical-align: -0.13em; margin: 0 0.02em;
+  filter: drop-shadow(3px 3px 0 var(--ink)) drop-shadow(0 5px 0 rgba(94, 18, 32, 0.9)); }
 .title-block p { margin: 6px 0 0; max-width: 25ch; font-size: clamp(20px, 2.4vw, 25px); line-height: 1.05; }
 
 /* ---------- during a run ---------- */
@@ -280,8 +282,9 @@ dialog .recap { margin-bottom: 14px; }
   <div class="veil" id="veil"></div>
 
   <div class="title-block outlined" id="titleBlock">
-    <h1>Wallward</h1>
-    <p>Hold the wall. Each foe demands a name from history: the older your answer, the harder the blow.</p>
+    <!-- the name, with a sword, point down, standing for its t -->
+    <h1 aria-label="Predate"><span aria-hidden="true">Preda<svg class="sword" viewBox="0 0 11 30" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path fill="#0d0b12" d="M4 0h3v1h-3zM3 1h1v1h-1zM7 1h1v1h-1zM3 2h1v1h-1zM7 2h1v1h-1zM3 3h1v1h-1zM7 3h1v1h-1zM3 4h1v1h-1zM7 4h1v1h-1zM3 5h1v1h-1zM7 5h1v1h-1zM3 6h1v1h-1zM7 6h1v1h-1zM0 7h11v1h-11zM0 8h1v1h-1zM10 8h1v1h-1zM0 9h1v1h-1zM10 9h1v1h-1zM0 10h4v1h-4zM7 10h4v1h-4zM3 11h1v16h-1zM7 11h1v16h-1zM4 27h1v1h-1zM7 27h1v1h-1zM4 28h1v1h-1zM6 28h1v1h-1zM5 29h1v1h-1z"/><path fill="#d9a441" d="M4 1h3v1h-3zM4 2h1v1h-1zM1 8h9v1h-9zM1 9h1v1h-1zM9 9h1v1h-1z"/><path fill="#9a6f24" d="M5 2h2v1h-2zM2 9h7v1h-7z"/><path fill="#8f1d2c" d="M4 3h2v1h-2zM5 4h2v1h-2zM4 5h2v1h-2zM5 6h2v1h-2z"/><path fill="#5e1220" d="M6 3h1v1h-1zM4 4h1v1h-1zM6 5h1v1h-1zM4 6h1v1h-1z"/><path fill="#ffffff" d="M4 10h1v1h-1zM4 11h1v16h-1z"/><path fill="#c9d1dc" d="M5 10h1v1h-1zM5 11h1v16h-1zM5 27h1v1h-1zM5 28h1v1h-1z"/><path fill="#7b8798" d="M6 10h1v1h-1zM6 11h1v16h-1zM6 27h1v1h-1z"/></svg>e</span></h1>
+    <p>The oldest answer wins. Each foe demands a name from history: the older yours, the harder the blow.</p>
   </div>
 
   <header class="hud outlined" id="hud" hidden>

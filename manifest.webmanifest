@@ -1,7 +1,7 @@
 {
-  "name": "Wallward",
-  "short_name": "Wallward",
-  "description": "A daily dark-fantasy pixel history game. Hold the wall: the older your answer, the harder the blow.",
+  "name": "Predate",
+  "short_name": "Predate",
+  "description": "A daily dark-fantasy pixel history game. Hold the wall: the oldest answer wins.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
