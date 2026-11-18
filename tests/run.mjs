@@ -35,7 +35,7 @@ for (const p of bank) {
   const deadly = p.answers.filter(a => D.kills(p, a));
   ok(D.kills(p, p.oldest), 'the oldest answer fells outright: ' + p.id);
   ok(deadly.every(a => a.dmg === 3), 'an answer that fells outright is in the heaviest tier: ' + p.id + ' ' + deadly.filter(a => a.dmg < 3).map(a => a.name));
-  ok(deadly.length <= Math.max(2, p.answers.length * 0.12), 'few answers fell outright: ' + p.id + ' ' + deadly.length + ' of ' + p.answers.length);
+  ok(new Set(deadly.map(a => a.year)).size <= D.KILL_MOST, 'only the few oldest dates fell outright: ' + p.id + ' ' + deadly.length + ' of ' + p.answers.length);
   if (p.id === p.family) { rolls++; names += p.answers.length; }
   const seen = new Map();
   for (const a of p.answers) {
@@ -233,7 +233,7 @@ for (let n = 1; n <= DAYS; n++) {
     lastFam.set(f, n);
   }
 }
-ok(minGap >= 7, 'no question returns within a week (closest ' + minGap + ')');
+ok(minGap >= 12, 'no question returns within twelve days (closest ' + minGap + ')');
 ok(sameFamNextDay === 0, 'a roll is never used two days running (' + sameFamNextDay + ')');
 const dailyPool = bank.filter(p => D.DAILY_ENEMIES.some(e => e.tier === p.tier));
 ok(dailyPool.every(p => used.get(p.id) > 0), 'every daily question gets used: missing ' + dailyPool.filter(p => !used.get(p.id)).map(p => p.id));
@@ -289,11 +289,18 @@ const OLDEST = {
   revolutions: 'Neolithic Revolution', 'ww2-battles': 'Westerplatte', philosophers: 'Thales', ships: 'Khufu ship',
   olympics: 'Athens', 'uk-pms': 'Robert Walpole', 'french-monarchs': 'Clovis I', 'russian-tsars': 'Ivan the Terrible',
   'chinese-dynasties': 'Xia', pharaohs: 'Narmer', 'soviet-leaders': 'Vladimir Lenin', wives: 'Catherine of Aragon',
-  wonders: 'Great Pyramid of Giza', 'royal-houses': 'Wessex', space: 'Sputnik', queens: 'Merneith',
+  wonders: 'Great Pyramid of Giza', 'royal-houses': 'Wessex', space: 'Sputnik', queens: 'Neithhotep',
   documents: 'Treaty of Mesilim', 'ottoman-sultans': 'Osman I', 'mughal-emperors': 'Babur',
-  'japanese-periods': 'Japanese Paleolithic', 'ww1-battles': 'Liege', 'napoleonic-battles': 'Valmy',
+  'japanese-periods': 'Japanese Paleolithic', 'ww1-battles': 'Liege', 'napoleonic-battles': 'Quievrain',
   crusades: 'People\'s Crusade', 'thirteen-colonies': 'Virginia', 'german-chancellors': 'Otto von Bismarck',
-  'civil-war-battles': 'Fort Sumter', moonwalkers: 'Neil Armstrong'
+  'civil-war-battles': 'Fort Sumter', moonwalkers: 'Neil Armstrong',
+  'us-states': 'Delaware', elements: 'Gold', 'world-cup-hosts': 'Uruguay', emperors: 'Sargon of Akkad',
+  'us-wars': 'American Revolutionary War', 'board-games': 'Senet', aeroplanes: 'Wright Flyer',
+  'naval-battles': 'Alashiya', 'french-presidents': 'Louis-Napoleon Bonaparte', 'nobel-peace': 'Henry Dunant',
+  mathematicians: 'Ahmes', architects: 'Imhotep', 'holy-roman-emperors': 'Charlemagne',
+  'scottish-monarchs': 'Kenneth MacAlpin', caliphates: 'Rashidun', 'roses-battles': 'First St Albans',
+  'revolutionary-war-battles': 'Lexington and Concord', 'indian-pms': 'Jawaharlal Nehru',
+  'canadian-pms': 'John A. Macdonald', 'australian-pms': 'Edmund Barton', 'winter-olympics': 'Chamonix'
 };
 for (const p of bank) {
   if (p.id !== p.family) continue;
