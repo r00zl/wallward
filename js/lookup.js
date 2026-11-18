@@ -17,7 +17,11 @@
   var API = 'https://www.wikidata.org/w/api.php?format=json&origin=*&';
   var QUERY = 'https://query.wikidata.org/sparql?format=json&query=';
   var TIMEOUT = 6000;  // milliseconds before one request is given up
-  var PATIENCE = 9000; // milliseconds before the whole search is
+  var ASK_WAIT = 4500; // or one question to the query service, which is the slower to answer
+  var SLOW = 1100;     // milliseconds after which that question is also worked out by hand
+  var PATIENCE = 9000; // milliseconds before the whole search is given up
+  var WIDTH = 5;       // when working it out by hand: classes followed at each step,
+  var REACH = 4;       // and steps taken at most
   var HITS = 10;       // results taken from each search
   var TRIED = 3;       // of the hits that bear the name, how many are examined
   var NEAR = 3;        // steps up within which a person's calling is looked for (an astrophysicist is a scientist)
@@ -125,9 +129,9 @@
   }
 
   // ---------- asking ----------
-  function get(address) {
+  function get(address, wait) {
     var stop = root.AbortController ? new root.AbortController() : null;
-    var timer = root.setTimeout(function () { if (stop) stop.abort(); }, TIMEOUT);
+    var timer = root.setTimeout(function () { if (stop) stop.abort(); }, wait || TIMEOUT);
     function done() { root.clearTimeout(timer); }
     return root.fetch(address, stop ? { signal: stop.signal } : {}).then(function (res) {
       if (!res.ok) throw new Error('the archives answered ' + res.status);
@@ -163,25 +167,63 @@
     });
   }
 
+  function ids(list) { return list.map(function (q) { return 'wd:' + q; }).join(' '); }
+
+  /** Ask the query service whether anything in `start` lies within `depth` steps of `prop` under a target. */
+  function ask(start, prop, targets, depth) {
+    var ladder = [], d;
+    for (d = 1; d <= depth; d++) ladder.push('{ ?from ' + new Array(d + 1).join('wdt:' + prop + '/').slice(0, -1) + ' ?to }');
+    return get(QUERY + encodeURIComponent('ASK { VALUES ?from { ' + ids(start) + ' } VALUES ?to { ' + ids(targets) + ' } ' +
+      ladder.join(' UNION ') + ' }'), ASK_WAIT).then(function (res) { return res.boolean === true; });
+  }
+
+  var above = {}; // above['P279 Q49757'] = ['Q36180', ...]: what a class or event sits directly under, once learnt
+  /** The same question answered by hand, a step at a time: slower and narrower, but it needs only the main site. */
+  function climb(start, prop, targets, depth, seen) {
+    if (start.some(function (q) { return targets.indexOf(q) !== -1; })) return Promise.resolve(true);
+    var from = start.slice(0, WIDTH);
+    if (!depth || !from.length) return Promise.resolve(false);
+    var unknown = from.filter(function (q) { return !above[prop + ' ' + q]; });
+    return Promise.all(unknown.map(function (q) {
+      return facts(q, [prop]).then(function (claims) { above[prop + ' ' + q] = linked(claims, prop); });
+    })).then(function () {
+      var next = [];
+      from.forEach(function (q) {
+        above[prop + ' ' + q].forEach(function (up) { if (!seen[up]) { seen[up] = true; next.push(up); } });
+      });
+      return climb(next, prop, targets, depth - 1, seen);
+    });
+  }
+
+  /**
+   * Put the question to the query service, which walks the whole ladder in one request. It
+   * is a shared service and sometimes slow, so if it has not answered soon the ladder is
+   * climbed by hand as well. A yes from either settles it; a no from the climb counts only
+   * once the service has failed, since the climb looks at fewer rungs.
+   */
+  function settle(start, prop, targets, depth) {
+    var asked = ask(start, prop, targets, depth);
+    var soon = new Promise(function (resolve) { root.setTimeout(function () { resolve('slow'); }, SLOW); });
+    var byHand = Promise.race([asked.then(function () { return 'answered'; }, function () { return 'failed'; }), soon]).then(function (state) {
+      return state === 'answered' ? null : climb(start, prop, targets, Math.min(depth, REACH), {});
+    });
+    return new Promise(function (resolve, reject) {
+      asked.then(resolve, function () { byHand.then(resolve, reject); });
+      byHand.then(function (yes) { if (yes) resolve(true); }, function () { /* the service may yet answer */ });
+    });
+  }
+
   var climbs = {};
   /**
    * Does anything in `start` sit at or under one of `targets`, within `depth` steps of `prop`?
    * (Is a cathedral a building? Is this battle part of that war?) Often the archives say so
-   * outright; if not, one question to the query service, which walks the ladder, settles it.
+   * outright, and nothing more need be asked.
    */
   function reaches(start, prop, targets, depth) {
     if (start.some(function (q) { return targets.indexOf(q) !== -1; })) return Promise.resolve(true);
     if (!start.length) return Promise.resolve(false);
-    function ids(list) { return list.map(function (q) { return 'wd:' + q; }).join(' '); }
     var id = prop + ' ' + start.slice().sort().join(' ') + ' under ' + targets.join(' ');
-    if (!climbs[id]) {
-      var ladder = [], d;
-      for (d = 1; d <= depth; d++) ladder.push('{ ?from ' + new Array(d + 1).join('wdt:' + prop + '/').slice(0, -1) + ' ?to }');
-      climbs[id] = get(QUERY + encodeURIComponent('ASK { VALUES ?from { ' + ids(start) + ' } VALUES ?to { ' + ids(targets) + ' } ' +
-        ladder.join(' UNION ') + ' }')).then(function (res) {
-        return res.boolean === true;
-      }, function (err) { delete climbs[id]; throw err; });
-    }
+    if (!climbs[id]) climbs[id] = settle(start, prop, targets, depth).catch(function (err) { delete climbs[id]; throw err; });
     return climbs[id];
   }
 
