@@ -2,10 +2,17 @@
 
 *The oldest answer wins.*
 
-A daily dark-fantasy pixel history game. A lone knight holds a great wall; each
-foe that comes along it demands a name from history, such as "Name a Roman
-emperor". Any true answer strikes it, and **the older your answer, the harder
-the blow**: to win, give an answer that predates the rest.
+A daily dark-fantasy pixel trivia game. A lone knight holds a great wall; each
+foe that comes along it demands a name, such as "Name a Roman emperor" or
+"Name a Grand Theft Auto game". Any true answer strikes it, and **the older
+your answer, the harder the blow**: to win, give an answer that predates the
+rest.
+
+The questions are of two kinds. **History**: emperors, battles, inventions,
+painters. **Everyday knowledge**: video games, consoles, mobile phones, Disney,
+Pixar, Bond, Star Wars and Marvel films, albums, football clubs and champions,
+soft drinks, chocolate bars, comic-book heroes. Everybody can name a phone;
+the game is who can name the oldest.
 
 The name is set in blackletter with a sword, point down, standing for its t;
 the knight's helm is the icon. The game was built under the working title
@@ -35,8 +42,8 @@ screen.
 - **True answers the game does not list still count** on the open-ended
   questions (painters, writers, composers, scientists, philosophers,
   mathematicians, architects, explorers, generals, wars, battles, revolutions,
-  landmarks, ships, aeroplanes, board games, treaties, empires and space
-  missions). A name that is not on the roll is looked up on Wikidata: it must
+  landmarks, ships, aeroplanes, board games, treaties, empires, space
+  missions, video games, mobile phones and British football clubs). A name that is not on the roll is looked up on Wikidata: it must
   be of the right kind, have an English Wikipedia article and carry a date,
   and it is then worth whatever its date earns. The foe waits while the
   archives are searched, usually about a second. Closed lists, such as the
@@ -100,12 +107,17 @@ There is no server. Every browser works out the same wall from the date:
   evenly, a tier-1 question does not return within 12 days nor a tier-2
   question within 20, two questions drawn from the same roll of names never
   share a day, and a roll used one day is not used the next.
-- The bank has 113 questions built on 64 rolls holding about 5,240 names. The
-  rolls aim to hold most answers a player could fairly give; closed sets such
-  as monarchs, presidents and prime ministers are complete. The daily wall
-  uses three tier-1 questions and two tier-2 questions, so a tier-1 question
-  comes round again about every 14 days and a tier-2 question about every 24.
-  Tier 3 appears deep in the endless march only.
+- The bank has 152 questions built on 89 rolls holding about 6,340 names: 113
+  questions of history and 39 of everyday knowledge. The rolls aim to hold
+  most answers a player could fairly give; closed sets such as monarchs,
+  presidents, Bond films and Pixar films are complete.
+- The five foes of a wall take turns: the first and third ask an everyday
+  question, the second and fourth a history question, and the last may ask
+  either. The first three are tier 1 and the last two tier 2. An everyday
+  tier-1 question comes round again about every 15 days; a history one
+  rather less often. Tier 3 appears deep in the endless march only.
+- The everyday rolls are current to 18 November 2026 (Grand Theft Auto VI,
+  out the next day, is on the roll). New releases need adding by hand.
 
 Adding rolls lengthens the gaps automatically. Changing the bank reshuffles
 future days, so avoid editing it in the middle of a UTC day once people are
