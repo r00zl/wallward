@@ -142,7 +142,7 @@ icon-192.png, icon-512.png
 js/questions.js        the rolls of names and their cut-off years
 js/answers.js          typed-answer matching
 js/daily.js            date-seeded daily calendar, endless mode, scoring
-js/sprites.js          pixel sprites drawn from text pictures; weapons drawn at any angle
+js/sprites.js          pixel sprites drawn from text pictures; the knight's poses; blades drawn at clean pixel angles
 js/scene.js            the wall, five backdrops, parallax, weather, torches
 js/sound.js            the few sounds, made with the Web Audio API
 js/cape.js             the wind-blown cloak
