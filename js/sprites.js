@@ -1,4 +1,4 @@
-/* Wallward pixel sprites.
+/* Predate pixel sprites.
  *
  * Every sprite is a small text picture: one character per pixel, looked up in
  * a palette. "." is transparent. Sprites are drawn facing right; enemies are

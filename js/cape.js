@@ -1,4 +1,4 @@
-/* Wallward cloaks: cloth that streams in the wind behind its wearer. */
+/* Predate cloaks: cloth that streams in the wind behind its wearer. */
 (function (root) {
   'use strict';
   var WW = root.WW = root.WW || {};

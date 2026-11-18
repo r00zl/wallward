@@ -1,4 +1,4 @@
-/* Wallward sound: synthesised effects and a slow score, off until the player switches them on.
+/* Predate sound: synthesised effects and a slow score, off until the player switches them on.
  *
  * Nothing here is a recording. The effects are tones and bursts of filtered noise. The score
  * is a dark, slow air in D minor that the browser plays from oscillators: a low drone, wind,

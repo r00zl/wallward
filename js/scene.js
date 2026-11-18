@@ -1,4 +1,4 @@
-/* Wallward scenery.
+/* Predate scenery.
  *
  * The scene fills the whole page. It is drawn at low resolution in layers that
  * slide at different speeds as the warrior walks and as the pointer moves:

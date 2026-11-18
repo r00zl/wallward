@@ -1,4 +1,4 @@
-/* Wallward daily puzzle and the rules that go with it.
+/* Predate daily puzzle and the rules that go with it.
  *
  * There is no server. Everyone gets the same wall because the day's questions
  * are picked from the bank by a deterministic shuffle keyed on the UTC date.
@@ -182,7 +182,7 @@
 
   function shareText(num, results, glory, total, url, bestCombo) {
     var felled = felledCount(results);
-    var lines = ['Wallward No. ' + num + ' · ' + fmt(glory) + ' glory',
+    var lines = ['Predate No. ' + num + ' · ' + fmt(glory) + ' glory',
       markRow(results, total) + '  ' + felled + '/' + total + (bestCombo > 1 ? ' · combo ×' + bestCombo : '')];
     if (url) lines.push(url);
     return lines.join('\n');

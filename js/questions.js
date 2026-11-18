@@ -1,4 +1,4 @@
-/* Wallward question bank: history only.
+/* Predate question bank: history only.
  *
  * Every question is a roll of names. The player may give any name on the roll,
  * and each name carries a date. The older the answer, the harder it hits:

@@ -1,4 +1,4 @@
-/* Wallward archives: true answers that are not on a roll.
+/* Predate archives: true answers that are not on a roll.
  *
  * No roll can hold every painter or every battle. When a typed name is not on a
  * question's roll, the game asks Wikidata (the open database behind Wikipedia)
@@ -17,6 +17,7 @@
   var API = 'https://www.wikidata.org/w/api.php?format=json&origin=*&';
   var QUERY = 'https://query.wikidata.org/sparql?format=json&query=';
   var TIMEOUT = 6000;  // milliseconds before one request is given up
+  var AGAIN = 500;     // milliseconds before a search that was too busy is asked once more
   var ASK_WAIT = 4500; // or one question to the query service, which is the slower to answer
   var SLOW = 1100;     // milliseconds after which that question is also worked out by hand
   var PATIENCE = 9000; // milliseconds before the whole search is given up
@@ -136,14 +137,30 @@
     return root.fetch(address, stop ? { signal: stop.signal } : {}).then(function (res) {
       if (!res.ok) throw new Error('the archives answered ' + res.status);
       return res.json();
-    }).then(function (data) { done(); return data; }, function (err) { done(); throw err; });
+    }).then(function (data) {
+      done();
+      if (data && data.error) throw new Error('the archives answered: ' + data.error.code); // "too busy", for one
+      return data;
+    }, function (err) { done(); throw err; });
   }
 
-  /** The items a search turns up, best first. */
+  function pause(ms) { return new Promise(function (resolve) { root.setTimeout(resolve, ms); }); }
+
+  /** The items a search turns up, best first. The search is sometimes too busy to answer, so it is asked twice. */
   function search(words) {
-    return get(API + 'action=query&list=search&srnamespace=0&srlimit=' + HITS + '&srsearch=' + encodeURIComponent(words)).then(function (res) {
-      return ((res.query && res.query.search) || []).map(function (hit) { return hit.title; })
-        .filter(function (title) { return /^Q\d+$/.test(title); });
+    function once() {
+      return get(API + 'action=query&list=search&srnamespace=0&srlimit=' + HITS + '&srsearch=' + encodeURIComponent(words)).then(function (res) {
+        return ((res.query && res.query.search) || []).map(function (hit) { return hit.title; })
+          .filter(function (title) { return /^Q\d+$/.test(title); });
+      });
+    }
+    return once().catch(function () { return pause(AGAIN).then(once); });
+  }
+
+  /** A plainer search, by how a name begins: it finds less, but answers when the full search will not. */
+  function byName(words) {
+    return get(API + 'action=wbsearchentities&type=item&language=en&uselang=en&limit=' + HITS + '&search=' + encodeURIComponent(words)).then(function (res) {
+      return (res.search || []).map(function (hit) { return hit.id; });
     });
   }
 
@@ -254,9 +271,14 @@
     // a narrower class may be all that is recorded (a poet who is nowhere called a writer)
     var exact = kind.under.map(function (q) { return kind.by + '=' + q; }).join('|');
     var wider = words + (kind.human ? ' haswbstatement:P31=Q5' : '');
-    return Promise.all([search(words + ' haswbstatement:' + exact), search(wider)]).then(function (lists) {
-      var hits = lists[0].concat(lists[1]).filter(function (q, i, all) { return all.indexOf(q) === i; });
-      if (!hits.length) return { status: 'none' };
+    var first = search(words + ' haswbstatement:' + exact).catch(function () { return null; });
+    var second = search(wider).catch(function () { return byName(words); }).catch(function () { return null; });
+    return Promise.all([first, second]).then(function (lists) {
+      if (!lists[0] && !lists[1]) throw new Error('no search answered');
+      // half a search cannot rule a name out: if one of the two never answered, "none" becomes "could not tell"
+      function verdict(result) { return result.status === 'none' && !(lists[0] && lists[1]) ? { status: 'unreachable' } : result; }
+      var hits = (lists[0] || []).concat(lists[1] || []).filter(function (q, i, all) { return all.indexOf(q) === i; });
+      if (!hits.length) return verdict({ status: 'none' });
       return get(API + 'action=wbgetentities&props=labels|aliases|sitelinks&languages=en|mul&sitefilter=enwiki&ids=' + hits.join('|')).then(function (res) {
         var known = [];
         hits.forEach(function (q) {
@@ -268,7 +290,7 @@
         // every hit that goes by the typed name, in the order the search gave them: a mountain
         // pass called Thermopylae must not hide the battle of Thermopylae
         var named = known.filter(function (item) { return WW.Answers.named(words, [item], isPeople).length; });
-        return weigh(kind, named.slice(0, TRIED), 0, null);
+        return weigh(kind, named.slice(0, TRIED), 0, null).then(verdict);
       });
     });
   }

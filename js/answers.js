@@ -1,4 +1,4 @@
-/* Wallward answer checking.
+/* Predate answer checking.
  *
  * Each question is a roll of names. A typed answer is matched against every name
  * and spelling on the roll after normalising case, accents, punctuation and

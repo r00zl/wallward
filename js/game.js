@@ -1,4 +1,4 @@
-/* Wallward: game flow, drawing of the characters, and the page controls. */
+/* Predate: game flow, drawing of the characters, and the page controls. */
 (function () {
   'use strict';
   var WW = window.WW, D = WW.Daily, A = WW.Answers, Lookup = WW.Lookup, Scene = WW.Scene, Sp = WW.Sprites, Cape = WW.Cape, sfx = WW.Sound.sfx;
