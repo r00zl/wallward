@@ -22,18 +22,23 @@
 
   function ids(list) { return list.map(function (q) { return 'wd:' + q; }).join(' '); }
 
+  // A statement that still stands (not withdrawn), whatever its rank. The short "truthy" form
+  // will not do: where one calling is marked as the chief one, it hides all the others, and
+  // Hitler the painter and Churchill the painter would both be missed.
+  function stands(statement) { return 'FILTER NOT EXISTS { ' + statement + ' wikibase:rank wikibase:DeprecatedRank }'; }
+
   /**
    * People of a calling (or any calling beneath it: a poet is a writer). Dated by birth,
    * or `shift` years after it for a roll dated by what a person did.
    */
   function people(callings, shift) {
     return { narrow: 'haswbstatement:P31=Q5', dates: ['P569'], shift: shift || 0,
-      where: '?item wdt:P31 wd:Q5; wdt:P106/wdt:P279* ?kind. VALUES ?kind { ' + ids(callings) + ' }' };
+      where: '?item wdt:P31 wd:Q5; p:P106 ?is. ?is ps:P106/wdt:P279* ?kind. VALUES ?kind { ' + ids(callings) + ' } ' + stands('?is') };
   }
   /** Things or events of a class (or any class beneath it), dated by the first of `dates` on record. */
   function things(classes, dates, also) {
     return { narrow: '', dates: dates, shift: 0,
-      where: '?item wdt:P31/wdt:P279* ?kind. VALUES ?kind { ' + ids(classes) + ' } ' + (also || '') };
+      where: '?item p:P31 ?is. ?is ps:P31/wdt:P279* ?kind. VALUES ?kind { ' + ids(classes) + ' } ' + stands('?is') + ' ' + (also || '') };
   }
   // P569 birth, P571 inception, P577 publication, P580 start, P585 point in time,
   // P606 first flight, P619 launch, P729 entry into service, P361 part of, P710 participant
@@ -76,14 +81,17 @@
     var wanted = '', dated = '';
     kind.dates.forEach(function (p, i) {
       wanted += ' (MIN(?d' + i + ') AS ?date' + i + ') (MIN(?p' + i + ') AS ?prec' + i + ')';
-      dated += ' OPTIONAL { ?item p:' + p + '/psv:' + p + ' [ wikibase:timeValue ?d' + i + '; wikibase:timePrecision ?p' + i + ' ] }';
+      dated += ' OPTIONAL { ?item p:' + p + ' ?s' + i + '. ?s' + i + ' a wikibase:BestRank; psv:' + p +
+        ' [ wikibase:timeValue ?d' + i + '; wikibase:timePrecision ?p' + i + ' ] }';
     });
-    return 'SELECT ?item ?label ?links (GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?alts)' + wanted + ' WHERE { ' +
+    return 'SELECT ?item ?links (GROUP_CONCAT(DISTINCT ?label; separator="|") AS ?labels) ' +
+      '(GROUP_CONCAT(DISTINCT ?alt; separator="|") AS ?alts)' + wanted + ' WHERE { ' +
       'VALUES ?item { ' + ids(found) + ' } ' + kind.where + ' ' +
-      '?item rdfs:label ?label; wikibase:sitelinks ?links. FILTER(LANG(?label) = "en") ' +
+      // names may be held in English or as "mul", the name used in every language
+      '?item wikibase:sitelinks ?links; rdfs:label ?label. FILTER(LANG(?label) IN ("en", "mul")) ' +
       '?page schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>. ' +
-      'OPTIONAL { ?item skos:altLabel ?alt. FILTER(LANG(?alt) = "en") }' + dated +
-      ' } GROUP BY ?item ?label ?links';
+      'OPTIONAL { ?item skos:altLabel ?alt. FILTER(LANG(?alt) IN ("en", "mul")) }' + dated +
+      ' } GROUP BY ?item ?links';
   }
 
   /**
@@ -105,7 +113,8 @@
     kind.dates.forEach(function (p, i) {
       if (!when && row['date' + i]) when = yearOf(row['date' + i].value, +row['prec' + i].value);
     });
-    return { name: row.label.value, alts: row.alts && row.alts.value ? row.alts.value.split('|') : [],
+    var names = row.labels.value.split('|').concat(row.alts && row.alts.value ? row.alts.value.split('|') : []);
+    return { name: names[0], alts: names.slice(1),
       key: 'archive:' + row.item.value.replace(/^.*\//, ''), links: +row.links.value,
       year: when ? when.year + kind.shift : null, approx: !!when && (when.approx || kind.shift > 0) };
   }
