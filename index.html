@@ -206,7 +206,7 @@ button { cursor: pointer; }
 .recap li { padding-left: 10px; box-shadow: inset 3px 0 0 var(--iron-lit); }
 .recap p { margin: 0; color: var(--bone-dim); }
 .recap .asked { color: var(--bone); }
-.recap .oldest { color: #f5c044; }
+.recap .tip { color: #f5c044; }
 .recap .found { color: #c9f0b0; }
 .copy-box textarea { width: 100%; height: 76px; padding: 8px; border: 0; background: var(--parchment); color: var(--ink); resize: none; }
 
@@ -328,7 +328,7 @@ dialog .recap { margin-bottom: 14px; }
     <div class="row outlined">
       <button class="text-btn outlined" id="howBtn" type="button">How to play</button>
       <button class="text-btn outlined" id="almanacBtn" type="button">Almanac</button>
-      <button class="text-btn outlined" id="soundBtn" type="button" aria-pressed="false">Sound: off</button>
+      <button class="text-btn outlined" id="soundBtn" type="button" aria-pressed="false">Sound and music: off</button>
     </div>
     <p class="note outlined" id="stats"></p>
   </section>
@@ -351,7 +351,7 @@ dialog .recap { margin-bottom: 14px; }
       <textarea id="copyText" readonly aria-label="Your result"></textarea>
     </div>
     <p class="note" id="nextIn"></p>
-    <ol class="recap" id="endRecap" aria-label="Your answers, and the oldest answer to each question"></ol>
+    <ol class="recap" id="endRecap" aria-label="Your answers, and a three-damage answer to each question"></ol>
   </section>
 
   <dialog id="howto" aria-labelledby="howTitle">
@@ -360,6 +360,7 @@ dialog .recap { margin-bottom: 14px; }
       <li>Each foe asks for a name from history, such as a Roman emperor. Any true answer strikes it. Small spelling slips are forgiven.</li>
       <li>Give the oldest answer you can. The older it is, the harder the blow: 1, 2 or 3 damage. You only learn which when it lands.</li>
       <li>The oldest answer of all fells any foe outright, whatever its health. So does one a hair younger.</li>
+      <li>A true answer the game does not list still counts for painters, writers, battles and the like. It is checked against Wikidata, which is sent only the name you typed.</li>
       <li>Keep giving new names until its health is gone. Every blow drives it back and buys you time.</li>
       <li>True answers in a row build a combo. Each one is worth more glory, and the knight strikes faster and harder.</li>
       <li>A wrong name lets the foe gain a pace and breaks the combo. If it reaches you, one of your five torches goes out.</li>
@@ -378,6 +379,7 @@ dialog .recap { margin-bottom: 14px; }
 
 <script src="js/questions.js"></script>
 <script src="js/answers.js"></script>
+<script src="js/lookup.js"></script>
 <script src="js/daily.js"></script>
 <script src="js/sprites.js"></script>
 <script src="js/scene.js"></script>

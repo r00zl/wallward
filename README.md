@@ -21,8 +21,18 @@ screen.
   and earns 800 glory on top. So does an answer dated within 2% of the roll's
   whole span of time after it, though never more than the three oldest dates
   on a roll: Augustus alone among the emperors, but both Armstrong and Aldrin
-  among the Moon walkers. When a foe falls, the plate names the oldest answer,
-  so the next time the question comes round you know.
+  among the Moon walkers. When a foe is done with, the plate names a
+  three-damage answer you did not give, so there is something to carry into
+  the next time the question comes round.
+- **True answers the game does not list still count** on the open-ended
+  questions (painters, writers, composers, scientists, philosophers,
+  mathematicians, architects, explorers, generals, wars, battles, revolutions,
+  landmarks, ships, aeroplanes, board games, treaties, empires and space
+  missions). A name that is not on the roll is looked up on Wikidata: it must
+  be of the right kind, have an English Wikipedia article and carry a date,
+  and it is then worth whatever its date earns. The foe waits while the
+  archives are searched, usually about a second. Closed lists, such as the
+  presidents, are complete and are never looked up.
 - Keep giving new names until the foe's health is gone. Every blow drives it
   back 2 or 3 paces and so buys time. A name cannot be used twice on one foe.
 - **Combos.** True answers in a row raise a combo that carries from foe to foe.
@@ -36,7 +46,15 @@ screen.
   knight, is not simply cut down: the knight runs, leaps, reverses his sword
   at the top of the jump and drives it down through the skull, holds there,
   then wrenches it free.
-- A name that is not on the roll lets the foe gain a pace and breaks the combo.
+- A name that is neither on the roll nor in the archives lets the foe gain a
+  pace and breaks the combo. If the archives cannot be reached, no ground is
+  lost.
+- **Reading a foe.** Its health bar has a pip for each point of damage it can
+  still take; pips just lost stay pale for a moment before they drain. The
+  thin line under it is the wait before its next step: grey while the foe is
+  held, red and flashing when that step will reach you. A foe breathes while
+  it waits, crouches before it steps, draws its weapon back at the last pace,
+  staggers when struck, and breaks apart when felled.
 - If the foe reaches you, **a torch goes out** and it is thrown back to try
   again. A run has five torches.
 - **Skip** lets the foe pass when you are out of names. It costs a torch, and
@@ -56,7 +74,7 @@ Wallward No. 1 · 8,765 glory
 💨 skipped, 💥 the wall fell there.
 
 **After the wall** the end screen lists every question with the answers you
-gave and the oldest answer there was; "Today's answers" at the gate shows it
+gave and a three-damage answer to each; "Today's answers" at the gate shows it
 again. The **Almanac** at the gate keeps every oldest answer you have ever
 given, out of all the questions in the bank.
 
@@ -150,12 +168,13 @@ manifest.webmanifest   lets a phone add the game to its home screen
 icon-192.png, icon-512.png
 js/questions.js        the rolls of names and their cut-off years
 js/answers.js          typed-answer matching
+js/lookup.js           the archives: checking a name that is not on a roll against Wikidata
 js/daily.js            date-seeded daily calendar, endless mode, scoring
 js/sprites.js          pixel sprites drawn from text pictures; the knight's poses; blades drawn at clean pixel angles
 js/scene.js            the wall, five backdrops, parallax, weather, torches
-js/sound.js            the few sounds, made with the Web Audio API
+js/sound.js            the effects and the score, both made with the Web Audio API (no audio files)
 js/cape.js             the wind-blown cloak
-js/game.js             game flow, the blows, the combo and the finishing blow, drawing, controls, saved stats
+js/game.js             game flow, the blows, the combo and the finishing blow, the foes' movement and health bars, drawing, controls, saved stats
 tests/run.mjs          logic tests (Node 18+)
 ```
 
@@ -163,11 +182,28 @@ tests/run.mjs          logic tests (Node 18+)
 
 ```
 open index.html          # or serve the folder with any static server
-node tests/run.mjs       # bank, answer matching and a year of daily walls
+node tests/run.mjs       # bank, answer matching, the archives (against a pretend Wikidata) and a year of daily walls
 ```
 
 Progress, streaks, the almanac and the sound setting are kept in the browser's
 local storage, so they stay on the device they were played on.
+
+## What leaves the browser
+
+Only one thing: when a typed name is not on a question's roll and the question
+is an open-ended one, that name is sent to Wikidata (`www.wikidata.org` and
+`query.wikidata.org`) to be looked up. Nothing else is sent, and nothing at all
+when the name is on the roll. The page also loads its three typefaces from
+Google Fonts.
+
+## Sound and music
+
+Both are off until switched on at the gate. The effects are single synthesised
+tones. The score is a slow, dark air in D minor written for the game and played
+by the browser from oscillators: a low drone, wind, a soft pad moving through
+eight chords, a distant bell, and a few plucked notes chosen afresh on every
+pass, all heard through a synthetic stone-hall echo. It rests while the page
+is hidden.
 
 ## On a phone
 
@@ -198,6 +234,8 @@ Type is Jacquard 24, Jersey 10 and Jersey 20, loaded from Google Fonts under
 the SIL Open Font License. All art is drawn in code. Dates in the bank were
 written from general knowledge; the oldest answer on the rolls where that is
 open to argument was checked against published sources, the rest were not
-checked one by one. Corrections are welcome.
+checked one by one. Corrections are welcome. Answers from outside the rolls
+are checked against [Wikidata](https://www.wikidata.org), whose data is in the
+public domain (CC0).
 
 © 2026 r00zl. All rights reserved: see `LICENSE`.
