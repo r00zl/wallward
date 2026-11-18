@@ -158,6 +158,15 @@
     return prompt._ix;
   }
 
+  /**
+   * The answers in `list` that a typed name names outright, with no allowance for spelling
+   * slips: none, one, or several that share the name. For names from outside the rolls.
+   */
+  function named(input, list, people) {
+    var inF = norm(input), hit = inF ? lookup(indexOf(list, people), inF, stripNoise(inF)) : null;
+    return hit ? hit.list.slice() : [];
+  }
+
   var guard = null;
 
   /** Register every spelling in the bank, so a correctly spelled other name is never "close enough". */
@@ -224,5 +233,5 @@
     return { ok: true, ans: best, exact: false };
   }
 
-  WW.Answers = { norm: norm, setGuard: setGuard, check: check };
+  WW.Answers = { norm: norm, setGuard: setGuard, check: check, named: named };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
