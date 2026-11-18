@@ -475,11 +475,11 @@
       h.dx = s.from + (m.dx - s.from) * easeOut(u);
       h.dy = top * easeOut(u);
       h.sword = SWORD.raised + (SWORD.down - SWORD.raised) * ease(u); // the blade comes over and round to point straight down
-      if (u >= 1) { next('hang'); glint(); }
+      if (u >= 1) { next('hang'); glint(); sfx.poise(); }
     } else if (s.stage === 'hang') {
       u = Math.min(1, s.t / FINISH.hang);
       h.dx = m.dx; h.dy = top - Math.sin(u * Math.PI) * 2; h.sword = SWORD.down;
-      if (u >= 1) next('plunge');
+      if (u >= 1) { next('plunge'); sfx.plunge(); }
     } else if (s.stage === 'plunge') {
       u = Math.min(1, s.t / FINISH.plunge);
       h.dx = m.dx; h.dy = top + FINISH_RISE * u * u; h.sword = SWORD.down;
@@ -517,7 +517,7 @@
     e.hpShown = 0; e.lostWait = LOST_HOLD; e.flash = 0.3;
     floatDamage(e, blow);
     embers(e, 30); bolt(e); ring(e); veil('flash');
-    sfx.hit(3, blow.combo); sfx.thud();
+    sfx.impale();
     G.shake = 0.6; G.stop = 0.2;
   }
 
@@ -526,7 +526,7 @@
     shatter(e);
     e.gone = true;
     burst(e, 70); embers(e, 40); ring(e); bolt(e);
-    sfx.fell(); sfx.thud();
+    sfx.sunder();
     G.shake = 0.5; G.stop = 0.07;
     if (e.kind === 'dread') banner(G.mode === 'daily' ? 'The wall holds' : 'A dread knight falls');
   }
