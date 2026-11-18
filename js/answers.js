@@ -140,6 +140,53 @@
     return { ok: false, shown: shown };
   }
 
+  // ---------- letter hints ----------
+  // As an enemy closes in, letters of the answer are uncovered: the first letter of
+  // each word, then others in a fixed scrambled order. Never more than about 40%,
+  // so a hint narrows the answer without handing it over.
+  var REVEAL_AT = [9, 7, 5, 4, 3, 2]; // paces at which one more letter appears
+
+  function hintFor(q) {
+    if (q._hint) return q._hint;
+    var text = q.a[0], starts = [], rest = [], i, prev = false;
+    for (i = 0; i < text.length; i++) {
+      var isLetter = /[A-Za-z0-9\u00C0-\u024F]/.test(text.charAt(i));
+      if (isLetter) (prev ? rest : starts).push(i);
+      prev = isLetter;
+    }
+    var n = starts.length + rest.length;
+    var cap = n <= 2 ? 0 : n <= 4 ? 1 : Math.floor(n * 0.4);
+    var seed = WW.hashStr(q.id + '|' + text);
+    for (i = rest.length - 1; i > 0; i--) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      var j = seed % (i + 1), x = rest[i]; rest[i] = rest[j]; rest[j] = x;
+    }
+    q._hint = { text: text, order: starts.concat(rest), cap: cap, letters: n };
+    return q._hint;
+  }
+
+  /** How many letters to show when the enemy is `pace` paces away. */
+  function hintCount(q, pace) {
+    var n = 0, i;
+    for (i = 0; i < REVEAL_AT.length; i++) if (pace <= REVEAL_AT[i]) n++;
+    return Math.min(hintFor(q).cap, n);
+  }
+
+  /** The answer as cells: { ch, state } where state is 'open', 'hidden', 'gap' or 'mark'. */
+  function hintCells(q, count) {
+    var h = hintFor(q), open = {}, i, out = [];
+    for (i = 0; i < Math.min(count, h.cap); i++) open[h.order[i]] = true;
+    for (i = 0; i < h.text.length; i++) {
+      var ch = h.text.charAt(i);
+      if (ch === ' ') out.push({ ch: ' ', state: 'gap' });
+      else if (!/[A-Za-z0-9\u00C0-\u024F]/.test(ch)) out.push({ ch: ch, state: 'mark' });
+      else out.push({ ch: open[i] ? ch : '', state: open[i] ? 'open' : 'hidden' });
+    }
+    return out;
+  }
+
+  WW.Hints = { REVEAL_AT: REVEAL_AT, hintFor: hintFor, hintCount: hintCount, hintCells: hintCells };
+
   WW.Answers = { norm: norm, stripNoise: stripNoise, distance: distance, tolerance: tolerance,
     formsOf: formsOf, setGuard: setGuard, check: check };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

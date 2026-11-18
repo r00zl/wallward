@@ -15,15 +15,18 @@
   var EPOCH_UTC = Date.UTC(2026, 10, 18); // Wall No. 1 = 18 November 2026 (UTC)
   var DAY_MS = 86400000;
 
-  // The five enemies of a daily wall. tiers cycle per question; interval is seconds per step.
+  var HITS = 3;   // correct answers needed to fell an enemy
+  var LIVES = 5;  // wrong answers or breaches a run can take
+
+  // The five enemies of a daily wall. tiers lists the difficulty of each of the
+  // three questions; interval is seconds per step.
   var DAILY_ENEMIES = [
-    { kind: 'raider',  stage: 0, tiers: [1],    interval: 4.0 },
-    { kind: 'wolf',    stage: 1, tiers: [1],    interval: 3.7 },
-    { kind: 'clay',    stage: 2, tiers: [1, 2], interval: 3.4 },
-    { kind: 'wraith',  stage: 3, tiers: [2],    interval: 3.2 },
-    { kind: 'warlord', stage: 4, tiers: [2, 3], interval: 3.0 }
+    { kind: 'cultist',  stage: 0, tiers: [1, 1, 1], interval: 4.2 },
+    { kind: 'wolf',     stage: 1, tiers: [1, 1, 1], interval: 4.0 },
+    { kind: 'skeleton', stage: 2, tiers: [1, 1, 1], interval: 3.8 },
+    { kind: 'wraith',   stage: 3, tiers: [1, 2, 1], interval: 3.6 },
+    { kind: 'dread',    stage: 4, tiers: [2, 2, 2], interval: 3.4 }
   ];
-  var PER_ENEMY = 6; // questions held ready for each enemy (three needed in a row)
 
   function dayNumber(now) {
     var t = now == null ? Date.now() : +now;
@@ -122,18 +125,23 @@
 
   /**
    * Build the wall for a given day number.
-   * Returns [{ kind, stage, interval, questions: [q, ...] }] for the five enemies.
+   * Returns { enemies: [{ kind, stage, interval, tiers, questions: [q, q, q] }],
+   *           reserve: { tier: [q, ...] } }.
+   * Every player meets the same three questions at each enemy. A failed question is
+   * replaced from the day's reserve for that tier, so nothing is ever asked twice.
    */
   function dailyPlan(num, bank) {
     var p = pools(bank);
-    // How many of each tier the five enemies ask for.
-    var need = { 1: 0, 2: 0, 3: 0 };
+    // How many of each tier the day can use: three per enemy, plus a spare per life.
+    var need = { 1: 0, 2: 0, 3: 0 }, used = {};
     DAILY_ENEMIES.forEach(function (e) {
-      for (var i = 0; i < PER_ENEMY; i++) need[e.tiers[i % e.tiers.length]]++;
+      e.tiers.forEach(function (t) { need[t]++; used[t] = true; });
     });
+    [1, 2, 3].forEach(function (t) { if (used[t]) need[t] += LIVES - 1; });
     var chosen = [];
     var byTier = {};
     [1, 2, 3].forEach(function (tier) {
+      if (!need[tier]) { byTier[tier] = []; return; }
       var h = Math.ceil(need[tier] / 2), g = need[tier] - h;
       var win = h + 3; // a few spares, in case two questions would give each other away
       var hs = windowFor(p[tier + 'H'] || [], tier + 'H', num, win);
@@ -157,28 +165,25 @@
       byTier[tier] = list;
     });
     var cursor = { 1: 0, 2: 0, 3: 0 };
-    return DAILY_ENEMIES.map(function (e) {
-      var qs = [];
-      for (var i = 0; i < PER_ENEMY; i++) {
-        var tier = e.tiers[i % e.tiers.length];
-        var q = byTier[tier][cursor[tier]++];
-        if (q) qs.push(q);
-      }
-      return { kind: e.kind, stage: e.stage, interval: e.interval, questions: qs };
+    var enemies = DAILY_ENEMIES.map(function (e) {
+      var qs = e.tiers.map(function (tier) { return byTier[tier][cursor[tier]++]; });
+      return { kind: e.kind, stage: e.stage, interval: e.interval, tiers: e.tiers.slice(), questions: qs };
     });
+    var reserve = {};
+    [1, 2, 3].forEach(function (t) { reserve[t] = byTier[t].slice(cursor[t]); });
+    return { enemies: enemies, reserve: reserve };
   }
 
   /** Endless mode: enemy n (1-based) gets harder questions and steps faster. */
-  var KINDS = ['raider', 'wolf', 'clay', 'wraith'];
+  var KINDS = ['cultist', 'wolf', 'skeleton', 'wraith'];
   function endlessEnemy(n) {
     var boss = n % 5 === 0;
-    var tiers = n <= 2 ? [1] : n <= 4 ? [1, 2] : n <= 8 ? [2] : [2, 3];
-    if (boss) tiers = n <= 5 ? [2] : [2, 3];
+    var tiers = n <= 3 ? [1, 1, 1] : n <= 6 ? [1, 2, 1] : n <= 10 ? [2, 2, 2] : [2, 3, 2];
     return {
-      kind: boss ? 'warlord' : KINDS[(n - 1 - Math.floor((n - 1) / 5)) % KINDS.length],
+      kind: boss ? 'dread' : KINDS[(n - 1 - Math.floor((n - 1) / 5)) % KINDS.length],
       stage: Math.floor((n - 1) / 2) % 5,
       tiers: tiers,
-      interval: Math.max(2.0, 4.0 - 0.14 * (n - 1))
+      interval: Math.max(2.2, 4.2 - 0.12 * (n - 1))
     };
   }
 
@@ -211,19 +216,26 @@
 
   function fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
-  /** results: array of 'F' (flawless), 'W' (felled), 'X' (broke through). */
+  var MARKS = { F: '⚔️', W: '🗡️', X: '💥' };
+  function markRow(results, total) {
+    var row = '';
+    for (var i = 0; i < total; i++) row += MARKS[results[i]] || '⬛';
+    return row;
+  }
+
+  /** results: 'F' felled without losing a life, 'W' felled, 'X' the wall fell here. */
   function shareText(num, results, li, total, url) {
-    var marks = { F: '🎯', W: '🏹', X: '💥' };
+    var marks = MARKS;
     var row = '';
     for (var i = 0; i < total; i++) row += marks[results[i]] || '⬛';
     var felled = results.filter(function (r) { return r !== 'X'; }).length;
-    var lines = ['Wallward No. ' + num + ' · ' + fmt(li) + ' li', row + '  ' + felled + '/' + total];
+    var lines = ['Wallward No. ' + num + ' · ' + fmt(li) + ' glory', row + '  ' + felled + '/' + total];
     if (url) lines.push(url);
     return lines.join('\n');
   }
 
   WW.Daily = {
-    EPOCH_UTC: EPOCH_UTC, PACES: PACES, PER_ENEMY: PER_ENEMY, DAILY_ENEMIES: DAILY_ENEMIES,
+    EPOCH_UTC: EPOCH_UTC, PACES: PACES, HITS: HITS, LIVES: LIVES, DAILY_ENEMIES: DAILY_ENEMIES, markRow: markRow,
     dayNumber: dayNumber, msToNextWall: msToNextWall, dateOfDay: dateOfDay,
     mulberry32: mulberry32, shuffled: shuffled, dailyPlan: dailyPlan, clash: clash,
     endlessEnemy: endlessEnemy, drawQuestion: drawQuestion,

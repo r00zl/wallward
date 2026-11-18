@@ -107,7 +107,7 @@
     'Cambodia|Phnom Penh|2|n|Kampuchea',
     'Oman|Muscat|2|n',
     'Somalia|Mogadishu|2|n',
-    'the Democratic Republic of the Congo|Kinshasa|2|n|DR Congo;DRC;Democratic Republic of Congo;Congo;Congo-Kinshasa;Zaire',
+    'DR Congo|Kinshasa|2|n|Democratic Republic of the Congo;DRC;Democratic Republic of Congo;Congo;Congo-Kinshasa;Zaire',
     'Rwanda|Kigali|2|n',
     'Papua New Guinea|Port Moresby|2|n|PNG',
     'Malta|Valletta|2|n',
