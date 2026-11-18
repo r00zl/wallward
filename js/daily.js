@@ -22,6 +22,8 @@
   // within this share of the roll's whole span of time after it (2% of 500 years of Roman
   // emperors is 10 years; of the three years of Moon landings, about three weeks).
   var KILL_RANGE = 0.02;
+  // ...and only the three oldest dates on a roll can do it, however closely the rest crowd in behind.
+  var KILL_MOST = 3;
 
   // The five foes of a daily wall: the tier of question each asks, how much
   // damage it takes to fell, and the seconds between its steps.
@@ -62,7 +64,7 @@
   // question is never brought back before MIN_GAP days have passed, two questions
   // from one roll never share a day, and a roll used yesterday is avoided today.
   var SEASON = 30;
-  var MIN_GAP = { 1: 7, 2: 10, 3: 10 };
+  var MIN_GAP = { 1: 12, 2: 20, 3: 10 };
   var calendar = { bank: null, days: [], lastUse: {}, lastFam: {} };
 
   function buildSeason(cal, bank, s) {
@@ -137,7 +139,10 @@
 
   /** True if this answer fells a foe outright: the oldest on the roll, or within KILL_RANGE of it. */
   function kills(prompt, ans) {
-    return ans.year - prompt.oldest.year <= prompt.span * KILL_RANGE;
+    if (ans.year - prompt.oldest.year > prompt.span * KILL_RANGE) return false;
+    var older = {};
+    prompt.answers.forEach(function (a) { if (a.year < ans.year) older[a.year] = true; });
+    return Object.keys(older).length < KILL_MOST;
   }
 
   // ----- glory -----
@@ -184,7 +189,7 @@
   }
 
   WW.Daily = {
-    LIVES: LIVES, START: START, MAX_PACE: MAX_PACE, KILL_RANGE: KILL_RANGE, DAILY_ENEMIES: DAILY_ENEMIES,
+    LIVES: LIVES, START: START, MAX_PACE: MAX_PACE, KILL_RANGE: KILL_RANGE, KILL_MOST: KILL_MOST, DAILY_ENEMIES: DAILY_ENEMIES,
     dayNumber: dayNumber, msToNextWall: msToNextWall, dailyPlan: dailyPlan,
     endlessEnemy: endlessEnemy, drawPrompt: drawPrompt, kills: kills,
     hitGlory: hitGlory, fellGlory: fellGlory, OLDEST_GLORY: OLDEST_GLORY, rankFor: rankFor, fmt: fmt,

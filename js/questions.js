@@ -1955,7 +1955,7 @@ Megiddo|1918.72
 Meuse-Argonne|1918.74|Argonne`);
 
   L('napoleonic-battles', 3, 'Name a battle of the French Revolutionary or Napoleonic Wars.', 'when it was fought', [1799.99, 1809.99], `
-Valmy|1792
+Valmy|1792.72
 Toulon|1793|Siege of Toulon
 Lodi|1796
 Arcole|1796.8
@@ -2085,6 +2085,1155 @@ Charles Duke|1972.31|Charlie Duke
 Eugene Cernan|1972.94|Gene Cernan
 Harrison Schmitt|1972.95|Jack Schmitt`, 'P');
 
+  // ======================= more rolls =======================
+
+  L('us-states', 1, 'Name a US state.', 'joining the Union', [1790.5, 1850.9], `
+Delaware|1787.93
+Pennsylvania|1787.95
+New Jersey|1787.96
+Georgia|1788.01
+Connecticut|1788.02
+Massachusetts|1788.1
+Maryland|1788.32
+South Carolina|1788.39|Carolina
+New Hampshire|1788.47
+Virginia|1788.48
+New York|1788.57
+North Carolina|1789.89|Carolina
+Rhode Island|1790.41
+Vermont|1791.17
+Kentucky|1792
+Tennessee|1796
+Ohio|1803
+Louisiana|1812
+Indiana|1816
+Mississippi|1817
+Illinois|1818
+Alabama|1819
+Maine|1820
+Missouri|1821
+Arkansas|1836
+Michigan|1837
+Florida|1845.2
+Texas|1845.99
+Iowa|1846
+Wisconsin|1848
+California|1850
+Minnesota|1858
+Oregon|1859
+Kansas|1861
+West Virginia|1863
+Nevada|1864
+Nebraska|1867
+Colorado|1876
+North Dakota|1889.84|Dakota
+South Dakota|1889.841|Dakota
+Montana|1889.85
+Washington|1889.86|Washington State
+Idaho|1890.5
+Wyoming|1890.52
+Utah|1896
+Oklahoma|1907
+New Mexico|1912.02
+Arizona|1912.12
+Alaska|1959.01
+Hawaii|1959.64`);
+
+  L('elements', 1, 'Name a chemical element.', 'when it was discovered', [1700, 1810], `
+Copper|~-9000
+Lead|~-7000
+Gold|~-40000
+Silver|~-5000
+Iron|~-5000.1
+Carbon|~-26000
+Tin|~-3500
+Sulfur|~-2000|Sulphur;Brimstone
+Mercury|~-1500|Quicksilver
+Zinc|~-1000
+Arsenic|~300
+Antimony|~800
+Bismuth|~1500
+Phosphorus|1669
+Cobalt|1735
+Platinum|1748
+Nickel|1751
+Magnesium|1755
+Hydrogen|1766
+Nitrogen|1772
+Barium|1772.5
+Oxygen|1774
+Chlorine|1774.1
+Manganese|1774.2
+Molybdenum|1778
+Tellurium|1782
+Tungsten|1783|Wolfram
+Strontium|1787
+Zirconium|1789
+Uranium|1789.1
+Titanium|1791
+Yttrium|1794
+Chromium|1797
+Beryllium|1798
+Vanadium|1801
+Niobium|1801.1|Columbium
+Tantalum|1802
+Palladium|1802.5
+Cerium|1803
+Osmium|1803.1
+Iridium|1803.2
+Rhodium|1804
+Potassium|1807
+Sodium|1807.1
+Calcium|1808
+Boron|1808.1
+Iodine|1811
+Lithium|1817
+Cadmium|1817.1
+Selenium|1817.2
+Silicon|1823
+Aluminium|1825|Aluminum
+Bromine|1825.5
+Thorium|1829
+Lanthanum|1838
+Erbium|1843
+Terbium|1843.1
+Ruthenium|1844
+Caesium|1860|Cesium
+Rubidium|1861
+Thallium|1861.1
+Indium|1863
+Helium|1868
+Gallium|1875
+Ytterbium|1878
+Holmium|1878.1
+Thulium|1879
+Scandium|1879.1
+Samarium|1879.2
+Gadolinium|1880
+Praseodymium|1885
+Neodymium|1885.1
+Germanium|1886
+Fluorine|1886.1
+Dysprosium|1886.2
+Argon|1894
+Europium|1896
+Krypton|1898
+Neon|1898.1
+Xenon|1898.2
+Polonium|1898.3
+Radium|1898.4
+Radon|1899
+Actinium|1899.1
+Lutetium|1906
+Protactinium|1913
+Hafnium|1922
+Rhenium|1925
+Technetium|1937
+Francium|1939
+Neptunium|1940
+Astatine|1940.1
+Plutonium|1940.2
+Curium|1944
+Americium|1944.1
+Promethium|1945
+Berkelium|1949
+Californium|1950
+Einsteinium|1952
+Fermium|1952.1
+Mendelevium|1955
+Lawrencium|1961
+Nobelium|1966
+Rutherfordium|1969
+Dubnium|1970
+Seaborgium|1974
+Bohrium|1981
+Meitnerium|1982
+Hassium|1984
+Darmstadtium|1994
+Roentgenium|1994.1
+Copernicium|1996
+Flerovium|1999
+Livermorium|2000
+Oganesson|2002
+Moscovium|2003
+Nihonium|2004
+Tennessine|2010`);
+
+  L('world-cup-hosts', 1, 'Name a country that has hosted the men\'s football World Cup.', 'the first it hosted', [1938, 1970], `
+Uruguay|1930
+Italy|1934
+France|1938
+Brazil|1950
+Switzerland|1954
+Sweden|1958
+Chile|1962
+England|1966
+Mexico|1970
+West Germany|1974|Germany
+Argentina|1978
+Spain|1982
+United States|1994|USA;US;America;United States of America
+South Korea|2002|Korea;Republic of Korea
+Japan|2002.01
+South Africa|2010
+Russia|2018
+Qatar|2022
+Canada|2026`);
+
+  L('emperors', 1, 'Name a famous emperor or empress.', 'start of reign', [0, 1000], `
+Sargon of Akkad|~-2334|Sargon;Sargon the Great
+Naram-Sin|~-2254|Naram Sin
+Cyrus the Great|-559|Cyrus;Cyrus II
+Darius the Great|-522|Darius;Darius I
+Xerxes|-486|Xerxes I;Xerxes the Great
+Chandragupta Maurya|~-321|Chandragupta
+Ashoka|~-268|Asoka;Ashoka the Great
+Qin Shi Huang|-221|Shi Huangdi;Qin Shi Huangdi;First Emperor
+Liu Bang|-202|Gaozu;Gaozu of Han;Emperor Gaozu
+Emperor Wu of Han|-141|Wu of Han;Han Wudi;Wudi
+Augustus|-27|Octavian;Caesar Augustus
+Tiberius|14
+Caligula|37
+Claudius|41
+Nero|54
+Vespasian|69
+Titus|79
+Domitian|81
+Nerva|96
+Trajan|98
+Hadrian|117
+Antoninus Pius|138
+Marcus Aurelius|161
+Commodus|180
+Septimius Severus|193
+Caracalla|211
+Elagabalus|218|Heliogabalus
+Aurelian|270
+Diocletian|284
+Constantine the Great|306|Constantine;Constantine I
+Julian|361|Julian the Apostate
+Theodosius|379|Theodosius I;Theodosius the Great
+Honorius|393
+Romulus Augustulus|475|Romulus Augustus
+Justinian|527|Justinian I;Justinian the Great
+Heraclius|610
+Taizong of Tang|626|Tang Taizong;Emperor Taizong
+Wu Zetian|690|Empress Wu
+Leo the Isaurian|717|Leo III
+Irene of Athens|797|Irene;Empress Irene
+Charlemagne|800|Charles the Great
+Otto the Great|962|Otto I
+Basil II|976|Basil the Bulgar Slayer
+Alexios I Komnenos|1081|Alexius Comnenus;Alexios Komnenos;Alexius I
+Frederick Barbarossa|1155|Barbarossa;Frederick I
+Genghis Khan|1206|Chinggis Khan;Jenghiz Khan;Temujin;Genghis
+Frederick II|1220
+Kublai Khan|1260|Kubilai Khan;Khubilai Khan;Kublai
+Mansa Musa|1312|Musa I
+Hongwu|1368|Zhu Yuanzhang;Hongwu Emperor
+Yongle|1402|Yongle Emperor
+Pachacuti|1438
+Constantine XI|1449|Constantine XI Palaiologos;Constantine Palaiologos
+Huayna Capac|1493
+Montezuma|1502|Moctezuma;Montezuma II;Moctezuma II
+Charles V|1519
+Babur|1526
+Atahualpa|1532|Atahuallpa
+Akbar|1556|Akbar the Great
+Jahangir|1605
+Shah Jahan|1628
+Aurangzeb|1658
+Kangxi|1661|Kangxi Emperor
+Peter the Great|1682|Peter I
+Qianlong|1735|Qianlong Emperor
+Maria Theresa|1740
+Elizabeth of Russia|1741|Empress Elizabeth
+Catherine the Great|1762|Catherine II
+Joseph II|1765
+Alexander I|1801
+Napoleon|1804|Napoleon Bonaparte;Napoleon I;Bonaparte
+Pedro I|1822|Dom Pedro I
+Nicholas I|1825
+Pedro II|1831|Dom Pedro II
+Victoria|1837|Queen Victoria
+Franz Joseph|1848|Franz Joseph I;Francis Joseph
+Napoleon III|1852|Louis-Napoleon;Louis Napoleon
+Alexander II|1855
+Cixi|1861|Empress Dowager Cixi;Tzu Hsi
+Maximilian of Mexico|1864|Maximilian I of Mexico;Maximilian
+Meiji|1867|Mutsuhito;Emperor Meiji
+Wilhelm I|1871|William I;Kaiser Wilhelm I
+Guangxu|1875|Guangxu Emperor
+Alexander III|1881
+Wilhelm II|1888|William II;Kaiser Wilhelm II;Kaiser Wilhelm;Kaiser Bill
+Menelik II|1889|Menelik
+Nicholas II|1894
+Puyi|1908|Pu Yi;Xuantong
+Taisho|1912|Yoshihito;Emperor Taisho
+Charles I of Austria|1916|Karl I;Karl of Austria
+Hirohito|1926|Showa;Emperor Showa
+Haile Selassie|1930|Ras Tafari
+Mohammad Reza Pahlavi|1941|Shah of Iran;Reza Pahlavi;The Shah
+Bokassa|1976|Jean-Bedel Bokassa;Bokassa I
+Akihito|1989
+Naruhito|2019`);
+
+  L('us-wars', 1, 'Name a war the United States has fought in.', 'when it began', [1815.5, 1918], `
+American Revolutionary War|1775|Revolutionary War;War of Independence;American Revolution;American War of Independence
+Northwest Indian War|1785
+Quasi-War|1798|Quasi War
+First Barbary War|1801|Tripolitan War;Barbary War;Barbary Wars
+War of 1812|1812|1812
+Second Barbary War|1815|Algerine War;Barbary War;Barbary Wars
+First Seminole War|1817|Seminole War;Seminole Wars
+Black Hawk War|1832
+Second Seminole War|1835|Seminole War;Seminole Wars
+Mexican-American War|1846|Mexican War
+Civil War|1861|American Civil War
+Great Sioux War|1876|Sioux War;Black Hills War
+Spanish-American War|1898
+Philippine-American War|1899|Philippine War
+Boxer Rebellion|1899.9|Boxer Uprising
+World War I|1914|First World War;WWI;WW1;Great War;World War One
+World War II|1939|Second World War;WWII;WW2;World War Two
+Cold War|1947
+Korean War|1950|Korea
+Vietnam War|1955
+Invasion of Grenada|1983|Grenada
+Invasion of Panama|1989|Panama
+Gulf War|1990|Persian Gulf War;First Gulf War;Desert Storm
+Somali Civil War|1991|Somalia
+Bosnian War|1992|Bosnia
+Kosovo War|1998|Kosovo
+War in Afghanistan|2001|Afghanistan;Afghan War
+War on Terror|2001.7
+Iraq War|2003|Second Gulf War;Iraq
+War against the Islamic State|2014|ISIS;Islamic State;War against ISIS`);
+
+  L('board-games', 1, 'Name a board game or tabletop game.', 'when it first appeared', [1000, 1900], `
+Senet|~-3100
+Mehen|~-3000
+Royal Game of Ur|~-2600|Game of Ur;Ur
+Nine Men's Morris|~-1400|Merels;Mill
+Go|~-500|Weiqi;Baduk
+Hnefatafl|~400|Tafl;Viking chess
+Pachisi|~500|Parcheesi
+Backgammon|~600|Nard;Tables
+Mancala|~650|Oware;Kalah
+Chess|~600.5|Chaturanga
+Xiangqi|~800|Chinese chess
+Playing cards|~850|Cards
+Shogi|~1100|Japanese chess
+Draughts|~1100.5|Checkers
+Dominoes|~1120
+Snakes and Ladders|~1200|Chutes and Ladders
+Tarot|~1440
+Mahjong|~1850
+The Game of Life|1860|Game of Life;Life
+Othello|1883|Reversi
+Chinese checkers|1892
+Ludo|1896
+The Landlord's Game|1904|Landlords Game
+Sorry!|1929|Sorry
+Battleship|1931|Battleships
+Monopoly|1935
+Scrabble|1938
+Stratego|1946
+Cluedo|1949|Clue
+Candy Land|1949.5|Candyland
+Yahtzee|1956
+Risk|1957
+Diplomacy|1959
+Mouse Trap|1963|Mousetrap
+Operation|1965
+Twister|1966
+Kerplunk|1967
+Mastermind|1970
+Uno|1971
+Boggle|1972
+Connect Four|1974|Connect 4
+Dungeons & Dragons|1974.1|D&D;DnD;Dungeons and Dragons
+Hungry Hungry Hippos|1978|Hungry Hippos
+Guess Who?|1979|Guess Who
+Trivial Pursuit|1981
+Axis & Allies|1981.5|Axis and Allies
+Jenga|1983
+Warhammer|1983.5
+Pictionary|1985
+Scattergories|1988
+Taboo|1989
+Magic: The Gathering|1993|Magic the Gathering;Magic;MTG
+Catan|1995|Settlers of Catan;The Settlers of Catan
+Cranium|1998
+Carcassonne|2000
+Ticket to Ride|2004
+Agricola|2007
+Pandemic|2008
+Dominion|2008.1
+Dixit|2008.2
+7 Wonders|2010|Seven Wonders
+Cards Against Humanity|2011
+Codenames|2015
+Exploding Kittens|2015.1
+Terraforming Mars|2016
+Gloomhaven|2017
+Azul|2017.1
+Wingspan|2019`);
+
+  L('aeroplanes', 2, 'Name a famous aeroplane.', 'first flight', [1919, 1945.5], `
+Wright Flyer|1903|Kitty Hawk;Flyer;Wright brothers plane
+Santos-Dumont 14-bis|1906|14-bis;14 bis
+Bleriot XI|1909|Bleriot
+Sopwith Pup|1916
+Sopwith Camel|1916.9|Camel
+Fokker Dr.I|1917|Fokker triplane;Fokker Dr1;Red Baron's triplane
+SPAD XIII|1917.3|SPAD;SPAD S.XIII
+Vickers Vimy|1917.9|Vimy
+Fokker D.VII|1918|Fokker D7
+Ford Trimotor|1926|Tin Goose
+Spirit of St. Louis|1927
+Lockheed Vega|1927.5|Vega
+Junkers Ju 52|1930|Ju 52;Ju52
+Tiger Moth|1931|de Havilland Tiger Moth
+Boeing 247|1933|247
+Lockheed Electra|1934|Electra
+Messerschmitt Bf 109|1935.4|Bf 109;Me 109;Messerschmitt 109;Bf109;Me109
+Boeing B-17 Flying Fortress|1935.55|B-17;B17;Flying Fortress
+Junkers Ju 87|1935.7|Stuka;Ju 87;Ju87
+Hawker Hurricane|1935.85|Hurricane
+Douglas DC-3|1935.95|DC-3;DC3;Dakota;C-47
+Supermarine Spitfire|1936|Spitfire
+Short Sunderland|1937|Sunderland
+Mitsubishi Zero|1939|Zero;A6M Zero;Mitsubishi A6M
+Consolidated B-24 Liberator|1939.99|B-24;B24;Liberator
+P-51 Mustang|1940.8|Mustang;P51;North American P-51 Mustang
+de Havilland Mosquito|1940.9|Mosquito
+Avro Lancaster|1941|Lancaster
+Messerschmitt Me 262|1941.3|Me 262;Me262
+Boeing B-29 Superfortress|1942.7|B-29;B29;Superfortress
+Gloster Meteor|1943|Meteor
+Enola Gay|1945
+Bell X-1|1946|X-1;X1
+F-86 Sabre|1947.75|Sabre;F86
+Spruce Goose|1947.85|Hughes H-4 Hercules
+MiG-15|1947.99|MiG 15;MiG15
+de Havilland Comet|1949|Comet
+English Electric Canberra|1949.4|Canberra
+Boeing B-52 Stratofortress|1952|B-52;B52;Stratofortress
+Avro Vulcan|1952.6|Vulcan
+C-130 Hercules|1954|Hercules;C130;Lockheed C-130 Hercules
+Lockheed U-2|1955|U-2;U2
+MiG-21|1955.1|MiG 21;MiG21
+Cessna 172|1955.5|Cessna
+Boeing 707|1957|707
+F-4 Phantom|1958|Phantom;F4 Phantom;F-4 Phantom II;F4
+Lockheed SR-71 Blackbird|1964|SR-71;SR71;Blackbird
+Boeing 737|1967|737
+Hawker Siddeley Harrier|1967.9|Harrier;Harrier jump jet
+Tupolev Tu-144|1968.99|Tu-144;Tu144;Concordski
+Boeing 747|1969.1|747;Jumbo jet;Jumbo
+Concorde|1969.17|Concord
+F-14 Tomcat|1970|Tomcat;F14;F-14
+Airbus A300|1972|A300
+A-10 Thunderbolt II|1972.4|A-10;A10;Warthog;A-10 Warthog
+F-15 Eagle|1972.5|F15;F-15
+F-16 Fighting Falcon|1974|F-16;F16
+Panavia Tornado|1974.6|Tornado
+F/A-18 Hornet|1978|F-18;F18;Hornet
+F-117 Nighthawk|1981|F-117;F117;Stealth fighter;Nighthawk
+Airbus A320|1987|A320
+Antonov An-225|1988|An-225;An225;Mriya
+B-2 Spirit|1989|B-2;B2;Stealth bomber
+Eurofighter Typhoon|1994|Typhoon;Eurofighter
+Boeing 777|1994.5|777
+F-22 Raptor|1997|F-22;F22;Raptor
+Airbus A380|2005|A380
+F-35 Lightning II|2006|F-35;F35
+Boeing 787 Dreamliner|2009|787;Dreamliner`);
+
+  L('naval-battles', 2, 'Name a famous naval battle.', 'when it was fought', [1500, 1815], `
+Alashiya|~-1210|Battle of Alashiya;Cyprus
+Battle of the Delta|~-1175|Delta;Nile Delta
+Artemisium|-480.1
+Salamis|-480
+Arginusae|-406
+Aegospotami|-405
+Mylae|-260
+Cape Ecnomus|-256|Ecnomus
+Aegates Islands|-241|Aegates
+Actium|-31
+Red Cliffs|208|Chibi
+Battle of the Masts|655|Masts
+Svolder|1000|Svold
+Sluys|1340
+Lepanto|1571
+Spanish Armada|1588|Armada;Gravelines
+Hansan Island|1592|Hansando;Hansan
+Myeongnyang|1597
+Noryang|1598
+The Downs|1639|Downs
+Lowestoft|1665
+Four Days' Battle|1666|Four Days
+Raid on the Medway|1667|Medway
+Solebay|1672
+Texel|1673
+Beachy Head|1690
+La Hogue|1692|Barfleur;La Hougue
+Vigo Bay|1702
+Cape Passaro|1718
+Lagos|1759.6
+Quiberon Bay|1759.9
+Chesapeake|1781|Virginia Capes;Chesapeake Bay
+The Saintes|1782|Saintes
+Glorious First of June|1794|First of June
+Cape St Vincent|1797|Cape Saint Vincent;St Vincent
+Camperdown|1797.8
+The Nile|1798|Nile;Aboukir Bay
+Copenhagen|1801
+Trafalgar|1805
+Lake Erie|1813
+Navarino|1827
+Sinop|1853
+Hampton Roads|1862|Monitor and Merrimack
+Mobile Bay|1864
+Yalu River|1894|Yalu
+Manila Bay|1898
+Santiago de Cuba|1898.5|Santiago
+Tsushima|1905
+Heligoland Bight|1914.65
+Coronel|1914.84
+Falkland Islands|1914.93|Falklands
+Dogger Bank|1915
+Jutland|1916
+Atlantic|1939.67|Battle of the Atlantic
+River Plate|1939.95
+Taranto|1940
+Cape Matapan|1941.24|Matapan
+Denmark Strait|1941.39|Sinking of the Bismarck
+Pearl Harbor|1941.93
+Java Sea|1942.15
+Coral Sea|1942.35
+Midway|1942.43
+Savo Island|1942.6
+Guadalcanal|1942.87
+Barents Sea|1942.99
+North Cape|1943.98
+Philippine Sea|1944.47
+Leyte Gulf|1944.81|Leyte`);
+
+  L('french-presidents', 2, 'Name a president of France.', 'start of term', [1899, 1958], `
+Louis-Napoleon Bonaparte|1848|Napoleon III;Louis Napoleon;Louis-Napoleon
+Adolphe Thiers|1871
+Patrice de MacMahon|1873|MacMahon;Mac-Mahon
+Jules Grevy|1879
+Sadi Carnot|1887
+Jean Casimir-Perier|1894|Casimir-Perier;Casimir Perier
+Felix Faure|1895
+Emile Loubet|1899
+Armand Fallieres|1906
+Raymond Poincare|1913
+Paul Deschanel|1920.1
+Alexandre Millerand|1920.7
+Gaston Doumergue|1924
+Paul Doumer|1931
+Albert Lebrun|1932
+Vincent Auriol|1947
+Rene Coty|1954
+Charles de Gaulle|1959|de Gaulle
+Georges Pompidou|1969
+Valery Giscard d'Estaing|1974|Giscard;Giscard d'Estaing;VGE
+Francois Mitterrand|1981
+Jacques Chirac|1995
+Nicolas Sarkozy|2007
+Francois Hollande|2012
+Emmanuel Macron|2017`, 'P');
+
+  L('nobel-peace', 2, 'Name a winner of the Nobel Peace Prize.', 'the year of the prize', [1919, 1964], `
+Henry Dunant|1901|Dunant;Henri Dunant
+Frederic Passy|1901|Passy
+Elie Ducommun|1902|Ducommun
+Charles Albert Gobat|1902|Gobat;Albert Gobat
+Randal Cremer|1903|Cremer;William Randal Cremer
+Institute of International Law|1904|Institut de Droit International
+Bertha von Suttner|1905|Suttner;von Suttner
+Theodore Roosevelt|1906|Teddy Roosevelt;Roosevelt
+Ernesto Moneta|1907|Moneta;Ernesto Teodoro Moneta
+Louis Renault|1907|Renault
+Klas Pontus Arnoldson|1908|Arnoldson
+Fredrik Bajer|1908|Bajer
+Auguste Beernaert|1909|Beernaert
+Paul d'Estournelles de Constant|1909|d'Estournelles de Constant;Estournelles de Constant
+Permanent International Peace Bureau|1910|International Peace Bureau;Peace Bureau
+Tobias Asser|1911|Asser
+Alfred Fried|1911|Fried
+Elihu Root|1912|Root
+Henri La Fontaine|1913|La Fontaine
+Red Cross|1917|International Committee of the Red Cross;ICRC;International Red Cross
+Woodrow Wilson|1919|Wilson
+Leon Bourgeois|1920|Bourgeois
+Hjalmar Branting|1921|Branting
+Christian Lange|1921|Lange
+Fridtjof Nansen|1922|Nansen
+Austen Chamberlain|1925|Chamberlain
+Charles Dawes|1925|Dawes
+Aristide Briand|1926|Briand
+Gustav Stresemann|1926|Stresemann
+Ferdinand Buisson|1927|Buisson
+Ludwig Quidde|1927|Quidde
+Frank Kellogg|1929|Kellogg
+Nathan Soderblom|1930|Soderblom
+Jane Addams|1931|Addams
+Nicholas Murray Butler|1931|Butler
+Norman Angell|1933|Angell
+Arthur Henderson|1934|Henderson
+Carl von Ossietzky|1935|Ossietzky
+Carlos Saavedra Lamas|1936|Saavedra Lamas
+Robert Cecil|1937|Cecil;Lord Cecil;Viscount Cecil
+Nansen International Office for Refugees|1938|Nansen Office
+Cordell Hull|1945|Hull
+Emily Greene Balch|1946|Balch;Emily Balch
+John Mott|1946|Mott
+Quakers|1947|Friends Service Council;American Friends Service Committee
+John Boyd Orr|1949|Boyd Orr
+Ralph Bunche|1950|Bunche
+Leon Jouhaux|1951|Jouhaux
+Albert Schweitzer|1952|Schweitzer
+George Marshall|1953|Marshall;George C. Marshall
+UNHCR|1954|UN Refugee Agency;United Nations High Commissioner for Refugees
+Lester Pearson|1957|Pearson;Lester B. Pearson
+Georges Pire|1958|Pire;Dominique Pire
+Philip Noel-Baker|1959|Noel-Baker
+Albert Luthuli|1960|Luthuli;Albert Lutuli
+Dag Hammarskjold|1961|Hammarskjold
+Linus Pauling|1962|Pauling
+Martin Luther King|1964|MLK;Martin Luther King Jr;King
+UNICEF|1965
+Rene Cassin|1968|Cassin
+International Labour Organization|1969|ILO
+Norman Borlaug|1970|Borlaug
+Willy Brandt|1971|Brandt
+Henry Kissinger|1973|Kissinger
+Le Duc Tho|1973
+Sean MacBride|1974|MacBride
+Eisaku Sato|1974|Sato
+Andrei Sakharov|1975|Sakharov
+Betty Williams|1976|Williams
+Mairead Corrigan|1976|Corrigan;Mairead Maguire
+Amnesty International|1977|Amnesty
+Anwar Sadat|1978|Sadat
+Menachem Begin|1978|Begin
+Mother Teresa|1979|Teresa of Calcutta;Saint Teresa;Teresa
+Adolfo Perez Esquivel|1980|Perez Esquivel
+Alva Myrdal|1982|Myrdal
+Alfonso Garcia Robles|1982|Garcia Robles
+Lech Walesa|1983|Walesa
+Desmond Tutu|1984|Tutu
+International Physicians for the Prevention of Nuclear War|1985|IPPNW
+Elie Wiesel|1986|Wiesel
+Oscar Arias|1987|Arias
+UN Peacekeeping Forces|1988|UN Peacekeepers;Peacekeepers;Blue Helmets
+Dalai Lama|1989|Tenzin Gyatso
+Mikhail Gorbachev|1990|Gorbachev
+Aung San Suu Kyi|1991|Suu Kyi
+Rigoberta Menchu|1992|Menchu
+Nelson Mandela|1993|Mandela
+F. W. de Klerk|1993|de Klerk;FW de Klerk
+Yasser Arafat|1994|Arafat
+Shimon Peres|1994|Peres
+Yitzhak Rabin|1994|Rabin
+Joseph Rotblat|1995|Rotblat
+Pugwash Conferences|1995|Pugwash
+Carlos Belo|1996|Belo;Bishop Belo
+Jose Ramos-Horta|1996|Ramos-Horta;Ramos Horta
+Jody Williams|1997|Williams
+International Campaign to Ban Landmines|1997|ICBL
+John Hume|1998|Hume
+David Trimble|1998|Trimble
+Medecins Sans Frontieres|1999|Doctors Without Borders;MSF
+Kim Dae-jung|2000|Kim Dae Jung
+Kofi Annan|2001|Annan
+United Nations|2001|UN
+Jimmy Carter|2002|Carter
+Shirin Ebadi|2003|Ebadi
+Wangari Maathai|2004|Maathai
+Mohamed ElBaradei|2005|ElBaradei
+IAEA|2005|International Atomic Energy Agency
+Muhammad Yunus|2006|Yunus
+Grameen Bank|2006|Grameen
+Al Gore|2007|Gore
+IPCC|2007|Intergovernmental Panel on Climate Change
+Martti Ahtisaari|2008|Ahtisaari
+Barack Obama|2009|Obama
+Liu Xiaobo|2010
+Ellen Johnson Sirleaf|2011|Sirleaf;Johnson Sirleaf
+Leymah Gbowee|2011|Gbowee
+Tawakkol Karman|2011|Karman
+European Union|2012|EU
+OPCW|2013|Organisation for the Prohibition of Chemical Weapons
+Malala Yousafzai|2014|Malala
+Kailash Satyarthi|2014|Satyarthi
+Tunisian National Dialogue Quartet|2015|Tunisian Quartet;National Dialogue Quartet
+Juan Manuel Santos|2016|Santos
+ICAN|2017|International Campaign to Abolish Nuclear Weapons
+Denis Mukwege|2018|Mukwege
+Nadia Murad|2018|Murad
+Abiy Ahmed|2019|Abiy
+World Food Programme|2020|WFP;World Food Program
+Maria Ressa|2021|Ressa
+Dmitry Muratov|2021|Muratov
+Ales Bialiatski|2022|Bialiatski
+Memorial|2022
+Center for Civil Liberties|2022|Centre for Civil Liberties
+Narges Mohammadi|2023|Mohammadi
+Nihon Hidankyo|2024|Hidankyo
+Maria Corina Machado|2025|Machado
+Navi Pillay|2026|Pillay;Navanethem Pillay`);
+
+  L('mathematicians', 2, 'Name a famous mathematician.', 'birth', [0, 1600], `
+Ahmes|~-1680|Ahmose
+Thales|~-624
+Pythagoras|~-570
+Zeno of Elea|~-490|Zeno
+Hippocrates of Chios|~-470
+Eudoxus|~-408|Eudoxus of Cnidus
+Euclid|~-325
+Archimedes|~-287
+Eratosthenes|~-276
+Apollonius of Perga|~-262|Apollonius
+Hipparchus|~-190
+Hero of Alexandria|~10|Hero;Heron
+Ptolemy|~100
+Diophantus|~200
+Pappus|~290|Pappus of Alexandria
+Hypatia|~360
+Aryabhata|476
+Brahmagupta|598
+Al-Khwarizmi|~780|Khwarizmi;Muhammad ibn Musa al-Khwarizmi
+Omar Khayyam|1048|Khayyam
+Bhaskara II|1114|Bhaskara
+Fibonacci|~1170|Leonardo of Pisa;Leonardo Fibonacci
+Regiomontanus|1436
+Luca Pacioli|~1447|Pacioli
+Niccolo Tartaglia|~1499|Tartaglia
+Gerolamo Cardano|1501|Cardano;Cardan
+Francois Viete|1540|Viete;Vieta
+John Napier|1550|Napier
+Johannes Kepler|1571|Kepler
+Rene Descartes|1596|Descartes
+Pierre de Fermat|1607|Fermat
+Blaise Pascal|1623|Pascal
+Christiaan Huygens|1629|Huygens
+Isaac Newton|1643|Newton
+Gottfried Leibniz|1646|Leibniz;Gottfried Wilhelm Leibniz
+Jacob Bernoulli|1655
+Johann Bernoulli|1667
+Daniel Bernoulli|1700
+Leonhard Euler|1707|Euler
+Jean le Rond d'Alembert|1717|d'Alembert;Alembert
+Maria Gaetana Agnesi|1718|Agnesi;Maria Agnesi
+Joseph-Louis Lagrange|1736|Lagrange
+Pierre-Simon Laplace|1749|Laplace
+Adrien-Marie Legendre|1752|Legendre
+Joseph Fourier|1768|Fourier
+Sophie Germain|1776|Germain
+Carl Friedrich Gauss|1777|Gauss
+Augustin-Louis Cauchy|1789|Cauchy
+August Mobius|1790|Mobius;Moebius
+Charles Babbage|1791|Babbage
+Nikolai Lobachevsky|1792|Lobachevsky
+Niels Henrik Abel|1802|Abel
+Carl Jacobi|1804|Jacobi
+William Rowan Hamilton|1805|Hamilton
+Augustus De Morgan|1806|De Morgan
+Evariste Galois|1811|Galois
+Karl Weierstrass|1815.7|Weierstrass
+George Boole|1815.8|Boole
+Ada Lovelace|1815.9|Lovelace;Ada Byron
+Pafnuty Chebyshev|1821|Chebyshev
+Arthur Cayley|1821.6|Cayley
+Bernhard Riemann|1826|Riemann
+Richard Dedekind|1831|Dedekind
+Lewis Carroll|1832|Charles Dodgson;Dodgson
+John Venn|1834|Venn
+Georg Cantor|1845|Cantor
+Felix Klein|1849|Klein
+Sofia Kovalevskaya|1850|Kovalevskaya;Sofya Kovalevskaya
+Henri Poincare|1854|Poincare
+Giuseppe Peano|1858|Peano
+David Hilbert|1862|Hilbert
+Bertrand Russell|1872|Russell
+G. H. Hardy|1877|Hardy;Godfrey Hardy
+Emmy Noether|1882|Noether
+Srinivasa Ramanujan|1887|Ramanujan
+Andrey Kolmogorov|1903.3|Kolmogorov
+John von Neumann|1903.99|von Neumann;Neumann
+Kurt Godel|1906|Godel;Goedel
+Alan Turing|1912|Turing
+Paul Erdos|1913|Erdos
+Claude Shannon|1916|Shannon
+Katherine Johnson|1918
+Benoit Mandelbrot|1924|Mandelbrot
+Alexander Grothendieck|1928.2|Grothendieck
+John Nash|1928.5|Nash
+Roger Penrose|1931|Penrose
+John Conway|1937|Conway;John Horton Conway
+Andrew Wiles|1953|Wiles
+Grigori Perelman|1966|Perelman
+Terence Tao|1975|Tao;Terry Tao
+Maryam Mirzakhani|1977|Mirzakhani`, 'P');
+
+  L('architects', 2, 'Name a famous architect.', 'birth', [1400, 1800], `
+Imhotep|~-2650
+Senenmut|~-1500|Senmut
+Ictinus|~-480|Iktinos
+Callicrates|~-470|Kallikrates
+Vitruvius|~-80
+Apollodorus of Damascus|~60|Apollodorus
+Isidore of Miletus|~442|Isidore
+Anthemius of Tralles|~474|Anthemius
+Arnolfo di Cambio|~1240|Arnolfo
+Filippo Brunelleschi|1377|Brunelleschi
+Leon Battista Alberti|1404|Alberti
+Donato Bramante|1444|Bramante
+Michelangelo|1475
+Mimar Sinan|~1489|Sinan
+Andrea Palladio|1508|Palladio
+Giorgio Vasari|1511|Vasari
+Inigo Jones|1573
+Gian Lorenzo Bernini|1598.9|Bernini
+Francois Mansart|1598|Mansart
+Francesco Borromini|1599|Borromini
+Louis Le Vau|1612|Le Vau
+Christopher Wren|1632|Wren;Sir Christopher Wren
+Jules Hardouin-Mansart|1646|Hardouin-Mansart
+Nicholas Hawksmoor|~1661|Hawksmoor
+John Vanbrugh|1664|Vanbrugh
+James Gibbs|1682|Gibbs
+William Kent|~1685|Kent
+Capability Brown|1716|Lancelot Brown;Lancelot Capability Brown
+Robert Adam|1728
+Thomas Jefferson|1743|Jefferson
+John Nash|1752|Nash
+John Soane|1753|Soane;Sir John Soane
+Pierre L'Enfant|1754|L'Enfant;Pierre Charles L'Enfant
+Benjamin Latrobe|1764|Latrobe
+Karl Friedrich Schinkel|1781|Schinkel
+Charles Barry|1795|Barry
+Joseph Paxton|1803|Paxton
+Baron Haussmann|1809|Haussmann;Georges-Eugene Haussmann
+George Gilbert Scott|1811|Gilbert Scott
+Augustus Pugin|1812|Pugin
+Eugene Viollet-le-Duc|1814|Viollet-le-Duc
+Frederick Law Olmsted|1822|Olmsted
+Charles Garnier|1825|Garnier
+Gustave Eiffel|1832|Eiffel
+Daniel Burnham|1846|Burnham
+Antoni Gaudi|1852|Gaudi
+Louis Sullivan|1856|Sullivan
+Victor Horta|1861|Horta
+Frank Lloyd Wright|1867|Lloyd Wright
+Charles Rennie Mackintosh|1868|Mackintosh
+Edwin Lutyens|1869|Lutyens
+Adolf Loos|1870|Loos
+Walter Gropius|1883|Gropius
+Ludwig Mies van der Rohe|1886|Mies van der Rohe;Mies
+Le Corbusier|1887|Corbusier
+Buckminster Fuller|1895|Fuller
+Alvar Aalto|1898|Aalto
+Louis Kahn|1901|Kahn
+Albert Speer|1905|Speer
+Philip Johnson|1906
+Oscar Niemeyer|1907|Niemeyer
+Eero Saarinen|1910|Saarinen
+Kenzo Tange|1913|Tange
+I. M. Pei|1917|Pei;IM Pei;Ieoh Ming Pei
+Jorn Utzon|1918|Utzon
+Frank Gehry|1929|Gehry
+Richard Rogers|1933
+Norman Foster|1935|Foster;Lord Foster
+Renzo Piano|1937|Piano
+Tadao Ando|1941|Ando
+Rem Koolhaas|1944|Koolhaas
+Daniel Libeskind|1946|Libeskind
+Zaha Hadid|1950|Hadid
+Santiago Calatrava|1951|Calatrava
+Bjarke Ingels|1974|Ingels`, 'P');
+
+  L('holy-roman-emperors', 3, 'Name a Holy Roman Emperor.', 'start of reign as emperor', [1000, 1500], `
+Charlemagne|800|Charles the Great;Charles I
+Louis the Pious|814|Louis I
+Lothair I|840
+Louis II|855|Louis II of Italy
+Charles the Bald|875|Charles II
+Charles the Fat|881|Charles III
+Arnulf of Carinthia|896|Arnulf
+Louis the Blind|901|Louis III
+Berengar|915|Berengar I;Berengar of Friuli
+Otto the Great|962|Otto I
+Otto II|973
+Otto III|996
+Henry II|1014
+Conrad II|1027
+Henry III|1046
+Henry IV|1084
+Henry V|1111
+Lothair III|1133
+Frederick Barbarossa|1155|Barbarossa;Frederick I
+Henry VI|1191
+Otto IV|1209
+Frederick II|1220
+Henry VII|1312
+Louis the Bavarian|1328|Louis IV
+Charles IV|1355
+Sigismund|1433
+Frederick III|1452
+Maximilian I|1508
+Charles V|1519
+Ferdinand I|1556
+Maximilian II|1564
+Rudolf II|1576
+Matthias|1612
+Ferdinand II|1619
+Ferdinand III|1637
+Leopold I|1658
+Joseph I|1705
+Charles VI|1711
+Charles VII|1742
+Francis I|1745
+Joseph II|1765
+Leopold II|1790
+Francis II|1792`);
+
+  L('scottish-monarchs', 3, 'Name a king or queen of Scots from before 1603.', 'start of reign', [1004, 1306], `
+Kenneth MacAlpin|843|Kenneth I;Kenneth mac Alpin
+Donald I|858
+Constantine I|862
+Aed|877
+Giric|878
+Donald II|889
+Constantine II|900
+Malcolm I|943
+Indulf|954
+Dub|962|Duff
+Cuilen|967|Culen
+Kenneth II|971
+Constantine III|995
+Kenneth III|997
+Malcolm II|1005
+Duncan I|1034
+Macbeth|1040
+Lulach|1057
+Malcolm III|1058|Malcolm Canmore
+Donald III|1093|Donald Bane;Donalbain
+Duncan II|1094
+Edgar|1097
+Alexander I|1107
+David I|1124
+Malcolm IV|1153
+William the Lion|1165|William I
+Alexander II|1214
+Alexander III|1249
+Margaret, Maid of Norway|1286|Maid of Norway;Margaret
+John Balliol|1292|Balliol
+Robert the Bruce|1306|Robert I;Robert Bruce;The Bruce
+David II|1329
+Robert II|1371
+Robert III|1390
+James I|1406
+James II|1437
+James III|1460
+James IV|1488
+James V|1513
+Mary, Queen of Scots|1542|Mary Queen of Scots;Mary Stuart;Mary I;Mary
+James VI|1567`);
+
+  L('caliphates', 3, 'Name a caliphate or Muslim dynasty.', 'founding', [750, 1100], `
+Rashidun|632|Rashidun Caliphate
+Umayyad|661|Umayyad Caliphate;Umayyads
+Abbasid|750|Abbasid Caliphate;Abbasids
+Cordoba|756|Emirate of Cordoba;Caliphate of Cordoba
+Idrisid|788|Idrisids
+Aghlabid|800|Aghlabids
+Samanid|819|Samanids
+Tahirid|821|Tahirids
+Saffarid|861|Saffarids
+Tulunid|868|Tulunids
+Fatimid|909|Fatimid Caliphate;Fatimids
+Buyid|934|Buyids;Buwayhid
+Ghaznavid|977|Ghaznavids
+Seljuk|1037|Seljuks;Seljuq;Great Seljuk
+Almoravid|1040|Almoravids
+Almohad|1121|Almohads;Almohad Caliphate
+Zengid|1127|Zengids
+Ayyubid|1171|Ayyubids
+Delhi Sultanate|1206|Delhi
+Hafsid|1229|Hafsids
+Nasrid|1232|Nasrids
+Marinid|1244|Marinids
+Mamluk|1250|Mamluks;Mamluk Sultanate
+Ottoman|1299|Ottomans;Ottoman Caliphate
+Timurid|1370|Timurids
+Safavid|1501|Safavids
+Mughal|1526|Mughals;Moghul
+Saadi|1549|Saadian;Saadians
+Alaouite|1631|Alawite;Alawi
+Afsharid|1736|Afsharids
+Zand|1751
+Qajar|1789|Qajars
+Sokoto|1804|Sokoto Caliphate`);
+
+  L('roses-battles', 3, 'Name a battle of the Wars of the Roses.', 'when it was fought', [1460.6, 1464.9], `
+First St Albans|1455.4|First Battle of St Albans;St Albans
+Blore Heath|1459.73
+Ludford Bridge|1459.78|Ludford
+Northampton|1460.52
+Wakefield|1460.99
+Mortimer's Cross|1461.09
+Second St Albans|1461.13|Second Battle of St Albans;St Albans
+Ferrybridge|1461.24
+Towton|1461.245
+Hedgeley Moor|1464.3
+Hexham|1464.37
+Edgecote|1469.56|Edgecote Moor;Edgcote
+Losecoat Field|1470.2|Empingham;Losecote Field
+Barnet|1471.28
+Tewkesbury|1471.34
+Bosworth|1485.64|Bosworth Field
+Stoke Field|1487.45|Stoke;East Stoke`);
+
+  L('revolutionary-war-battles', 3, 'Name a battle of the American Revolutionary War.', 'when it was fought', [1775.999, 1777.999], `
+Lexington and Concord|1775.3|Lexington;Concord
+Fort Ticonderoga|1775.36|Ticonderoga
+Bunker Hill|1775.46|Breed's Hill
+Quebec|1775.99
+Moore's Creek Bridge|1776.16|Moores Creek
+Sullivan's Island|1776.49|Fort Moultrie
+Long Island|1776.65|Brooklyn;Brooklyn Heights
+Harlem Heights|1776.71
+Valcour Island|1776.78
+White Plains|1776.82
+Fort Washington|1776.87
+Trenton|1776.98
+Princeton|1777.01
+Oriskany|1777.6
+Bennington|1777.62
+Brandywine|1777.7
+Saratoga|1777.72|Freeman's Farm;Bemis Heights
+Germantown|1777.76
+Monmouth|1778.49|Monmouth Court House
+Savannah|1778.99
+Vincennes|1779.15
+Stony Point|1779.54
+Flamborough Head|1779.73
+Charleston|1780.3
+Camden|1780.62
+Kings Mountain|1780.77|King's Mountain
+Cowpens|1781.05
+Guilford Court House|1781.2|Guilford Courthouse
+Chesapeake|1781.68|Virginia Capes
+Eutaw Springs|1781.69
+Yorktown|1781.75`);
+
+  L('indian-pms', 3, 'Name a prime minister of India.', 'start of first term', [1966, 1991], `
+Jawaharlal Nehru|1947|Nehru;Pandit Nehru
+Gulzarilal Nanda|1964.4|Nanda
+Lal Bahadur Shastri|1964.44|Shastri
+Indira Gandhi|1966
+Morarji Desai|1977|Desai
+Charan Singh|1979
+Rajiv Gandhi|1984
+V. P. Singh|1989|Vishwanath Pratap Singh;VP Singh
+Chandra Shekhar|1990
+P. V. Narasimha Rao|1991|Narasimha Rao;Rao;PV Narasimha Rao
+Atal Bihari Vajpayee|1996.4|Vajpayee
+H. D. Deve Gowda|1996.45|Deve Gowda;Gowda
+I. K. Gujral|1997|Gujral;Inder Kumar Gujral
+Manmohan Singh|2004
+Narendra Modi|2014|Modi`, 'P');
+
+  L('canadian-pms', 3, 'Name a prime minister of Canada.', 'start of first term', [1896.4, 1948], `
+John A. Macdonald|1867|Macdonald;John Macdonald
+Alexander Mackenzie|1873
+John Abbott|1891
+John Thompson|1892
+Mackenzie Bowell|1894|Bowell
+Charles Tupper|1896.3|Tupper
+Wilfrid Laurier|1896.5|Laurier
+Robert Borden|1911|Borden
+Arthur Meighen|1920|Meighen
+William Lyon Mackenzie King|1921|Mackenzie King;King
+R. B. Bennett|1930|Bennett;Richard Bennett
+Louis St. Laurent|1948|St Laurent;Saint Laurent
+John Diefenbaker|1957|Diefenbaker
+Lester B. Pearson|1963|Pearson;Lester Pearson
+Pierre Trudeau|1968|Pierre Elliott Trudeau
+Joe Clark|1979
+John Turner|1984.5
+Brian Mulroney|1984.7|Mulroney
+Kim Campbell|1993.5
+Jean Chretien|1993.8|Chretien
+Paul Martin|2003
+Stephen Harper|2006|Harper
+Justin Trudeau|2015
+Mark Carney|2025|Carney`, 'P');
+
+  L('australian-pms', 3, 'Name a prime minister of Australia.', 'start of first term', [1915, 1949], `
+Edmund Barton|1901|Barton
+Alfred Deakin|1903|Deakin
+Chris Watson|1904.3
+George Reid|1904.6
+Andrew Fisher|1908
+Joseph Cook|1913
+Billy Hughes|1915|William Hughes
+Stanley Bruce|1923
+James Scullin|1929|Scullin
+Joseph Lyons|1932|Lyons
+Earle Page|1939.3
+Robert Menzies|1939.32|Menzies
+Arthur Fadden|1941.65|Fadden
+John Curtin|1941.77|Curtin
+Frank Forde|1945.5|Forde
+Ben Chifley|1945.53|Chifley
+Harold Holt|1966
+John McEwen|1967.96|McEwen
+John Gorton|1968|Gorton
+William McMahon|1971|McMahon
+Gough Whitlam|1972|Whitlam
+Malcolm Fraser|1975
+Bob Hawke|1983|Hawke
+Paul Keating|1991|Keating
+John Howard|1996
+Kevin Rudd|2007|Rudd
+Julia Gillard|2010|Gillard
+Tony Abbott|2013
+Malcolm Turnbull|2015|Turnbull
+Scott Morrison|2018
+Anthony Albanese|2022|Albanese;Albo`, 'P');
+
+  L('winter-olympics', 3, 'Name a place that has hosted the Winter Olympics.', 'its first Games', [1936, 1972], `
+Chamonix|1924
+St. Moritz|1928|Saint Moritz
+Lake Placid|1932
+Garmisch-Partenkirchen|1936|Garmisch
+Oslo|1952
+Cortina d'Ampezzo|1956|Cortina
+Squaw Valley|1960|Palisades Tahoe
+Innsbruck|1964
+Grenoble|1968
+Sapporo|1972
+Sarajevo|1984
+Calgary|1988
+Albertville|1992
+Lillehammer|1994
+Nagano|1998
+Salt Lake City|2002|Salt Lake
+Turin|2006|Torino
+Vancouver|2010
+Sochi|2014
+Pyeongchang|2018
+Beijing|2022|Peking
+Milan|2026|Milano;Milan Cortina;Milano Cortina`);
+
   // ======================= narrower questions from the rolls above =======================
   var N = null;
   V('us-presidents-1900s', 'us-presidents', 1, 'Name a US president who took office in the 20th century.', [1923, 1961], 1901, 2000);
@@ -2115,6 +3264,31 @@ Harrison Schmitt|1972.95|Jack Schmitt`, 'P');
   V('french-louis', 'french-monarchs', 2, 'Name a French king called Louis.', [986, 1498], N, N, /^Louis/);
   V('uk-pms-1945-on', 'uk-pms', 2, 'Name a British prime minister since 1945.', [1957, 1979], 1945, N);
   V('landmarks-1800-on', 'landmarks', 2, 'Name a famous landmark built since 1800.', [1859.99, 1899.99], 1800, N);
+
+  V('us-presidents-since-1945', 'us-presidents', 1, 'Name a US president who has taken office since 1945.', [1961, 1981], 1945, N);
+  V('inventions-1900s', 'inventions', 1, 'Name an invention of the 20th century.', [1921, 1950], 1900, 1999.99);
+  V('writers-1900s', 'writers', 1, 'Name a famous writer born in the 20th century.', [1911, 1930], 1900, 1999.99);
+  V('painters-1800-on', 'painters', 1, 'Name a famous painter born since 1800.', [1844, 1886], 1800, N);
+  V('wars-1800s', 'wars', 1, 'Name a war that began in the 19th century.', [1821, 1856], 1800, 1899.99);
+  V('ships-1900s', 'ships', 1, 'Name a famous ship of the 20th century.', [1910, 1938], 1900, 1999.99);
+  V('generals-1900s', 'generals', 1, 'Name a famous general of the 20th century.', [1916.4, 1941.4], 1900, 1999.99);
+
+  V('eng-henry-edward', 'eng-monarchs', 2, 'Name an English king called Henry or Edward.', [1100, 1399], N, N, /^(Henry|Edward)\b/);
+  V('battles-1500-1899', 'battles', 2, 'Name a battle fought between 1500 and 1900.', [1643, 1781], 1500, 1899.99);
+  V('explorers-1600-on', 'explorers', 2, 'Name an explorer who set out in 1600 or later.', [1768.5, 1858], 1600, N);
+  V('scientists-1900s', 'scientists', 2, 'Name a scientist born in the 20th century.', [1904, 1918], 1900, 1999.99);
+  V('landmarks-1500-1799', 'landmarks', 2, 'Name a famous landmark built between 1500 and 1800.', [1565, 1670], 1500, 1799.99);
+  V('documents-1900s', 'documents', 2, 'Name a treaty, charter or declaration of the 20th century.', [1920.6, 1951.7], 1900, 1999.99);
+  V('queens-1500-on', 'queens', 2, 'Name a queen or empress who has ruled in her own right since 1500.', [1575, 1741], 1500, N);
+  V('philosophers-1600-on', 'philosophers', 2, 'Name a philosopher born since 1600.', [1724, 1861], 1600, N);
+  V('composers-pre1800', 'composers', 2, 'Name a composer born before 1800.', [1450, 1660], N, 1799.99);
+  V('empires-1000-on', 'empires', 2, 'Name an empire founded since the year 1000.', [1206, 1464], 1000, N);
+  V('revolutions-1900s', 'revolutions', 2, 'Name a revolution of the 20th century.', [1917.99, 1964], 1900, 1999.99);
+  V('space-pre1975', 'space', 2, 'Name a space mission or programme launched before 1975.', [1959, 1963], N, 1974.99);
+
+  V('uk-pms-1800s', 'uk-pms', 3, 'Name a British prime minister who first took office in the 19th century.', [1812, 1834.9], 1800, 1899.99);
+  V('roman-emperors-200-on', 'roman-emperors', 3, 'Name a Roman emperor who took power in the year 200 or later.', [244, 305], 200, N);
+  V('pharaohs-new-kingdom', 'pharaohs', 3, 'Name a pharaoh of the New Kingdom.', [-1479, -1319], -1550, -1070);
 
   // ======================= more names for the rolls above =======================
   // Kept apart so the rolls stay readable. M(id, roll) adds lines to a roll.
@@ -2496,7 +3670,7 @@ Calais|1940.395|Siege of Calais
 Mers-el-Kebir|1940.5
 Cape Matapan|1941.24|Matapan
 Greece|1941.27
-Denmark Strait|1941.39|Sinking of the Bismarck
+Denmark Strait|1941.39|Sinking of the Bismarck;Bismarck
 Smolensk|1941.52
 Kiev|1941.64|Kyiv
 Sevastopol|1941.83|Siege of Sevastopol
@@ -4367,6 +5541,7 @@ Mora|1066
 White Ship|1120
 Grace Dieu|1418`);
   M('queens', `
+Neithhotep|~-3050|Neith-hotep
 Kubaba|~-2500|Kug-Bau`);
   M('documents', `
 Treaty of Mesilim|~-2550|Mesilim
@@ -4375,6 +5550,10 @@ Treaty of Ebla|~-2350|Ebla-Abarsal treaty;Ebla and Abarsal
 Code of Ur-Nammu|~-2100|Ur-Nammu`);
   M('japanese-periods', `
 Japanese Paleolithic|~-35000|Paleolithic`);
+  M('napoleonic-battles', `
+Quievrain|1792.32
+Marquain|1792.33
+Verdun|1792.67|Siege of Verdun`);
 
   // ---------- building the bank ----------
   /** Small stable string hash (FNV-1a), used for seeds and ids. */

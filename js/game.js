@@ -38,11 +38,11 @@
   var $ = function (id) { return document.getElementById(id); };
   var el = {};
   ['app', 'cv', 'veil', 'hud', 'lives', 'progress', 'score', 'quitBtn', 'banner', 'floats', 'combo', 'comboN', 'titleBlock',
-    'menu', 'playDaily', 'dailyNo', 'dailyDone', 'doneMarks', 'doneLine', 'doneCopy', 'doneNext',
-    'playEndless', 'endlessBest', 'howBtn', 'soundBtn', 'stats',
+    'menu', 'playDaily', 'dailyNo', 'dailyDone', 'doneMarks', 'doneLine', 'doneCopy', 'doneNext', 'answersBtn',
+    'playEndless', 'endlessBest', 'howBtn', 'almanacBtn', 'soundBtn', 'stats',
     'fightTop', 'health', 'foe', 'qText', 'rule', 'chips', 'fightBottom', 'answerForm', 'answer', 'skipBtn', 'strikeBtn', 'feedback',
-    'end', 'endKicker', 'endTitle', 'endScore', 'endRank', 'endMarks', 'copyBtn', 'againBtn', 'homeBtn', 'nextIn',
-    'copyBox', 'copyText', 'howto', 'howClose'].forEach(function (id) { el[id] = $(id); });
+    'end', 'endKicker', 'endTitle', 'endScore', 'endRank', 'endMarks', 'copyBtn', 'againBtn', 'homeBtn', 'nextIn', 'endRecap',
+    'copyBox', 'copyText', 'howto', 'howClose', 'book', 'bookTitle', 'bookBody', 'bookClose'].forEach(function (id) { el[id] = $(id); });
 
   var BANK = WW.buildBank();
   A.setGuard(BANK);
@@ -52,10 +52,15 @@
   scene.calm = calm;
 
   // ---------- saved data (this browser only) ----------
-  var store = { stats: { played: 0, streak: 0, maxStreak: 0, lastNum: 0, best: 0, bestEndless: 0 }, daily: null, sound: false };
+  // found: the oldest answers the player has given, by question, for the almanac
+  var store = { stats: { played: 0, streak: 0, maxStreak: 0, lastNum: 0, best: 0, bestEndless: 0 }, daily: null,
+    sound: false, soundSet: false, found: {} };
   try {
     var raw = JSON.parse(window.localStorage.getItem(STORE_KEY) || 'null');
-    if (raw && raw.stats) { store.stats = Object.assign(store.stats, raw.stats); store.daily = raw.daily || null; store.sound = !!raw.sound; }
+    if (raw && raw.stats) {
+      store.stats = Object.assign(store.stats, raw.stats); store.daily = raw.daily || null;
+      store.sound = !!raw.sound; store.soundSet = !!raw.soundSet; store.found = raw.found || {};
+    }
     else {
       // carry the streak over from the earlier version of the game
       var old = JSON.parse(window.localStorage.getItem('wallward.v2') || 'null');
@@ -77,7 +82,7 @@
   // ---------- state ----------
   var G = {
     mode: null, phase: 'title', phaseT: 0, num: 0, plan: null, idx: 0, total: 0,
-    lives: CONFIG.LIVES, score: 0, results: [], flawless: true, combo: 0, bestCombo: 0,
+    lives: CONFIG.LIVES, score: 0, results: [], recap: [], flawless: true, combo: 0, bestCombo: 0,
     enemy: null, def: null, prompt: null, used: {}, usedList: [],
     reveal: '', recent: [], skipArmed: 0, told: false,
     camFrom: 0, camTo: 0, walkDur: 2.4, spawned: false,
@@ -221,6 +226,54 @@
     return p ? 'The oldest answer was ' + p.oldest.name + ', ' + WW.fmtYear(p.oldest) + '.' : '';
   }
 
+  function dated(a) { return a.name + ', ' + WW.fmtYear(a); }
+
+  /**
+   * Note how a foe was dealt with: its mark for the shared result, and the question, the
+   * answers given and the oldest there was, to be read over when the wall is done.
+   */
+  function record(mark) {
+    var p = G.prompt;
+    G.results.push(mark);
+    G.recap.push({ q: p.q, oldest: dated(p.oldest), given: G.usedList.map(dated) });
+  }
+
+  /** The questions of a run as list items: what was asked, what was given, and the oldest answer. */
+  function recapHtml(results, recap) {
+    return (recap || []).map(function (r, i) {
+      var found = r.given.indexOf(r.oldest) !== -1;
+      return '<li><p class="asked">' + D.markRow([results[i]], 1) + ' ' + esc(r.q) + '</p>' +
+        '<p>You: ' + (r.given.length ? esc(r.given.join(' · ')) : 'no answer') + '</p>' +
+        '<p class="' + (found ? 'found' : 'oldest') + '">Oldest: ' + esc(r.oldest) + (found ? ' (you found it)' : '') + '</p></li>';
+    }).join('');
+  }
+
+  /** The almanac: every question, with its oldest answer once the player has given it. */
+  function almanacHtml() {
+    var found = [], unfound = [];
+    BANK.forEach(function (p) {
+      if (store.found[p.id] === p.oldest.name) found.push('<li><p class="asked">' + esc(p.q) + '</p><p class="found">' + esc(dated(p.oldest)) + '</p></li>');
+      else unfound.push('<li>' + esc(p.q) + '</li>');
+    });
+    return '<p>' + found.length + ' of ' + BANK.length + ' oldest answers found. Give a question its oldest answer and it is written here.</p>' +
+      '<ol class="recap">' + found.join('') + '</ol>' +
+      (unfound.length ? '<h3>Still to find</h3><ul class="unfound">' + unfound.join('') + '</ul>' : '');
+  }
+
+  function openDialog(d) {
+    if (d.showModal) d.showModal(); else d.setAttribute('open', '');
+    d.scrollTop = 0; // focus lands on Close at the foot; start reading from the top
+  }
+  function closeDialog(d) {
+    if (d.close) d.close(); else d.removeAttribute('open');
+  }
+  /** Open the reading dialog on a page of text: the almanac, or today's answers. */
+  function openBook(title, html) {
+    el.bookTitle.textContent = title;
+    el.bookBody.innerHTML = html;
+    openDialog(el.book);
+  }
+
   function showCombo(n) {
     if (n < 2) { el.combo.hidden = true; return; }
     el.comboN.textContent = '×' + n;
@@ -249,7 +302,7 @@
   // ---------- a run ----------
   function startRun(mode, resume) {
     WW.Sound.wake();
-    G.mode = mode; G.results = []; G.score = 0; G.lives = CONFIG.LIVES; G.idx = 0;
+    G.mode = mode; G.results = []; G.recap = []; G.score = 0; G.lives = CONFIG.LIVES; G.idx = 0;
     G.combo = 0; G.bestCombo = 0; G.recent = []; G.reveal = ''; G.told = false;
     G.bits = []; G.arcs = []; G.trail = []; G.fx = [];
     G.enemy = null; G.strike = null; G.hero.dx = 0; G.hero.dy = 0;
@@ -261,10 +314,10 @@
       G.total = G.plan.enemies.length;
       var d = store.daily;
       if (resume && d && d.num === G.num && !d.done) {
-        G.idx = d.idx; G.results = d.results.slice(); G.lives = d.lives; G.score = d.score;
+        G.idx = d.idx; G.results = d.results.slice(); G.recap = (d.recap || []).slice(); G.lives = d.lives; G.score = d.score;
         G.combo = d.combo || 0; G.bestCombo = d.best || 0;
       } else {
-        store.daily = { num: G.num, idx: 0, results: [], lives: G.lives, score: 0, combo: 0, best: 0, done: false, total: G.total };
+        store.daily = { num: G.num, idx: 0, results: [], recap: [], lives: G.lives, score: 0, combo: 0, best: 0, done: false, total: G.total };
         save();
       }
     } else {
@@ -490,14 +543,17 @@
     var gain = D.hitGlory(blow.dmg, blow.combo);
     var worth = !outright ? blow.dmg + ' damage.' : blow.oldest ? 'the oldest answer.' : 'all but the oldest answer.';
     var said = a.name + ', ' + WW.fmtYear(a) + ': ' + worth + (res.exact ? '' : ' Close enough.');
+    var learned = blow.oldest && store.found[p.id] !== a.name;
+    if (learned) { store.found[p.id] = a.name; save(); }
     if (blow.killed) {
       gain += D.fellGlory(e.pace, G.flawless) + (outright ? D.OLDEST_GLORY : 0);
-      G.results.push(outright ? 'K' : G.flawless ? 'F' : 'W');
+      record(outright ? 'K' : G.flawless ? 'F' : 'W');
       G.phase = 'felled'; G.phaseT = 0;
       var relit = G.mode === 'endless' && (G.idx + 1) % CONFIG.RELIGHT_EVERY === 0 && G.lives < CONFIG.LIVES;
       if (relit) G.lives++;
       var how = outright ? 'Felled outright' : G.flawless ? 'Felled cleanly' : 'Felled';
-      feedback('ok t' + blow.dmg, said + ' ' + how + ', +' + D.fmt(gain) + ' glory.' + (relit ? ' A torch is relit.' : ''), 5200);
+      feedback('ok t' + blow.dmg, said + ' ' + how + ', +' + D.fmt(gain) + ' glory.' + (learned ? ' Written in your almanac.' : '') +
+        (relit ? ' A torch is relit.' : ''), 5200);
       G.reveal = NAMES[e.kind] + (outright ? ' felled outright. ' : ' felled. ') + oldest(p);
       closePrompt(G.reveal);
     } else {
@@ -553,7 +609,7 @@
     drawHud();
     if (G.mode === 'daily' && store.daily) { store.daily.lives = G.lives; store.daily.combo = 0; save(); }
     if (G.lives <= 0) {
-      G.results.push('X');
+      record('X');
       G.phase = 'falling'; G.phaseT = 0;
       feedback('miss', text + ' The last torch goes out.', 6000);
       closePrompt(oldest(G.prompt));
@@ -588,7 +644,7 @@
     settleStrike();
     var p = G.prompt, name = NAMES[e.kind];
     if (!loseTorch('You let the ' + name.toLowerCase() + ' pass.')) return;
-    G.results.push('S');
+    record('S');
     G.phase = 'fleeing'; G.phaseT = 0;
     G.reveal = name + ' slipped past. ' + oldest(p);
     closePrompt(G.reveal);
@@ -660,7 +716,8 @@
     G.idx++;
     if (G.mode === 'daily') {
       var d = store.daily;
-      d.idx = G.idx; d.results = G.results.slice(); d.lives = G.lives; d.score = G.score; d.combo = G.combo; d.best = G.bestCombo;
+      d.idx = G.idx; d.results = G.results.slice(); d.recap = G.recap.slice();
+      d.lives = G.lives; d.score = G.score; d.combo = G.combo; d.best = G.bestCombo;
       save();
     }
     if (G.mode === 'daily' && G.idx >= G.total) { finish(true); return; }
@@ -674,7 +731,8 @@
     if (G.mode === 'daily') {
       var d = store.daily;
       if (!d.done) {
-        d.done = true; d.held = held; d.results = G.results.slice(); d.score = G.score; d.lives = G.lives; d.best = G.bestCombo;
+        d.done = true; d.held = held; d.results = G.results.slice(); d.recap = G.recap.slice();
+        d.score = G.score; d.lives = G.lives; d.best = G.bestCombo;
         if (s.lastNum !== G.num) {
           s.played++;
           s.streak = s.lastNum === G.num - 1 ? s.streak + 1 : 1;
@@ -706,6 +764,7 @@
     }
     save();
     el.endScore.textContent = D.fmt(G.score);
+    el.endRecap.innerHTML = recapHtml(G.results, G.recap);
     el.copyBox.hidden = true;
     if (held) sfx.win();
     show('end');
@@ -749,18 +808,23 @@
     var num = D.dayNumber(), d = store.daily, s = store.stats;
     var today = d && d.num === num ? d : null;
     el.dailyNo.textContent = 'No. ' + num;
+    el.titleBlock.classList.toggle('brief', !!(today && today.done)); // the taller menu needs the room on a small phone
     if (today && today.done) {
       el.playDaily.hidden = true;
       el.dailyDone.hidden = false;
       el.doneMarks.textContent = D.markRow(today.results, today.total || 5);
       el.doneLine.textContent = 'Wall No. ' + num + ': ' + D.fmt(today.score) + ' glory, ' + D.rankFor(today.score).toLowerCase() + '.';
+      el.answersBtn.hidden = !(today.recap && today.recap.length);
     } else {
       el.playDaily.hidden = false;
       el.dailyDone.hidden = true;
       el.playDaily.firstChild.textContent = today && today.idx > 0 ? 'Return to today\'s wall ' : 'Hold today\'s wall ';
     }
     el.endlessBest.textContent = s.bestEndless ? 'Best ' + D.fmt(s.bestEndless) : 'No end';
-    el.soundBtn.textContent = 'Sound: ' + (store.sound ? 'on' : 'off');
+    // until the switch has been used (or a few walls played), it asks to be noticed
+    var nudge = !store.sound && !store.soundSet && s.played < 3;
+    el.soundBtn.textContent = nudge ? 'Turn on sound' : 'Sound: ' + (store.sound ? 'on' : 'off');
+    el.soundBtn.classList.toggle('nudge', nudge);
     el.soundBtn.setAttribute('aria-pressed', store.sound ? 'true' : 'false');
     el.stats.textContent = s.played
       ? 'Walls held ' + s.played + '. Streak ' + s.streak + (s.streak === 1 ? ' day' : ' days') + '.' + (s.best ? ' Best ' + D.fmt(s.best) + ' glory.' : '')
@@ -1175,16 +1239,17 @@
   el.copyBtn.addEventListener('click', function () { copyResult(el.copyBtn); });
   el.doneCopy.addEventListener('click', function () { copyResult(el.doneCopy); });
   el.soundBtn.addEventListener('click', function () {
-    store.sound = WW.Sound.enabled = !store.sound; save(); drawMenu();
+    store.sound = WW.Sound.enabled = !store.sound; store.soundSet = true; save(); drawMenu();
     if (store.sound) sfx.hit(1, 0);
   });
-  el.howBtn.addEventListener('click', function () {
-    if (el.howto.showModal) el.howto.showModal(); else el.howto.setAttribute('open', '');
-    el.howto.scrollTop = 0; // focus lands on Close at the foot; start reading from the top
+  el.howBtn.addEventListener('click', function () { openDialog(el.howto); });
+  el.howClose.addEventListener('click', function () { closeDialog(el.howto); });
+  el.almanacBtn.addEventListener('click', function () { openBook('Almanac', almanacHtml()); });
+  el.answersBtn.addEventListener('click', function () {
+    var d = store.daily;
+    openBook('Today\'s answers', '<ol class="recap">' + recapHtml(d.results, d.recap) + '</ol>');
   });
-  el.howClose.addEventListener('click', function () {
-    if (el.howto.close) el.howto.close(); else el.howto.removeAttribute('open');
-  });
+  el.bookClose.addEventListener('click', function () { closeDialog(el.book); });
 
   function onPointer(ev) {
     var nx = (ev.clientX / Math.max(1, window.innerWidth) - 0.5) * 2;
