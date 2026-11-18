@@ -26,14 +26,15 @@ screen.
 - **The three kinds of blow.** 1 damage is a single cut. 2 damage is a gold
   double cut with embers. 3 damage is a leaping cleave with lightning, a
   shockwave along the wall and a flash.
+- **The finishing blow.** The dread knight that ends a wall is not simply cut
+  down: the knight runs, leaps, reverses his sword at the top of the jump and
+  drives it down through the helm, holds there, then wrenches it free.
 - A name that is not on the roll lets the foe gain a pace and breaks the combo.
 - If the foe reaches you, **a torch goes out** and it is thrown back to try
   again. A run has five torches.
 - **Skip** lets the foe pass when you are out of names. It costs a torch, and
   you keep the glory for the damage already done. The button asks twice.
-- When a foe is within 5 paces, the letters of one answer you have not used
-  begin to appear. It is always one of the weakest answers left, and never more
-  than 40% of it is shown.
+- Every foe opens with the same reminder: give the oldest answer you can.
 
 **Today's wall** has five foes across five stretches of wall, from the Drowned
 Gate at dawn to the Ashen Gate at night. It is the same for everyone and can be
@@ -59,10 +60,12 @@ There is no server. Every browser works out the same wall from the date:
   picking up where the last ended. Within it the questions of a tier are used
   evenly, no question returns within a week, two questions drawn from the same
   roll of names never share a day, and a roll used one day is not used the next.
-- The bank has 70 questions built on 43 rolls holding about 1,960 names. The
-  daily wall uses three tier-1 questions and two tier-2 questions, so a
-  question comes round again every 10 to 15 days. Tier 3 appears deep in the
-  endless march only.
+- The bank has 70 questions built on 43 rolls holding about 4,090 names. The
+  rolls aim to hold most answers a player could fairly give; closed sets such
+  as monarchs, presidents and prime ministers are complete. The daily wall
+  uses three tier-1 questions and two tier-2 questions, so a question comes
+  round again every 10 to 15 days. Tier 3 appears deep in the endless march
+  only.
 
 Adding rolls lengthens the gaps automatically. Changing the bank reshuffles
 future days, so avoid editing it in the middle of a UTC day once people are
@@ -75,7 +78,7 @@ a year:
 
 ```js
 L('roman-emperors', 1, 'Name a Roman emperor.', 'start of reign', [68, 192], `
-*Augustus|-27|Octavian;Caesar Augustus
+Augustus|-27|Octavian;Caesar Augustus
 Tiberius|14
 ...`);
 ```
@@ -85,10 +88,11 @@ Tiberius|14
   **cut-off years**: a year up to the first deals 3 damage, up to the second
   deals 2, anything later deals 1.
 - Each line is `Name|year|other spellings`. Negative years are BC, `~` marks an
-  approximate year, a decimal orders events inside one year, and `*` marks a
-  well-known name that the letter hints prefer.
+  approximate year, and a decimal orders events inside one year.
 - Add `'P'` as a last argument for a roll of people, and surnames are accepted
   by themselves.
+- `M(id, roll)` adds more lines to a roll (the long tail of names is kept
+  apart this way so the main rolls stay readable).
 - `V(id, roll, tier, question, [cut3, cut2], from, to)` makes a narrower
   question from an existing roll, with its own cut-offs ("Name a US president
   who took office in the 20th century").
@@ -116,7 +120,6 @@ refused.
 `HIT_GLORY` and the other scoring. The top of `js/game.js` has a `CONFIG`
 block: paces a blow drives the foe back, the cost of a wrong name, how often
 the endless march relights a torch, and the address added to shared results.
-The hint schedule is `SHOW_AT` and `REVEAL_AT` in `js/answers.js`.
 
 ## Project layout
 
@@ -125,7 +128,7 @@ index.html             page, styles and markup
 manifest.webmanifest   lets a phone add the game to its home screen
 icon-192.png, icon-512.png
 js/questions.js        the rolls of names and their cut-off years
-js/answers.js          typed-answer matching and letter hints
+js/answers.js          typed-answer matching
 js/daily.js            date-seeded daily calendar, endless mode, scoring
 js/sprites.js          pixel sprites drawn from text pictures; weapons drawn at any angle
 js/scene.js            the wall, five backdrops, parallax, weather, torches
@@ -137,7 +140,7 @@ tests/run.mjs          logic tests (Node 18+)
 
 ```
 open index.html          # or serve the folder with any static server
-node tests/run.mjs       # bank, answer matching, hints and a year of daily walls
+node tests/run.mjs       # bank, answer matching and a year of daily walls
 ```
 
 Progress, streaks and the sound setting are kept in the browser's local
@@ -164,7 +167,6 @@ results include that address automatically.
 - **Timeguessr** and **Wikitrivia**: history as a matter of which came first.
 - **ZType** and **The Typing of the Dead**: typing is the attack, and the enemy keeps coming.
 - **Kingdom Two Crowns**: side-on pixel scenery and a wall worth defending.
-- **Hangman**: an answer that fills in letter by letter under pressure.
 - **Duolingo**: the pull of an unbroken streak.
 
 ## Credits
