@@ -5,28 +5,32 @@
 
   // ---------- rules you may want to tune ----------
   var CONFIG = {
-    HITS: D.HITS,       // correct answers needed to fell an enemy
-    LIVES: D.LIVES,     // torches: a wrong answer, or an enemy reaching you, puts one out
-    KNOCKBACK: 3,       // paces a hit drives the enemy back
-    RELIGHT_EVERY: 5,   // endless march: felling every fifth enemy relights a torch
-    SHARE_URL: ''       // public address of the game, added to copied results
+    LIVES: D.LIVES,         // torches: a foe reaching you, or a skipped foe, puts one out
+    START: D.START,         // paces away a foe begins
+    MAX_PACE: D.MAX_PACE,   // the furthest a foe can be driven back
+    KNOCK: [0, 2, 2, 3],    // paces a blow of 1, 2 or 3 damage drives the foe back
+    WRONG_STEP: 1,          // paces a wrong name lets the foe gain
+    RELIGHT_EVERY: 5,       // endless march: felling every fifth foe relights a torch
+    SHARE_URL: ''           // public address of the game, added to copied results
   };
-  var PACES = D.PACES;
-  var GAP = 22;         // pixels between warrior and an enemy at pace 0
+  var TRACK = CONFIG.MAX_PACE;
+  var GAP = 22;             // pixels between warrior and a foe at pace 0
   var NAMES = { cultist: 'Cultist', wolf: 'Dire wolf', skeleton: 'Skeleton', wraith: 'Wraith', dread: 'Dread knight' };
-  var STORE_KEY = 'wallward.v2';
+  var STORE_KEY = 'wallward.v3';
+  var EMBER = ['#fff1c9', '#f5c044', '#f08a2c', '#d9432e'];
+  var AURA = [null, ['#fff1c9', '#f5c044'], ['#f5c044', '#f08a2c', '#d9432e'], ['#ffffff', '#9fd8ff', '#5fa8ff']];
 
   var $ = function (id) { return document.getElementById(id); };
   var el = {};
-  ['app', 'cv', 'veil', 'hud', 'lives', 'progress', 'score', 'quitBtn', 'banner', 'titleBlock',
+  ['app', 'cv', 'veil', 'hud', 'lives', 'progress', 'score', 'quitBtn', 'banner', 'floats', 'combo', 'comboN', 'titleBlock',
     'menu', 'playDaily', 'dailyNo', 'dailyDone', 'doneMarks', 'doneLine', 'doneCopy', 'doneNext',
     'playEndless', 'endlessBest', 'howBtn', 'soundBtn', 'stats',
-    'fightTop', 'cat', 'foe', 'qText', 'hint', 'fightBottom', 'answerForm', 'answer', 'feedback',
+    'fightTop', 'cat', 'foe', 'qText', 'rule', 'chips', 'hint', 'fightBottom', 'answerForm', 'answer', 'skipBtn', 'strikeBtn', 'feedback',
     'end', 'endKicker', 'endTitle', 'endScore', 'endRank', 'endMarks', 'copyBtn', 'againBtn', 'homeBtn', 'nextIn',
     'copyBox', 'copyText', 'howto', 'howClose'].forEach(function (id) { el[id] = $(id); });
 
   var BANK = WW.buildBank();
-  A.setGuard(BANK, WW.COUNTRIES);
+  A.setGuard(BANK);
   var SPR = Sp.build();
   var scene = new Scene(el.cv);
   var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -37,6 +41,15 @@
   try {
     var raw = JSON.parse(window.localStorage.getItem(STORE_KEY) || 'null');
     if (raw && raw.stats) { store.stats = Object.assign(store.stats, raw.stats); store.daily = raw.daily || null; store.sound = !!raw.sound; }
+    else {
+      // carry the streak over from the earlier version of the game
+      var old = JSON.parse(window.localStorage.getItem('wallward.v2') || 'null');
+      if (old && old.stats) {
+        store.stats.played = old.stats.played || 0; store.stats.streak = old.stats.streak || 0;
+        store.stats.maxStreak = old.stats.maxStreak || 0; store.stats.lastNum = old.stats.lastNum || 0;
+        store.sound = !!old.sound;
+      }
+    }
   } catch (e) { /* storage unavailable: play without saving */ }
   function save() {
     try { window.localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* ignore */ }
@@ -66,7 +79,16 @@
   }
   var sfx = {
     dash: function () { tone(300, 0.1, 'triangle', 0.04, 700); },
-    hit: function () { tone(520, 0.05, 'square', 0.05, 180); tone(140, 0.14, 'sawtooth', 0.05, 60, 0.03); },
+    cut: function (k) { tone(700 + 90 * k, 0.04, 'square', 0.03, 300); },
+    // the pitch climbs with the combo; heavier blows add weight and, at three damage, thunder
+    hit: function (tier, combo) {
+      var up = Math.pow(2, Math.min(combo, 12) / 24);
+      tone(520 * up, 0.05, 'square', 0.05, 180); tone(140, 0.14, 'sawtooth', 0.05, 60, 0.03);
+      if (tier >= 2) tone(660 * up, 0.07, 'square', 0.05, 240, 0.07);
+      if (tier === 3) { tone(1500, 0.16, 'square', 0.04, 180); tone(74, 0.55, 'sawtooth', 0.08, 28, 0.03); }
+    },
+    combo: function (n) { [0, 1, 2].forEach(function (i) { tone(392 * Math.pow(1.26, i) * (1 + n / 30), 0.09, 'triangle', 0.05, 0, i * 0.06); }); },
+    wrong: function () { tone(210, 0.12, 'square', 0.04, 120); },
     miss: function () { tone(160, 0.25, 'sawtooth', 0.06, 60); },
     step: function () { tone(80, 0.05, 'triangle', 0.04, 55); },
     fell: function () { tone(392, 0.1, 'square', 0.05); tone(523, 0.1, 'square', 0.05, 0, 0.09); tone(659, 0.2, 'square', 0.05, 0, 0.18); },
@@ -141,11 +163,12 @@
   // ---------- state ----------
   var G = {
     mode: null, phase: 'title', phaseT: 0, num: 0, plan: null, idx: 0, total: 0,
-    lives: CONFIG.LIVES, score: 0, results: [], hits: 0, flawless: true,
-    enemy: null, def: null, q: null, seen: {}, resPos: { 1: 0, 2: 0, 3: 0 }, hintShown: -1,
+    lives: CONFIG.LIVES, score: 0, results: [], flawless: true, combo: 0, bestCombo: 0,
+    enemy: null, def: null, prompt: null, used: {}, usedList: [], hintAns: null, hintShown: -2,
+    reveal: '', recent: [], skipArmed: 0,
     camFrom: 0, camTo: 0, walkDur: 2.4, spawned: false,
-    strike: null, bits: [], arcs: [], trail: [], shake: 0, stop: 0,
-    hero: { dx: 0, walkT: 0, hurt: 0, sword: 55 },
+    strike: null, bits: [], arcs: [], trail: [], fx: [], shake: 0, stop: 0, emberT: 0, tip: null,
+    hero: { dx: 0, dy: 0, walkT: 0, hurt: 0, sword: 55 },
     titleT: 0
   };
 
@@ -172,6 +195,8 @@
       heroCape.ready = false; foeCape.ready = false;
     }
     el.app.classList.toggle('short', appH < 560);
+    // the combo count is cut into the face of the wall, under the knight
+    el.combo.style.top = Math.round((scene.groundY + 9) * scene.scale) + 'px';
     skyline();
   }
 
@@ -182,7 +207,7 @@
   }
 
   function paceLen() {
-    return (scene.W - scene.warriorX() - GAP - 34) / PACES;
+    return (scene.W - scene.warriorX() - GAP - 34) / TRACK;
   }
 
   // ---------- page helpers ----------
@@ -191,7 +216,12 @@
     el.titleBlock.hidden = view !== 'menu';
     el.fightTop.hidden = el.fightBottom.hidden = el.hud.hidden = view !== 'fight';
     el.end.hidden = view !== 'end';
+    if (view !== 'fight') { el.combo.hidden = true; el.floats.innerHTML = ''; }
     skyline();
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
   }
 
   var flameOn = Sp.iconURL('flame', 3), flameOff = Sp.iconURL('flameOut', 3);
@@ -201,25 +231,26 @@
     for (i = 0; i < CONFIG.LIVES; i++) html += '<img alt="" width="27" height="30" src="' + (i < G.lives ? flameOn : flameOff) + '">';
     el.lives.innerHTML = html;
     el.lives.setAttribute('aria-label', G.lives + ' of ' + CONFIG.LIVES + ' torches lit');
+    var narrow = (el.app.clientWidth || 400) < 360;
     el.progress.textContent = G.mode === 'daily'
-      ? 'Foe ' + Math.min(G.idx + 1, G.total) + ' of ' + G.total
+      ? (narrow ? '' : 'Foe ') + Math.min(G.idx + 1, G.total) + (narrow ? '/' : ' of ') + G.total
       : 'Foe ' + (G.idx + 1);
     el.score.textContent = D.fmt(G.score);
   }
 
   function drawFoe() {
     var e = G.enemy;
-    if (!e) { el.foe.textContent = ''; return; }
-    var left = CONFIG.HITS - G.hits;
-    el.foe.textContent = NAMES[e.kind] + ': ' + left + (left === 1 ? ' blow' : ' blows') + ' to fell';
+    if (!e) { el.foe.textContent = ''; el.cat.textContent = ''; return; }
+    el.foe.textContent = NAMES[e.kind];
+    el.cat.textContent = e.hp > 0 ? 'Health ' + e.hp + ' of ' + e.maxHp : 'Felled';
   }
 
   var fbTimer = 0;
   function feedback(kind, text, hold) {
-    el.feedback.className = 'feedback ' + kind;
+    el.feedback.className = 'feedback outlined ' + kind;
     el.feedback.textContent = text;
     window.clearTimeout(fbTimer);
-    fbTimer = window.setTimeout(function () { el.feedback.textContent = ''; }, hold || 3600);
+    fbTimer = window.setTimeout(function () { el.feedback.textContent = ''; }, hold || 4200);
   }
 
   var bannerTimer = 0;
@@ -237,39 +268,89 @@
     el.veil.className = 'veil ' + kind;
   }
 
-  /** Blank tiles for the answer; letters appear as the enemy closes in. */
+  /** The answers given to this foe; the number on each is the damage it dealt. */
+  function drawChips() {
+    var html = '', i;
+    for (i = 0; i < G.usedList.length; i++) {
+      var a = G.usedList[i];
+      html += '<span class="chip d' + a.dmg + '"><i>' + a.dmg + '</i><span>' + esc(a.name) + ' <small>' + esc(WW.fmtYear(a)) + '</small></span></span>';
+    }
+    el.chips.innerHTML = html;
+    // only a couple of lines of them fit (one, with a phone keyboard up): keep the newest in view
+    el.chips.scrollLeft = el.chips.scrollWidth; el.chips.scrollTop = el.chips.scrollHeight;
+    skyline();
+  }
+
+  /** Letters of one answer not yet given, uncovered as the foe closes in. */
   function drawHint() {
-    var q = G.q, e = G.enemy;
-    if (!q || !e) { el.hint.innerHTML = ''; G.hintShown = -1; return; }
-    var n = Hints.hintCount(q, e.pace);
+    var e = G.enemy, p = G.prompt, n = -1;
+    if (p && e && G.phase === 'fight') {
+      if (!G.hintAns || G.used[G.hintAns.key]) { G.hintAns = Hints.pick(p, G.used); G.hintShown = -2; }
+      if (G.hintAns) n = Hints.hintCount(G.hintAns, e.pace);
+    }
     if (n === G.hintShown) return;
     G.hintShown = n;
-    var cells = Hints.hintCells(q, n), html = '<span class="word">', i;
+    if (n < 0) { el.hint.innerHTML = ''; el.hint.hidden = true; skyline(); return; }
+    var cells = Hints.hintCells(G.hintAns, n), html = '<span class="lead">One more name:</span><span class="word">', i;
     for (i = 0; i < cells.length; i++) {
       var c = cells[i];
       if (c.state === 'gap') html += '</span><span class="word">';
-      else if (c.state === 'mark') html += '<i class="mark">' + c.ch + '</i>';
-      else html += '<i class="' + c.state + '">' + (c.ch || '') + '</i>';
+      else if (c.state === 'mark') html += '<i class="mark">' + esc(c.ch) + '</i>';
+      else html += '<i class="' + c.state + '">' + esc(c.ch || '') + '</i>';
     }
     el.hint.innerHTML = html + '</span>';
-    el.hint.setAttribute('aria-label', n ? n + ' letters revealed' : 'Answer length');
+    el.hint.hidden = false;
+    el.hint.setAttribute('aria-label', 'A hint: one more answer, ' + (n ? n + ' letters shown' : 'letters hidden'));
+    skyline();
   }
 
-  function setQuestion(q, note) {
-    G.q = q; G.hintShown = -1;
-    if (q) G.seen[q.id] = true;
-    el.qText.textContent = q ? q.q : (note || '');
-    el.cat.textContent = q ? (q.cat === 'H' ? 'History' : 'Geography') : '';
-    el.answer.placeholder = !q ? '' : /^In what year/.test(q.q) ? 'The year' : 'Your answer';
+  function setPrompt(p, note) {
+    G.prompt = p; G.hintAns = null;
+    if (p) { G.used = {}; G.usedList = []; }
+    el.qText.textContent = p ? p.q : (note || '');
+    el.rule.textContent = p ? 'Older hits harder. Dated by ' + p.by + '.' : '';
+    el.answer.placeholder = p ? 'A name' : '';
+    drawChips();
     drawHint();
   }
+
+  /** What to say of a question once its foe is done with: the oldest name on the roll. */
+  function oldest(p) {
+    if (!p) return '';
+    var best = p.answers[0], i;
+    for (i = 1; i < p.answers.length; i++) if (p.answers[i].year < best.year) best = p.answers[i];
+    return 'The oldest answer was ' + best.name + ', ' + WW.fmtYear(best) + '.';
+  }
+
+  function showCombo(n) {
+    if (n < 2) { el.combo.hidden = true; return; }
+    el.comboN.textContent = '×' + n;
+    el.combo.className = 'combo outlined l' + (n >= 8 ? 3 : n >= 5 ? 2 : 1);
+    el.combo.hidden = false;
+    void el.combo.offsetWidth;
+    el.combo.classList.add('pop');
+    if (n === 3 || n === 5 || n === 8 || n === 12) sfx.combo(n);
+  }
+
+  function breakCombo() {
+    if (G.combo >= 2) {
+      el.combo.className = 'combo outlined broke';
+      window.setTimeout(function () { if (G.combo < 2) el.combo.hidden = true; }, 480);
+    }
+    G.combo = 0;
+  }
+
+  function comboLevel() { return G.combo >= 8 ? 3 : G.combo >= 5 ? 2 : G.combo >= 3 ? 1 : 0; }
 
   // ---------- a run ----------
   function startRun(mode, resume) {
     audio();
     G.mode = mode; G.results = []; G.score = 0; G.lives = CONFIG.LIVES; G.idx = 0;
-    G.seen = {}; G.resPos = { 1: 0, 2: 0, 3: 0 }; G.bits = []; G.arcs = []; G.trail = [];
-    G.enemy = null; G.strike = null; G.hero.dx = 0;
+    G.combo = 0; G.bestCombo = 0; G.recent = []; G.reveal = '';
+    G.bits = []; G.arcs = []; G.trail = []; G.fx = [];
+    G.enemy = null; G.strike = null; G.hero.dx = 0; G.hero.dy = 0;
+    G.used = {}; G.usedList = [];
+    el.combo.hidden = true;
     if (mode === 'daily') {
       G.num = D.dayNumber();
       G.plan = D.dailyPlan(G.num, BANK);
@@ -277,11 +358,9 @@
       var d = store.daily;
       if (resume && d && d.num === G.num && !d.done) {
         G.idx = d.idx; G.results = d.results.slice(); G.lives = d.lives; G.score = d.score;
-        G.resPos = { 1: d.resPos[1] || 0, 2: d.resPos[2] || 0, 3: d.resPos[3] || 0 };
-        // nothing already asked today comes back
-        G.plan.enemies.slice(0, G.idx).forEach(function (en) { en.questions.forEach(function (q) { G.seen[q.id] = true; }); });
+        G.combo = d.combo || 0; G.bestCombo = d.best || 0;
       } else {
-        store.daily = { num: G.num, idx: 0, results: [], lives: G.lives, score: 0, resPos: G.resPos, done: false, total: G.total };
+        store.daily = { num: G.num, idx: 0, results: [], lives: G.lives, score: 0, combo: 0, best: 0, done: false, total: G.total };
         save();
       }
     } else {
@@ -291,6 +370,8 @@
     el.answer.value = '';
     el.feedback.textContent = '';
     drawHud();
+    showCombo(G.combo);
+    el.combo.classList.remove('pop');
     approach();
     focusAnswer();
   }
@@ -299,11 +380,17 @@
     try { el.answer.focus({ preventScroll: true }); } catch (e) { el.answer.focus(); }
   }
 
-  /** Walk on to the next enemy. */
+  /** Walk on to the next foe. */
   function approach() {
-    G.def = G.mode === 'daily' ? G.plan.enemies[G.idx] : D.endlessEnemy(G.idx + 1);
+    if (G.mode === 'daily') G.def = G.plan.enemies[G.idx];
+    else {
+      G.def = D.endlessEnemy(G.idx + 1);
+      G.def.prompt = D.drawPrompt(BANK, G.def.tier, G.recent);
+      G.def.hp = Math.min(G.def.hp, G.def.prompt.hpCap);
+    }
     G.phase = 'walk'; G.phaseT = 0; G.spawned = false; G.enemy = null; G.strike = null;
-    G.hits = 0; G.flawless = true;
+    G.flawless = true;
+    disarmSkip();
     var W = Scene.WALK;
     G.camFrom = scene.camX;
     G.camTo = Math.ceil((scene.camX + W * 0.55) / W) * W;
@@ -314,141 +401,240 @@
       var st = Scene.STAGES[G.def.stage];
       banner(st.name + ', ' + st.time);
     }
-    setQuestion(null, 'Something stirs along the wall…');
+    setPrompt(null, G.reveal || 'Something stirs along the wall…');
     drawHud(); drawFoe();
   }
 
   function spawn() {
     G.spawned = true;
-    G.enemy = { kind: G.def.kind, spr: SPR[G.def.kind], pace: PACES, shown: PACES + 12, interval: G.def.interval,
+    G.enemy = { kind: G.def.kind, spr: SPR[G.def.kind], pace: CONFIG.START, shown: CONFIG.START + 12, interval: G.def.interval,
+      hp: G.def.hp, maxHp: G.def.hp, hpShown: G.def.hp,
       stepT: 0, hop: 0, foot: 0, flash: 0, attack: 0, struck: false, gone: false };
     foeCape.ready = false;
   }
 
-  /** The question for the blow the player is working on. */
-  function askSlot() {
-    var slot = G.hits, q;
-    if (G.mode === 'daily') q = G.def.questions[slot];
-    else q = D.drawQuestion(BANK, G.def.tiers[slot], G.seen, (G.idx + slot) % 2 ? 'G' : 'H');
-    setQuestion(q);
-  }
-
-  /** A fresh question of the same difficulty, after a failure. Never one already asked. */
-  function askReplacement() {
-    var tier = G.def.tiers[G.hits], q = null;
-    if (G.mode === 'daily') {
-      var list = G.plan.reserve[tier] || [];
-      while (!q && G.resPos[tier] < list.length) {
-        var c = list[G.resPos[tier]++];
-        if (!G.seen[c.id]) q = c;
-      }
-      store.daily.resPos = G.resPos;
-    }
-    if (!q) q = D.drawQuestion(BANK, tier, G.seen);
-    setQuestion(q);
-  }
-
   function engage() {
-    G.phase = 'fight'; G.phaseT = 0;
-    G.enemy.shown = G.enemy.pace = PACES;
+    G.phase = 'fight'; G.phaseT = 0; G.reveal = '';
+    G.enemy.shown = G.enemy.pace = CONFIG.START;
     G.enemy.stepT = 0;
-    askSlot();
+    setPrompt(G.def.prompt);
     drawFoe();
   }
 
-  function stepEnemy() {
+  function stepEnemy(quiet) {
     var e = G.enemy;
     e.pace = Math.max(0, e.pace - 1);
     e.hop = 1; e.foot ^= 1;
-    sfx.step();
+    if (!quiet) sfx.step();
     drawHint();
     if (e.pace <= 0) { e.attack = 0.0001; e.struck = false; }
   }
 
-  /** The warrior dashes to the enemy, cuts, and springs back. onImpact fires as the blade lands. */
-  function strike(onImpact) {
-    if (G.strike && !G.strike.landed) G.strike.onImpact();
-    G.strike = { stage: 'out', t: 0, from: G.hero.dx, onImpact: onImpact, landed: false };
+  /**
+   * The knight dashes to the foe, cuts, and springs back. onImpact fires as the last cut lands.
+   * A two-damage answer is a double cut; three damage is a leaping cleave. A running combo
+   * adds quick cuts before the blow: one at three in a row, two at five, three at eight.
+   */
+  function strike(tier, combo, onImpact) {
+    if (G.strike && !G.strike.landed) { G.strike.landed = true; G.strike.onImpact(); }
+    var flurry = combo >= 8 ? 3 : combo >= 5 ? 2 : combo >= 3 ? 1 : 0;
+    var cuts = Math.min(4, (tier === 2 ? 2 : 1) + flurry);
+    if (calm) cuts = 1;
+    G.strike = { stage: 'out', t: 0, from: G.hero.dx, onImpact: onImpact, landed: false,
+      tier: tier, cuts: cuts, cut: 0, ticked: false, leap: tier === 3 && !calm, level: comboLevel() };
     sfx.dash();
   }
 
   function submit(text) {
-    if (G.phase !== 'fight' || !G.q || G.enemy.attack > 0) return;
-    var t = String(text).trim();
-    if (!t) return;
+    if (G.phase !== 'fight' || !G.prompt || G.enemy.attack > 0) return;
+    var res = A.check(String(text), G.prompt, G.used);
+    if (res.empty) return;
+    disarmSkip();
+    if (res.vague) { feedback('miss', 'More than one answer goes by that name. Which one?'); return; }
     el.answer.value = '';
-    var res = A.check(t, G.q);
-    if (res.ok) hit(res); else fail('No. Answer: ' + res.shown + '.');
+    if (res.ok) hit(res);
+    else if (res.used) feedback('miss', 'You have already struck with ' + res.ans.name + '.');
+    else if (res.outside) miss(res.several ? 'That name is real, but not what this foe asks.' : res.ans.name + ' is real, but not what this foe asks.');
+    else miss('No such name on the roll.');
   }
 
   function hit(res) {
-    var e = G.enemy;
-    G.hits++;
-    if (G.hits >= CONFIG.HITS) {
-      var gain = D.liFor(e.pace, G.flawless);
-      G.score += gain;
+    var e = G.enemy, a = res.ans, dmg = a.dmg;
+    G.used[a.key] = true; G.usedList.push(a);
+    G.combo++; G.bestCombo = Math.max(G.bestCombo, G.combo);
+    var combo = G.combo, gain = D.hitGlory(dmg, combo);
+    e.hp = Math.max(0, e.hp - dmg);
+    var killed = e.hp <= 0;
+    var line = a.name + ', ' + WW.fmtYear(a) + ': ' + dmg + ' damage.' + (res.exact ? '' : ' Close enough.');
+    if (killed) {
+      gain += D.fellGlory(e.pace, G.flawless);
       G.results.push(G.flawless ? 'F' : 'W');
       G.phase = 'felled'; G.phaseT = 0;
-      feedback('ok', (G.flawless ? 'Flawless. ' : 'Felled. ') + '+' + D.fmt(gain) + ' glory');
-      setQuestion(null, NAMES[e.kind] + ' felled.');
-      strike(function () { burst(e, 40); e.gone = true; sfx.fell(); if (!calm) { G.shake = 0.3; G.stop = 0.07; } });
       var relit = G.mode === 'endless' && (G.idx + 1) % CONFIG.RELIGHT_EVERY === 0 && G.lives < CONFIG.LIVES;
-      if (relit) { G.lives++; feedback('ok', 'Felled. A torch is relit. +' + D.fmt(gain) + ' glory'); }
-      drawHud(); drawFoe();
-      return;
+      if (relit) G.lives++;
+      feedback('ok t' + dmg, line + ' ' + (G.flawless ? 'Felled cleanly' : 'Felled') + ', +' + D.fmt(gain) + ' glory.' + (relit ? ' A torch is relit.' : ''), 5200);
+      G.reveal = NAMES[e.kind] + ' felled. ' + oldest(G.prompt);
+      G.prompt = null;
+      el.qText.textContent = G.reveal; el.rule.textContent = '';
+    } else {
+      feedback('ok t' + dmg, line + ' +' + D.fmt(gain) + ' glory.');
     }
-    feedback('ok', res.exact ? 'A clean blow.' : 'A clean blow. Close enough to ' + res.shown + '.');
-    strike(function () {
-      e.flash = 0.16;
-      e.pace = Math.min(PACES, e.pace + CONFIG.KNOCKBACK);
-      e.stepT = 0;
-      burst(e, 9);
-      sfx.hit();
-      if (!calm) { G.shake = 0.18; G.stop = 0.05; }
-      drawHint();
-    });
-    askSlot();
-    drawFoe();
+    G.score += gain;
+    showCombo(combo);
+    strike(dmg, combo, function () { impact(e, a, dmg, combo, killed); });
+    drawChips(); drawHud(); drawFoe(); drawHint();
   }
 
-  /** A failed question: a torch goes out and a different question takes its place. */
-  function fail(text) {
+  /** The moment the blade lands: the damage shows, the foe is thrown back, and the sparks fly. */
+  function impact(e, a, dmg, combo, killed) {
+    e.hpShown = e.hp;
+    e.flash = dmg === 3 ? 0.26 : 0.16;
+    if (!killed) {
+      e.pace = Math.min(CONFIG.MAX_PACE, e.pace + CONFIG.KNOCK[dmg]);
+      e.stepT = 0;
+    }
+    floatDamage(e, a, dmg);
+    burst(e, killed ? 40 : 5 + dmg * 5);
+    if (dmg >= 2) embers(e, dmg === 3 ? 28 : 10);
+    if (dmg === 3) { bolt(e); ring(e); if (!calm) veil('flash'); }
+    if (killed) { e.gone = true; sfx.fell(); }
+    sfx.hit(dmg, combo);
+    if (!calm) { G.shake = [0, 0.16, 0.24, 0.44][dmg] + (killed ? 0.1 : 0); G.stop = [0, 0.04, 0.06, 0.11][dmg]; }
+    drawHint();
+  }
+
+  /** A name that is not on the roll: the foe gains ground and the combo is lost. No torch goes out. */
+  function miss(text) {
+    breakCombo();
+    G.flawless = false;
+    feedback('miss', text + ' It gains a pace.');
+    sfx.wrong();
+    if (!calm) G.shake = 0.12;
+    for (var i = 0; i < CONFIG.WRONG_STEP && G.enemy.attack === 0; i++) stepEnemy(true);
+  }
+
+  /** A torch goes out. Returns false if it was the last. */
+  function loseTorch(text) {
     G.lives--;
+    breakCombo();
     G.flawless = false;
     G.hero.hurt = 0.7;
     if (!calm) G.shake = 0.4;
     veil('hurt');
     sfx.miss();
     drawHud();
+    if (G.mode === 'daily' && store.daily) { store.daily.lives = G.lives; store.daily.combo = 0; save(); }
     if (G.lives <= 0) {
       G.results.push('X');
       G.phase = 'falling'; G.phaseT = 0;
-      feedback('miss', text, 6000);
-      setQuestion(null, 'The last torch goes out.');
+      feedback('miss', text + ' The last torch goes out.', 6000);
+      el.qText.textContent = oldest(G.prompt); el.rule.textContent = '';
+      G.prompt = null; drawHint();
       sfx.fall();
-      return;
+      return false;
     }
     feedback('miss', text + ' A torch goes out.');
-    askReplacement();
+    return true;
+  }
+
+  var skipTimer = 0;
+  function disarmSkip() {
+    G.skipArmed = 0;
+    window.clearTimeout(skipTimer);
+    el.skipBtn.classList.remove('armed');
+    el.skipBtn.textContent = 'Skip';
+  }
+
+  /** Let the foe pass: costs a torch, keeps the glory already won. Asks twice, since it cannot be undone. */
+  function skip() {
+    var e = G.enemy;
+    if (G.phase !== 'fight' || !e || e.attack > 0) return;
+    if (!G.skipArmed) {
+      G.skipArmed = 1;
+      el.skipBtn.classList.add('armed');
+      el.skipBtn.textContent = 'Sure?';
+      feedback('miss', 'Skip this foe? It costs a torch. Press again to let it pass.', 3200);
+      skipTimer = window.setTimeout(disarmSkip, 3200);
+      return;
+    }
+    disarmSkip();
+    if (G.strike && !G.strike.landed) { G.strike.landed = true; G.strike.onImpact(); }
+    var p = G.prompt, name = NAMES[e.kind];
+    if (!loseTorch('You let the ' + name.toLowerCase() + ' pass.')) return;
+    G.results.push('S');
+    G.phase = 'fleeing'; G.phaseT = 0;
+    G.reveal = name + ' slipped past. ' + oldest(p);
+    G.prompt = null;
+    el.qText.textContent = G.reveal; el.rule.textContent = '';
+    el.cat.textContent = 'Slipped past';
+    drawHint();
+  }
+
+  // ---------- sparks and such ----------
+  function foeAt(e) {
+    var p = scene.plane();
+    return { x: scene.warriorX() + p.x + GAP + e.shown * paceLen(), feet: scene.groundY + 4 + p.y };
   }
 
   function burst(e, n) {
-    var p = scene.plane(), feet = scene.groundY + 4 + p.y;
-    var ex = scene.warriorX() + p.x + GAP + e.shown * paceLen();
-    var i, cols = e.spr.bits;
+    var c = foeAt(e), i, cols = e.spr.bits;
     if (calm) n = Math.ceil(n / 3);
     for (i = 0; i < n; i++) {
-      G.bits.push({ x: ex + (Math.random() - 0.5) * e.spr.w * 0.8, y: feet - Math.random() * e.spr.h,
-        vx: (Math.random() - 0.25) * 90, vy: -40 - Math.random() * 90, life: 0.45 + Math.random() * 0.55,
+      G.bits.push({ x: c.x + (Math.random() - 0.5) * e.spr.w * 0.8, y: c.feet - Math.random() * e.spr.h,
+        vx: (Math.random() - 0.25) * 90, vy: -40 - Math.random() * 90, life: 0.45 + Math.random() * 0.55, g: 280,
         col: cols[i % cols.length], size: Math.random() < 0.35 ? 2 : 1 });
     }
+  }
+
+  function embers(e, n) {
+    var c = foeAt(e), i;
+    if (calm) n = Math.ceil(n / 3);
+    for (i = 0; i < n; i++) {
+      G.bits.push({ x: c.x + (Math.random() - 0.5) * e.spr.w, y: c.feet - Math.random() * e.spr.h * 0.7,
+        vx: (Math.random() - 0.5) * 70, vy: -30 - Math.random() * 110, life: 0.5 + Math.random() * 0.8, g: -30,
+        col: EMBER[i % EMBER.length], size: Math.random() < 0.3 ? 2 : 1 });
+    }
+  }
+
+  function ring(e) {
+    var c = foeAt(e);
+    G.fx.push({ kind: 'ring', x: c.x, y: c.feet, t: 0, life: 0.5 });
+  }
+
+  /** Lightning out of the sky, for the heaviest blows. */
+  function bolt(e) {
+    if (calm) return;
+    var c = foeAt(e), top = c.feet - e.spr.h + 4, pts = [], y = -2, x = c.x + (Math.random() - 0.5) * 30, n = 9, i;
+    for (i = 0; i <= n; i++) {
+      var u = i / n;
+      pts.push([x + (c.x - x) * u + (i === n ? 0 : (Math.random() - 0.5) * 12), y + (top - y) * u]);
+    }
+    var fork = Math.floor(n * 0.5);
+    G.fx.push({ kind: 'bolt', pts: pts, t: 0, life: 0.22,
+      fork: [pts[fork], [pts[fork][0] + 14, pts[fork][1] + 12], [pts[fork][0] + 17, pts[fork][1] + 24]] });
+  }
+
+  function slashMark(e, k, tier) {
+    var c = foeAt(e);
+    G.fx.push({ kind: 'slash', x: c.x, y: c.feet - e.spr.h * 0.55, dir: k % 2 ? 1 : -1, t: 0, life: 0.13, tier: tier });
+  }
+
+  /** The damage, and the date that earned it, leaping off the foe. */
+  function floatDamage(e, a, dmg) {
+    var c = foeAt(e), d = document.createElement('div');
+    d.className = 'float outlined t' + dmg;
+    d.innerHTML = dmg + '<small>' + esc(WW.fmtYear(a)) + '</small>';
+    d.style.left = Math.round(c.x * scene.scale) + 'px';
+    d.style.top = Math.round((c.feet - e.spr.h - 12) * scene.scale) + 'px';
+    el.floats.appendChild(d);
+    window.setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 1080);
   }
 
   function afterEnemy() {
     G.idx++;
     if (G.mode === 'daily') {
       var d = store.daily;
-      d.idx = G.idx; d.results = G.results.slice(); d.lives = G.lives; d.score = G.score; d.resPos = G.resPos;
+      d.idx = G.idx; d.results = G.results.slice(); d.lives = G.lives; d.score = G.score; d.combo = G.combo; d.best = G.bestCombo;
       save();
     }
     if (G.mode === 'daily' && G.idx >= G.total) { finish(true); return; }
@@ -456,23 +642,25 @@
   }
 
   function finish(held) {
-    G.phase = 'over'; G.enemy = null; G.strike = null; G.hero.dx = 0; setQuestion(null);
-    var felled = G.results.filter(function (r) { return r !== 'X'; }).length;
-    var s = store.stats;
+    G.phase = 'over'; G.enemy = null; G.strike = null; G.hero.dx = 0; G.hero.dy = 0; G.prompt = null; G.reveal = '';
+    var felled = G.results.filter(function (r) { return r === 'F' || r === 'W'; }).length;
+    var s = store.stats, comboLine = G.bestCombo > 1 ? ' Best combo ×' + G.bestCombo + '.' : '';
     if (G.mode === 'daily') {
       var d = store.daily;
       if (!d.done) {
-        d.done = true; d.held = held; d.results = G.results.slice(); d.score = G.score; d.lives = G.lives;
-        s.played++;
-        s.streak = s.lastNum === G.num - 1 ? s.streak + 1 : 1;
-        s.maxStreak = Math.max(s.maxStreak, s.streak);
-        s.lastNum = G.num;
+        d.done = true; d.held = held; d.results = G.results.slice(); d.score = G.score; d.lives = G.lives; d.best = G.bestCombo;
+        if (s.lastNum !== G.num) {
+          s.played++;
+          s.streak = s.lastNum === G.num - 1 ? s.streak + 1 : 1;
+          s.maxStreak = Math.max(s.maxStreak, s.streak);
+          s.lastNum = G.num;
+        }
         s.best = Math.max(s.best, G.score);
       }
       el.endKicker.textContent = 'Wall No. ' + G.num;
-      el.endTitle.textContent = held ? (G.lives === CONFIG.LIVES ? 'The wall stands unbroken' : 'The wall held') : 'The wall fell';
+      el.endTitle.textContent = held ? (felled === G.total ? 'The wall stands unbroken' : 'The wall held') : 'The wall fell';
       el.endRank.textContent = D.rankFor(G.score) + '. ' + felled + ' of ' + G.total + ' felled, ' +
-        G.lives + (G.lives === 1 ? ' torch' : ' torches') + ' still burning.';
+        G.lives + (G.lives === 1 ? ' torch' : ' torches') + ' still burning.' + comboLine;
       el.endMarks.textContent = D.markRow(G.results, G.total);
       el.endMarks.hidden = false;
       el.copyBtn.hidden = false;
@@ -483,7 +671,7 @@
       s.bestEndless = Math.max(s.bestEndless, G.score);
       el.endKicker.textContent = 'Endless march';
       el.endTitle.textContent = 'The wall fell';
-      el.endRank.textContent = felled + (felled === 1 ? ' foe' : ' foes') + ' felled.' +
+      el.endRank.textContent = felled + (felled === 1 ? ' foe' : ' foes') + ' felled.' + comboLine +
         (best && G.score > 0 ? ' A new best.' : ' Best ' + D.fmt(s.bestEndless) + ' glory.');
       el.endMarks.hidden = true;
       el.copyBtn.hidden = true;
@@ -496,7 +684,7 @@
     if (held) sfx.win();
     show('end');
     tick();
-    try { el.end.querySelector('button:not([hidden])').focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    try { el.answer.blur(); el.end.querySelector('button:not([hidden])').focus({ preventScroll: true }); } catch (e) { /* ignore */ }
   }
 
   function shareUrl() {
@@ -507,7 +695,7 @@
   function copyResult(btn) {
     var d = store.daily;
     if (!d) return;
-    var text = D.shareText(d.num, d.results, d.score, d.total || 5, shareUrl());
+    var text = D.shareText(d.num, d.results, d.score, d.total || 5, shareUrl(), d.best || 0);
     function fallback() {
       el.copyText.value = text;
       el.copyBox.hidden = false;
@@ -524,7 +712,9 @@
 
   // ---------- menu ----------
   function toMenu() {
-    G.mode = null; G.phase = 'title'; G.enemy = null; G.strike = null; G.bits = []; G.arcs = []; G.hero.dx = 0;
+    G.mode = null; G.phase = 'title'; G.enemy = null; G.strike = null; G.bits = []; G.arcs = []; G.fx = []; G.trail = [];
+    G.hero.dx = 0; G.hero.dy = 0; G.combo = 0; G.prompt = null;
+    try { el.answer.blur(); } catch (e) { /* ignore */ }
     show('menu');
     drawMenu();
   }
@@ -547,7 +737,7 @@
     el.soundBtn.textContent = 'Sound: ' + (store.sound ? 'on' : 'off');
     el.soundBtn.setAttribute('aria-pressed', store.sound ? 'true' : 'false');
     el.stats.textContent = s.played
-      ? 'Walls held ' + s.played + '. Streak ' + s.streak + (s.streak === 1 ? ' day' : ' days') + '. Best ' + D.fmt(s.best) + ' glory.'
+      ? 'Walls held ' + s.played + '. Streak ' + s.streak + (s.streak === 1 ? ' day' : ' days') + '.' + (s.best ? ' Best ' + D.fmt(s.best) + ' glory.' : '')
       : 'A new wall every day at 00:00 UTC, the same for everyone.';
     tick();
   }
@@ -578,31 +768,54 @@
     if (!s) {
       h.dx += (0 - h.dx) * (1 - Math.exp(-dt * 12));
       if (Math.abs(h.dx) < 0.3) h.dx = 0;
+      h.dy += (0 - h.dy) * (1 - Math.exp(-dt * 16));
+      if (Math.abs(h.dy) < 0.3) h.dy = 0;
       h.sword += (55 - h.sword) * (1 - Math.exp(-dt * 10));
       return;
     }
     s.t += dt;
     var reach = e ? foeX(e) - (e.spr.w / 2 + 11) : 40;
     if (s.stage === 'out') {
-      var dur = Math.max(0.1, Math.min(0.2, Math.abs(reach - s.from) / 800));
+      var dur = Math.max(0.1, Math.min(0.2, Math.abs(reach - s.from) / 800)) + (s.leap ? 0.07 : 0);
       var u = Math.min(1, s.t / dur);
       h.dx = s.from + (reach - s.from) * easeOut(u);
       h.sword = 150;
-      if (u >= 1) { s.stage = 'cut'; s.t = 0; s.from = h.dx; }
+      if (s.leap) h.dy = -20 * Math.sin(u * Math.PI / 2); // up and over for the cleave
+      if (u >= 1) { s.stage = 'cut'; s.t = 0; s.cut = 0; s.ticked = false; }
     } else if (s.stage === 'cut') {
-      var c = Math.min(1, s.t / 0.16);
+      var last = s.cut === s.cuts - 1;
+      var len = last ? (s.tier === 3 ? 0.2 : 0.16) : 0.085;
+      var c = Math.min(1, s.t / len);
+      // cuts alternate, and the last always comes down
+      var down = (s.cuts - 1 - s.cut) % 2 === 0;
+      var a0 = down ? 150 : -55, a1 = down ? -55 : 150;
       var before = h.sword;
-      h.sword = 150 - 205 * easeOut(c);
-      G.arcs.push({ a0: before, a1: h.sword, life: 0.14 });
-      if (!s.landed && c >= 0.35) { s.landed = true; s.onImpact(); }
-      if (c >= 1) { s.stage = 'back'; s.t = 0; s.from = h.dx; }
+      h.sword = a0 + (a1 - a0) * easeOut(c);
+      G.arcs.push({ a0: s.t === dt ? a0 : before, a1: h.sword, life: 0.14, tier: last ? s.tier : 1, level: s.level, big: last && s.tier === 3 });
+      if (s.leap && last) h.dy = -20 * (1 - Math.min(1, c / 0.55) * Math.min(1, c / 0.55));
+      if (!last && !s.ticked && c >= 0.45) {
+        // a quick cut of the combo: it marks the foe but the damage comes with the last
+        s.ticked = true;
+        if (e && !e.gone) { e.flash = 0.06; slashMark(e, s.cut, 1); burst(e, 3); }
+        sfx.cut(s.cut);
+      }
+      if (last && !s.landed && c >= (s.leap ? 0.55 : 0.35)) {
+        s.landed = true;
+        if (e && !e.gone) slashMark(e, s.cut, s.tier);
+        s.onImpact();
+      }
+      if (c >= 1) {
+        if (last) { s.stage = 'back'; s.t = 0; s.from = h.dx; }
+        else { s.cut++; s.t = 0; s.ticked = false; }
+      }
     } else {
       var b = Math.min(1, s.t / 0.3);
       h.dx = s.from * (1 - ease(b));
+      h.dy *= 0.6;
       h.sword = -55 + 110 * ease(b);
-      if (b >= 1) { h.dx = 0; G.strike = null; }
+      if (b >= 1) { h.dx = 0; h.dy = 0; G.strike = null; }
     }
-    if (!calm && (s.stage === 'out' || s.stage === 'back')) G.trail.push({ dx: h.dx, life: 0.16 });
+    if (!calm && (s.stage !== 'cut' || s.level > 0)) G.trail.push({ dx: h.dx, dy: h.dy, life: 0.16 });
   }
 
   function update(dt) {
@@ -625,7 +838,7 @@
       if (!G.spawned && G.phaseT >= G.walkDur - lead) spawn();
       if (G.spawned) {
         var v = Math.min(1, (G.phaseT - (G.walkDur - lead)) / lead);
-        G.enemy.shown = PACES + 12 * (1 - ease(v));
+        G.enemy.shown = CONFIG.START + 12 * (1 - ease(v));
         G.enemy.foot = Math.floor(G.phaseT * 7) % 2;
         G.enemy.hop = 1 - ((G.phaseT * 3.5) % 1);
       }
@@ -637,36 +850,56 @@
         e.attack += dt;
         if (!e.struck && e.attack > 0.2) {
           e.struck = true;
-          var was = G.q;
-          fail(was ? 'Too slow. Answer: ' + was.a[0] + '.' : 'Too slow.');
+          loseTorch('The ' + NAMES[e.kind].toLowerCase() + ' reaches you.');
         }
-        if (e.attack > 0.55 && G.phase === 'fight') { e.attack = 0; e.pace = PACES; e.stepT = 0; drawHint(); }
+        if (e.attack > 0.55 && G.phase === 'fight') { e.attack = 0; e.pace = CONFIG.START; e.stepT = 0; drawHint(); }
       } else if (!G.strike) {
         e.stepT += dt;
         if (e.stepT >= e.interval) { e.stepT -= e.interval; stepEnemy(); }
       }
     } else if (G.phase === 'felled') {
-      if (e && e.gone && !G.strike && G.phaseT > 0.9) afterEnemy();
-      else if (G.phaseT > 3) afterEnemy();
+      if (e && e.gone && !G.strike && G.phaseT > 1.5) afterEnemy();
+      else if (G.phaseT > 3.2) afterEnemy();
+    } else if (G.phase === 'fleeing') {
+      // it runs on past the knight and off along the wall
+      e.pace -= dt * 26;
+      e.shown = e.pace;
+      e.foot = Math.floor(G.phaseT * 12) % 2;
+      e.hop = 1 - ((G.phaseT * 6) % 1);
+      if (foeX(e) < -(scene.warriorX() + 40) || G.phaseT > 1.6) { e.gone = true; afterEnemy(); }
     } else if (G.phase === 'falling') {
       if (G.phaseT > 1.7) finish(false);
     }
 
     e = G.enemy;
-    if (e && G.phase !== 'walk') {
+    if (e && (G.phase === 'fight' || G.phase === 'felled' || G.phase === 'falling')) {
       e.shown += (e.pace - e.shown) * (1 - Math.exp(-dt * 12));
       e.hop = Math.max(0, e.hop - dt / 0.28);
     }
     if (e) e.flash = Math.max(0, e.flash - dt);
     updateStrike(dt);
 
+    // a blade that has not missed in a while smoulders, then burns, then burns blue
+    var lvl = comboLevel();
+    if (lvl && G.tip && !calm && G.mode) {
+      G.emberT -= dt;
+      if (G.emberT <= 0) {
+        G.emberT = lvl === 3 ? 0.035 : lvl === 2 ? 0.05 : 0.09;
+        var cols = AURA[lvl];
+        G.bits.push({ x: G.tip.x + (Math.random() - 0.5) * 3, y: G.tip.y + (Math.random() - 0.5) * 3,
+          vx: -14 + (Math.random() - 0.5) * 16, vy: -18 - Math.random() * 26, life: 0.3 + Math.random() * 0.35, g: -20,
+          col: cols[Math.floor(Math.random() * cols.length)], size: 1 });
+      }
+    }
+
     for (i = G.bits.length - 1; i >= 0; i--) {
       var b = G.bits[i];
-      b.life -= dt; b.vy += 280 * dt; b.x += b.vx * dt; b.y += b.vy * dt;
+      b.life -= dt; b.vy += b.g * dt; b.x += b.vx * dt; b.y += b.vy * dt;
       if (b.life <= 0) G.bits.splice(i, 1);
     }
     for (i = G.arcs.length - 1; i >= 0; i--) { G.arcs[i].life -= dt; if (G.arcs[i].life <= 0) G.arcs.splice(i, 1); }
     for (i = G.trail.length - 1; i >= 0; i--) { G.trail[i].life -= dt; if (G.trail[i].life <= 0) G.trail.splice(i, 1); }
+    for (i = G.fx.length - 1; i >= 0; i--) { G.fx[i].t += dt; if (G.fx[i].t >= G.fx[i].life) G.fx.splice(i, 1); }
     scene.update(dt);
 
     // cloaks
@@ -674,7 +907,7 @@
     var moving = G.phase === 'title' || G.phase === 'walk' || G.strike;
     var wf = moving ? Math.floor(h.walkT * 8 + (G.strike ? scene.t * 14 : 0)) % 2 : 2;
     var hx = scene.warriorX() + p.x + Math.round(h.dx) - 9;
-    heroCape.step(hx + ws.neck[0], feet - ws.h + ws.neck[1] + ws.bob[wf], -1, dt, scene.t);
+    heroCape.step(hx + ws.neck[0], feet - ws.h + ws.neck[1] + ws.bob[wf] + Math.round(h.dy), -1, dt, scene.t);
     if (e && !e.gone && e.spr.cape) {
       var ex = scene.warriorX() + p.x + foeX(e);
       foeCape.step(Math.round(ex - e.spr.w / 2) + e.spr.cape[0], feet - e.spr.h + e.spr.cape[1], 1, dt, scene.t + 2);
@@ -707,12 +940,43 @@
     g.fillRect(Math.round(cx - w / 2) + 2, y + 2, w - 4, 1);
   }
 
+  function line(g, x0, y0, x1, y1, w) {
+    var n = Math.max(1, Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)))), i;
+    for (i = 0; i <= n; i++) g.fillRect(Math.round(x0 + (x1 - x0) * i / n - (w - 1) / 2), Math.round(y0 + (y1 - y0) * i / n), w, 1);
+  }
+
+  function drawFx(g) {
+    var i, k;
+    for (i = 0; i < G.fx.length; i++) {
+      var f = G.fx[i], u = f.t / f.life;
+      if (f.kind === 'ring') {
+        // a shockwave running out along the wall top
+        var rx = 5 + 46 * easeOut(u), ry = Math.max(1.5, rx * 0.2);
+        g.globalAlpha = 1 - u;
+        g.fillStyle = u < 0.4 ? '#fff1c9' : '#f08a2c';
+        for (k = 0; k < Math.PI * 2; k += 1 / rx) g.fillRect(Math.round(f.x + Math.cos(k) * rx), Math.round(f.y + Math.sin(k) * ry), 2, 1);
+        g.globalAlpha = 1;
+      } else if (f.kind === 'bolt') {
+        if (u > 0.45 && Math.floor(f.t * 60) % 2) continue; // it flickers as it dies
+        g.fillStyle = '#f5c044';
+        for (k = 1; k < f.pts.length; k++) line(g, f.pts[k - 1][0], f.pts[k - 1][1], f.pts[k][0], f.pts[k][1], 3);
+        for (k = 1; k < f.fork.length; k++) line(g, f.fork[k - 1][0], f.fork[k - 1][1], f.fork[k][0], f.fork[k][1], 1);
+        g.fillStyle = '#ffffff';
+        for (k = 1; k < f.pts.length; k++) line(g, f.pts[k - 1][0], f.pts[k - 1][1], f.pts[k][0], f.pts[k][1], 1);
+      } else if (f.kind === 'slash') {
+        var half = f.tier === 3 ? 13 : f.tier === 2 ? 10 : 8;
+        g.fillStyle = u < 0.5 ? '#ffffff' : f.tier === 3 ? '#f08a2c' : f.tier === 2 ? '#f5c044' : '#bfe6ff';
+        line(g, f.x - half, f.y - half * 0.8 * f.dir, f.x + half, f.y + half * 0.8 * f.dir, f.tier === 3 ? 2 : 1);
+      }
+    }
+  }
+
   function render() {
     var g = scene.g, p = scene.plane(), e = G.enemy, h = G.hero, i;
     var home = scene.warriorX() + p.x, feet = scene.groundY + 4 + p.y;
     scene.drawBack();
 
-    // enemy
+    // foe
     if (e && !e.gone) {
       var spr = e.spr, ex = home + foeX(e);
       var hopY = spr.floats ? 4 + Math.round(Math.sin(scene.t * 3) * 2) : Math.round(Math.sin(Math.PI * e.hop) * 3);
@@ -726,24 +990,25 @@
       rim(g, spr.flash[frame], sx, sy);
       g.drawImage(e.flash > 0 ? spr.flash[frame] : lit(e.kind, 'frames', frame), sx, sy);
       if (spr.weapon) {
-        // weapons are held upright, and swung down when the enemy strikes
+        // weapons are held upright, and swung down when the foe strikes
         var swing = e.attack > 0 ? Math.sin(Math.min(1, e.attack / 0.3) * Math.PI) * 70 : 0;
         var rest = spr.weapon === 'dagger' ? 118 : 96;
         Sp.drawWeapon(g, sx + spr.hand[0], sy + spr.hand[1] + spr.bob[frame], rest + swing + Math.sin(scene.t * 2) * 2, spr.weapon);
       }
-      if (G.phase === 'fight' || G.phase === 'felled') {
-        // blows it can still take, and the time before its next step
-        var left = CONFIG.HITS - G.hits, cx = Math.round(ex) + lunge, top = sy - (spr.weapon && spr.weapon !== 'dagger' ? 22 : 9);
-        for (i = 0; i < CONFIG.HITS; i++) {
-          var pxp = cx - 10 + i * 7;
-          g.fillStyle = Sp.OUTLINE; g.fillRect(pxp, top, 6, 6);
-          g.fillStyle = i < left ? '#d9432e' : '#3a3646'; g.fillRect(pxp + 1, top + 1, 4, 4);
-          if (i < left) { g.fillStyle = '#ff8a6a'; g.fillRect(pxp + 1, top + 1, 2, 1); }
+      if (G.phase === 'fight' || G.phase === 'felled' || G.phase === 'falling') {
+        // its health, one pip for each point of damage it can still take, and the time before its next step
+        var pw = e.maxHp <= 8 ? 4 : e.maxHp <= 10 ? 3 : 2, w = e.maxHp * (pw + 1) + 1;
+        var cx = Math.round(ex) + lunge, left = cx - Math.floor(w / 2), top = sy - (spr.weapon && spr.weapon !== 'dagger' ? 22 : 9);
+        g.fillStyle = Sp.OUTLINE; g.fillRect(left, top, w, 6);
+        for (i = 0; i < e.maxHp; i++) {
+          var pxp = left + 1 + i * (pw + 1);
+          g.fillStyle = i < e.hpShown ? '#d9432e' : '#3a3646'; g.fillRect(pxp, top + 1, pw, 4);
+          if (i < e.hpShown) { g.fillStyle = '#ff8a6a'; g.fillRect(pxp, top + 1, pw, 1); }
         }
         if (G.phase === 'fight' && e.attack === 0) {
-          g.fillStyle = Sp.OUTLINE; g.fillRect(cx - 10, top + 7, 20, 3);
+          g.fillStyle = Sp.OUTLINE; g.fillRect(left, top + 7, w, 3);
           g.fillStyle = e.pace <= 3 ? '#ff8a6a' : '#f5c044';
-          g.fillRect(cx - 9, top + 8, Math.round(18 * (1 - e.stepT / e.interval)), 1);
+          g.fillRect(left + 1, top + 8, Math.round((w - 2) * (1 - e.stepT / e.interval)), 1);
         }
       }
     }
@@ -753,12 +1018,13 @@
     var moving = G.phase === 'title' || G.phase === 'walk' || s;
     var wf = moving ? Math.floor(h.walkT * 8 + (s ? scene.t * 14 : 0)) % 2 : 2;
     var breathe = !moving && Math.sin(scene.t * 2.4) > 0.6 ? 1 : 0;
-    var wx = home + Math.round(h.dx) - 9 - (h.hurt > 0.45 ? 3 : 0), wy = feet - ws.h;
-    shadow(g, wx + 9, feet, 16);
+    var lift = Math.round(h.dy);
+    var wx = home + Math.round(h.dx) - 9 - (h.hurt > 0.45 ? 3 : 0), wy = feet - ws.h + lift;
+    shadow(g, wx + 9, feet, lift < -6 ? 12 : 16);
     for (i = 0; i < G.trail.length; i++) {
       // pale after-images mark the dash
       g.globalAlpha = Math.min(0.4, G.trail[i].life * 2.2);
-      g.drawImage(ws.flash[wf], home + Math.round(G.trail[i].dx) - 9, wy);
+      g.drawImage(ws.flash[wf], home + Math.round(G.trail[i].dx) - 9, feet - ws.h + Math.round(G.trail[i].dy));
     }
     g.globalAlpha = 1;
     heroCape.draw(g);
@@ -772,16 +1038,20 @@
     g.fillStyle = '#5d6779'; g.fillRect(Math.min(shx, hx), Math.min(shy, hy), Math.abs(hx - shx) + 2, Math.abs(hy - shy) + 2);
     g.fillStyle = '#9aa3b3'; g.fillRect(hx, hy, 2, 2);
     Sp.drawWeapon(g, hx + 1, hy, h.sword, 'sword');
-    // the sweep of the blade
+    G.tip = { x: hx + Math.cos(a) * 15, y: hy - Math.sin(a) * 15 };
+    // the sweep of the blade: white for a plain cut, gold for two damage, fire for three
     for (i = 0; i < G.arcs.length; i++) {
-      var arc = G.arcs[i], k, r;
-      g.fillStyle = arc.life > 0.07 ? '#ffffff' : '#bfe6ff';
-      for (k = 0; k <= 1; k += 0.12) {
+      var arc = G.arcs[i], k, r, fresh = arc.life > 0.07;
+      var r1 = arc.big ? 27 : arc.tier === 2 ? 22 : 20;
+      g.fillStyle = arc.tier === 3 ? (fresh ? '#fff1c9' : '#f08a2c') : arc.tier === 2 ? (fresh ? '#ffffff' : '#f5c044')
+        : arc.level === 3 ? (fresh ? '#ffffff' : '#9fd8ff') : (fresh ? '#ffffff' : '#bfe6ff');
+      for (k = 0; k <= 1; k += 0.1) {
         var ang = (arc.a0 + (arc.a1 - arc.a0) * k) * Math.PI / 180;
-        for (r = 13; r <= 20; r += 1) g.fillRect(Math.round(hx + Math.cos(ang) * r), Math.round(hy - Math.sin(ang) * r), 1, 1);
+        for (r = 13; r <= r1; r += 1) g.fillRect(Math.round(hx + Math.cos(ang) * r), Math.round(hy - Math.sin(ang) * r), 1, 1);
       }
     }
 
+    drawFx(g);
     for (i = 0; i < G.bits.length; i++) {
       var b = G.bits[i];
       g.fillStyle = b.col; g.fillRect(Math.round(b.x), Math.round(b.y), b.size, b.size);
@@ -803,6 +1073,11 @@
 
   // ---------- controls ----------
   el.answerForm.addEventListener('submit', function (ev) { ev.preventDefault(); submit(el.answer.value); focusAnswer(); });
+  el.skipBtn.addEventListener('click', function () { skip(); focusAnswer(); });
+  // Pressing a button beside the answer box must not take the keyboard away on a phone.
+  [el.skipBtn, el.strikeBtn].forEach(function (b) {
+    b.addEventListener('mousedown', function (ev) { ev.preventDefault(); });
+  });
   el.playDaily.addEventListener('click', function () {
     var d = store.daily;
     startRun('daily', !!(d && d.num === D.dayNumber() && !d.done && d.idx > 0));
@@ -815,10 +1090,11 @@
   el.doneCopy.addEventListener('click', function () { copyResult(el.doneCopy); });
   el.soundBtn.addEventListener('click', function () {
     store.sound = !store.sound; save(); drawMenu();
-    if (store.sound) sfx.hit();
+    if (store.sound) sfx.hit(1, 0);
   });
   el.howBtn.addEventListener('click', function () {
     if (el.howto.showModal) el.howto.showModal(); else el.howto.setAttribute('open', '');
+    el.howto.scrollTop = 0; // focus lands on Close at the foot; start reading from the top
   });
   el.howClose.addEventListener('click', function () {
     if (el.howto.close) el.howto.close(); else el.howto.removeAttribute('open');
@@ -831,11 +1107,22 @@
   }
   window.addEventListener('pointermove', onPointer, { passive: true });
   window.addEventListener('pointerdown', onPointer, { passive: true });
+  // On a phone there is no mouse to follow, so the view leans with the phone instead
+  // (where the browser reports tilt without asking; otherwise it drifts by itself).
+  var tilt0 = null;
+  window.addEventListener('deviceorientation', function (ev) {
+    if (calm || ev.gamma == null || ev.beta == null) return;
+    if (!tilt0) tilt0 = { g: ev.gamma, b: ev.beta };
+    tilt0.g += (ev.gamma - tilt0.g) * 0.01; tilt0.b += (ev.beta - tilt0.b) * 0.01; // the resting pose drifts with the hand
+    scene.pointer((ev.gamma - tilt0.g) / 18, (ev.beta - tilt0.b) / 18);
+  }, { passive: true });
   window.addEventListener('resize', layout);
+  window.addEventListener('orientationchange', function () { window.setTimeout(layout, 250); });
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', layout);
     window.visualViewport.addEventListener('scroll', layout);
   }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
 
   function start() {
     layout();
@@ -845,9 +1132,9 @@
     window.requestAnimationFrame(frame);
   }
 
-  WW.game = { G: G, CONFIG: CONFIG, scene: scene, store: store, submit: submit, startRun: startRun, toMenu: toMenu };
+  WW.game = { G: G, CONFIG: CONFIG, BANK: BANK, scene: scene, store: store, submit: submit, skip: skip, startRun: startRun, toMenu: toMenu };
 
   var hot = window.claude && window.claude.hot;
-  if (hot && hot.snapshot) hot.snapshot(function () { return { v: 2 }; });
+  if (hot && hot.snapshot) hot.snapshot(function () { return { v: 3 }; });
   if (hot && hot.ready) hot.ready(start); else start();
 })();
