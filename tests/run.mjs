@@ -23,6 +23,7 @@ for (const p of bank) {
   tiers[p.tier] = (tiers[p.tier] || 0) + 1;
   ok(!ids.has(p.id), 'unique id ' + p.id); ids.add(p.id);
   ok([1, 2, 3].includes(p.tier), 'tier ' + p.id);
+  ok(p.topic === 'history' || p.topic === 'everyday', 'topic ' + p.id + ': ' + p.topic);
   ok(/^Name .*\.$/.test(p.q), 'question reads "Name ... ." ' + p.id);
   ok(p.answers.length >= 6, 'at least six answers: ' + p.id + ' has ' + p.answers.length);
   ok(p.cut[0] < p.cut[1], 'cut-offs in order: ' + p.id);
@@ -222,6 +223,7 @@ for (let n = 1; n <= DAYS; n++) {
   plan.enemies.forEach((e, i) => {
     const want = D.DAILY_ENEMIES[i];
     ok(e.prompt && e.prompt.tier === want.tier, 'tier matches on day ' + n);
+    ok(!want.topic || e.prompt.topic === want.topic, 'topic matches on day ' + n + ': ' + e.prompt.id + ' is ' + e.prompt.topic);
     ok(e.hp >= 4 && e.hp <= want.hp && e.hp <= e.prompt.hpCap, 'health is fair on day ' + n + ': ' + e.hp + ' for ' + e.prompt.id);
     ok(!fams.has(e.prompt.family), 'one question per roll on day ' + n + ': ' + e.prompt.family);
     fams.add(e.prompt.family);
@@ -301,7 +303,17 @@ const OLDEST = {
   mathematicians: 'Ahmes', architects: 'Imhotep', 'holy-roman-emperors': 'Charlemagne',
   'scottish-monarchs': 'Kenneth MacAlpin', caliphates: 'Rashidun', 'roses-battles': 'First St Albans',
   'revolutionary-war-battles': 'Lexington and Concord', 'indian-pms': 'Jawaharlal Nehru',
-  'canadian-pms': 'John A. Macdonald', 'australian-pms': 'Edmund Barton', 'winter-olympics': 'Chamonix'
+  'canadian-pms': 'John A. Macdonald', 'australian-pms': 'Edmund Barton', 'winter-olympics': 'Chamonix',
+  // everyday knowledge
+  'gta-games': 'Grand Theft Auto', consoles: 'Magnavox Odyssey', 'video-games': 'Cathode-ray tube amusement device',
+  phones: 'Motorola DynaTAC 8000X', 'mario-games': 'Donkey Kong', 'disney-films': 'Snow White and the Seven Dwarfs',
+  'pixar-films': 'Toy Story', 'bond-films': 'Dr. No', 'star-wars-films': 'Star Wars', 'marvel-films': 'Iron Man',
+  'harry-potter-books': "Harry Potter and the Philosopher's Stone", 'taylor-swift-albums': 'Taylor Swift',
+  'disney-princesses': 'Snow White', 'world-cup-winners': 'Uruguay', 'apple-products': 'Apple I',
+  'football-clubs': 'Sheffield F.C.', 'soft-drinks': 'Schweppes', 'chocolate-bars': "Fry's Chocolate Cream",
+  superheroes: 'Doctor Occult', 'zelda-games': 'The Legend of Zelda', 'final-fantasy-games': 'Final Fantasy',
+  'beatles-albums': 'Please Please Me', 'f1-champions': 'Giuseppe Farina', 'euro-winners': 'Soviet Union',
+  'champions-league-winners': 'Real Madrid'
 };
 for (const p of bank) {
   if (p.id !== p.family) continue;
@@ -429,6 +441,16 @@ console.log('Archives');
   const before = calls;
   await L.find('painters', 'HITLER!', true);
   ok(calls === before, 'the same name is not asked twice');
+  // several dates on record: the preferred one, or else the earliest
+  world.Q912 = item('Twice Released', [], { P31: [q('Q7889')], P577: [when('+2004-11-09T00:00:00Z', 11), when('+2001-03-01T00:00:00Z', 11), when('+2007-00-00T00:00:00Z', 9)] });
+  world.Q913 = item('Once Preferred', [], { P31: [q('Q7889')], P577: [when('+1990-00-00T00:00:00Z', 9), { ...when('+1995-00-00T00:00:00Z', 9), rank: 'preferred' }] });
+  ok(Math.floor((await L.find('video-games', 'twice released', false)).ans.year) === 2001, 'a game is dated by its earliest release');
+  ok((await L.find('video-games', 'once preferred', false)).ans.year === 1995, 'unless the archives prefer another date');
+  world.Q914 = item('Elsewhere United F.C.', [], { P31: [q('Q476028')], P17: [q('Q142')], P571: [when('+1900-00-00T00:00:00Z', 9)] });
+  world.Q915 = item('Hereabouts Town F.C.', [], { P31: [q('Q476028')], P17: [q('Q145')], P571: [when('+1888-00-00T00:00:00Z', 9)] });
+  ok((await L.find('football-clubs', 'elsewhere united fc', false)).status === 'none', 'a club abroad is not a British club');
+  ok((await L.find('football-clubs', 'hereabouts town fc', false)).status === 'found', 'a club at home is');
+
   // a search that is too busy
   world.Q909 = item('Paul Nash', [], { P31: [q('Q5')], P106: [q('Q1028181')], P569: [when('+1889-05-11T00:00:00Z', 11)] });
   world.Q910 = item('John Nash', [], { P31: [q('Q5')], P106: [q('Q1028181')], P569: [when('+1893-04-11T00:00:00Z', 11)] });
