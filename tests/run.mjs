@@ -30,6 +30,12 @@ for (const p of bank) {
   ok(count[1] && count[2] && count[3], 'every damage tier has an answer: ' + p.id + ' ' + count.slice(1));
   ok(count[3] <= p.answers.length * 0.45, 'the heaviest tier is the rarer one: ' + p.id + ' ' + count.slice(1));
   ok(p.hpCap >= 4, 'enough damage on the roll to fell a foe: ' + p.id + ' cap ' + p.hpCap);
+  // the oldest answer, and the few that fell a foe outright
+  ok(p.answers.every(a => a.year >= p.oldest.year), 'oldest is the oldest: ' + p.id);
+  const deadly = p.answers.filter(a => D.kills(p, a));
+  ok(D.kills(p, p.oldest), 'the oldest answer fells outright: ' + p.id);
+  ok(deadly.every(a => a.dmg === 3), 'an answer that fells outright is in the heaviest tier: ' + p.id + ' ' + deadly.filter(a => a.dmg < 3).map(a => a.name));
+  ok(deadly.length <= Math.max(2, p.answers.length * 0.12), 'few answers fell outright: ' + p.id + ' ' + deadly.length + ' of ' + p.answers.length);
   if (p.id === p.family) { rolls++; names += p.answers.length; }
   const seen = new Map();
   for (const a of p.answers) {
@@ -268,8 +274,37 @@ ok(D.hitGlory(1, 5) > D.hitGlory(1, 1) && D.hitGlory(1, 50) === D.hitGlory(1, 11
   ok(heavy > light, 'heavy answers out-earn a string of light ones (' + heavy + ' v ' + light + ')');
 }
 ok(D.fellGlory(8, true) > D.fellGlory(2, true) && D.fellGlory(5, true) > D.fellGlory(5, false), 'quick and clean kills earn more');
-ok(D.shareText(3, ['F', 'W', 'S', 'F', 'X'], 6400, 5, 'https://x.test/', 7) ===
-  'Wallward No. 3 · 6,400 glory\n⚔️🗡️💨⚔️💥  3/5 · combo ×7\nhttps://x.test/', 'share text');
+ok(D.shareText(3, ['F', 'W', 'S', 'K', 'X'], 6400, 5, 'https://x.test/', 7) ===
+  'Wallward No. 3 · 6,400 glory\n⚔️🗡️💨💀💥  3/5 · combo ×7\nhttps://x.test/', 'share text');
+ok(D.felledCount(['K', 'F', 'W', 'S', 'X']) === 3, 'a foe felled outright counts as felled');
+
+// ---------- the oldest answer ----------
+console.log('Oldest');
+// The oldest name on each roll, written out so that an edit which changes one is noticed.
+const OLDEST = {
+  'roman-emperors': 'Augustus', 'eng-monarchs': 'Egbert', 'us-presidents': 'George Washington',
+  wars: 'Sumer-Elam war', battles: 'Megiddo', empires: 'Akkadian Empire', 'ancient-civs': 'Sumer',
+  explorers: 'Harkhuf', inventions: 'Stone tools', landmarks: 'Göbekli Tepe', scientists: 'Imhotep',
+  writers: 'Enheduanna', painters: 'Sophilos', composers: 'Limenius', generals: 'Narmer', eras: 'Stone Age',
+  revolutions: 'Neolithic Revolution', 'ww2-battles': 'Westerplatte', philosophers: 'Thales', ships: 'Khufu ship',
+  olympics: 'Athens', 'uk-pms': 'Robert Walpole', 'french-monarchs': 'Clovis I', 'russian-tsars': 'Ivan the Terrible',
+  'chinese-dynasties': 'Xia', pharaohs: 'Narmer', 'soviet-leaders': 'Vladimir Lenin', wives: 'Catherine of Aragon',
+  wonders: 'Great Pyramid of Giza', 'royal-houses': 'Wessex', space: 'Sputnik', queens: 'Merneith',
+  documents: 'Treaty of Mesilim', 'ottoman-sultans': 'Osman I', 'mughal-emperors': 'Babur',
+  'japanese-periods': 'Japanese Paleolithic', 'ww1-battles': 'Liege', 'napoleonic-battles': 'Valmy',
+  crusades: 'People\'s Crusade', 'thirteen-colonies': 'Virginia', 'german-chancellors': 'Otto von Bismarck',
+  'civil-war-battles': 'Fort Sumter', moonwalkers: 'Neil Armstrong'
+};
+for (const p of bank) {
+  if (p.id !== p.family) continue;
+  ok(OLDEST[p.id] === p.oldest.name, 'oldest on the roll: ' + p.id + ' is ' + p.oldest.name + ', expected ' + OLDEST[p.id]);
+}
+{
+  const p = P('roman-emperors'), by = n => p.answers.find(a => a.name === n);
+  ok(D.kills(p, by('Augustus')) && !D.kills(p, by('Tiberius')) && !D.kills(p, by('Nero')), 'only Augustus fells outright among the emperors');
+  const m = P('moonwalkers'), who = n => m.answers.find(a => a.name === n);
+  ok(D.kills(m, who('Neil Armstrong')) && D.kills(m, who('Buzz Aldrin')) && !D.kills(m, who('Pete Conrad')), 'the first two on the Moon both fell outright');
+}
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
