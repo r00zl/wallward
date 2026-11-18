@@ -370,12 +370,13 @@ console.log('Archives');
     Q907: item('Bear Grylls', [], { P31: [q('Q5')], P106: [q('Q11900058')], P569: [when('+1974-06-07T00:00:00Z', 11)] })
   };
   const ladders = ['P279 Q49757 under Q36180', 'P361 Q8087 under Q362']; // a poet is a writer; the Italian campaign was part of the war
-  let calls = 0, down = false;
+  let calls = 0, down = false, slowService = false;
   globalThis.fetch = address => {
     calls++;
     if (down) return Promise.reject(new Error('offline'));
     const url = new URL(address), ask = url.searchParams, reply = data => Promise.resolve({ ok: true, json: () => Promise.resolve(data) });
     if (url.hostname === 'query.wikidata.org') {
+      if (slowService) return Promise.reject(new Error('the query service is down'));
       const text = ask.get('query'), from = [...text.matchAll(/VALUES \?from \{ ([^}]*)\}/g)][0][1].match(/Q\d+/g);
       const to = [...text.matchAll(/VALUES \?to \{ ([^}]*)\}/g)][0][1].match(/Q\d+/g), prop = /wdt:(P\d+)/.exec(text)[1];
       return reply({ boolean: ladders.some(l => from.some(f => to.some(t => l === prop + ' ' + f + ' under ' + t))) });
@@ -394,8 +395,8 @@ console.log('Archives');
       }
       return reply({ entities });
     }
-    const prop = ask.get('property');
-    return reply({ claims: { [prop]: world[ask.get('entity')].claims[prop] || [] } });
+    const prop = ask.get('property'), known = world[ask.get('entity')];
+    return reply({ claims: { [prop]: (known && known.claims[prop]) || [] } });
   };
 
   const hitler = await L.find('painters', 'Hitler', true);
@@ -421,6 +422,16 @@ console.log('Archives');
   const before = calls;
   await L.find('painters', 'HITLER!', true);
   ok(calls === before, 'the same name is not asked twice');
+  // with the query service down, the ladders are climbed by hand through the main site
+  slowService = true;
+  world.Q49757 = item('poet', [], { P279: [q('Q36180')] });
+  world.Q8087 = item('Italian campaign', [], { P361: [q('Q362')] });
+  world.Q76484 = item('Ted Hughes', [], { P31: [q('Q5')], P106: [q('Q49757')], P569: [when('+1930-08-17T00:00:00Z', 11)] });
+  world.Q908 = item('Battle of Ortona', [], { P31: [q('Q178561')], P585: [when('+1943-12-20T00:00:00Z', 11)], P361: [q('Q8087')] });
+  ok((await L.find('writers', 'ted hughes', true)).status === 'found', 'a poet is still a writer when the query service is down');
+  ok((await L.find('ww2-battles', 'ortona', false)).status === 'found', 'and a battle still part of its war');
+  ok((await L.find('painters', 'ted hughes', true)).status === 'none', 'but a poet is still no painter');
+  slowService = false;
   down = true;
   ok((await L.find('painters', 'monet the younger', true)).status === 'unreachable', 'no answer from the archives');
   down = false;
