@@ -17,6 +17,11 @@ screen.
 - **Older answers deal more damage: 1, 2 or 3.** Each question has its own two
   cut-off years, and they stay hidden: you learn what a name was worth when the
   blow lands and its date is shown.
+- **The oldest answer fells any foe outright**, whatever health it has left,
+  and earns 800 glory on top. So does an answer dated within 2% of the roll's
+  whole span of time after it: Augustus alone among the emperors, but both
+  Armstrong and Aldrin among the Moon walkers. When a foe falls, the plate
+  names the oldest answer, so the next time the question comes round you know.
 - Keep giving new names until the foe's health is gone. Every blow drives it
   back 2 or 3 paces and so buys time. A name cannot be used twice on one foe.
 - **Combos.** True answers in a row raise a combo that carries from foe to foe.
@@ -26,9 +31,10 @@ screen.
 - **The three kinds of blow.** 1 damage is a single cut. 2 damage is a gold
   double cut with embers. 3 damage is a leaping cleave with lightning, a
   shockwave along the wall and a flash.
-- **The finishing blow.** The dread knight that ends a wall is not simply cut
-  down: the knight runs, leaps, reverses his sword at the top of the jump and
-  drives it down through the helm, holds there, then wrenches it free.
+- **The finishing blow.** A foe felled by the oldest answer, and every dread
+  knight, is not simply cut down: the knight runs, leaps, reverses his sword
+  at the top of the jump and drives it down through the skull, holds there,
+  then wrenches it free.
 - A name that is not on the roll lets the foe gain a pace and breaks the combo.
 - If the foe reaches you, **a torch goes out** and it is thrown back to try
   again. A run has five torches.
@@ -45,7 +51,8 @@ Wallward No. 1 · 8,765 glory
 🗡️⚔️💨⚔️⚔️  4/5 · combo ×8
 ```
 
-⚔️ felled without a slip, 🗡️ felled, 💨 skipped, 💥 the wall fell there.
+💀 felled outright by the oldest answer, ⚔️ felled without a slip, 🗡️ felled,
+💨 skipped, 💥 the wall fell there.
 
 **Endless march** has no end: foes gain health and speed, and the questions get
 harder, until the last torch goes out. Felling every fifth foe relights one.
@@ -60,7 +67,7 @@ There is no server. Every browser works out the same wall from the date:
   picking up where the last ended. Within it the questions of a tier are used
   evenly, no question returns within a week, two questions drawn from the same
   roll of names never share a day, and a roll used one day is not used the next.
-- The bank has 70 questions built on 43 rolls holding about 4,090 names. The
+- The bank has 70 questions built on 43 rolls holding about 4,130 names. The
   rolls aim to hold most answers a player could fairly give; closed sets such
   as monarchs, presidents and prime ministers are complete. The daily wall
   uses three tier-1 questions and two tier-2 questions, so a question comes
@@ -93,13 +100,17 @@ Tiberius|14
   by themselves.
 - `M(id, roll)` adds more lines to a roll (the long tail of names is kept
   apart this way so the main rolls stay readable).
+- **The oldest line of a roll must be the oldest answer there is**, because it
+  fells a foe outright. The tests keep a list of each roll's oldest name and
+  fail if an edit changes one without the list being updated.
 - `V(id, roll, tier, question, [cut3, cut2], from, to)` makes a narrower
   question from an existing roll, with its own cut-offs ("Name a US president
   who took office in the 20th century").
 
 Run the tests afterwards. They check that every name and spelling leads to its
-own answer, that each question has answers in all three damage tiers, and they
-replay a year of daily walls.
+own answer, that each question has answers in all three damage tiers, that
+only a few of the heaviest answers fell a foe outright, and they replay a year
+of daily walls.
 
 ### How answers are checked
 
@@ -117,7 +128,8 @@ refused.
 
 `js/daily.js` holds `LIVES` (torches), `START` (paces a foe begins at),
 `DAILY_ENEMIES` (the health, speed and question tier of the five daily foes),
-`HIT_GLORY` and the other scoring. The top of `js/game.js` has a `CONFIG`
+`KILL_RANGE` (how close to the oldest answer still fells a foe outright),
+`HIT_GLORY`, `OLDEST_GLORY` and the other scoring. The top of `js/game.js` has a `CONFIG`
 block: paces a blow drives the foe back, the cost of a wrong name, how often
 the endless march relights a torch, and the address added to shared results.
 
@@ -132,7 +144,9 @@ js/answers.js          typed-answer matching
 js/daily.js            date-seeded daily calendar, endless mode, scoring
 js/sprites.js          pixel sprites drawn from text pictures; weapons drawn at any angle
 js/scene.js            the wall, five backdrops, parallax, weather, torches
-js/game.js             game flow, the three blows and the combo, the wind-blown cloak, controls, saved stats
+js/sound.js            the few sounds, made with the Web Audio API
+js/cape.js             the wind-blown cloak
+js/game.js             game flow, the blows, the combo and the finishing blow, drawing, controls, saved stats
 tests/run.mjs          logic tests (Node 18+)
 ```
 

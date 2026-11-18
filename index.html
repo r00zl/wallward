@@ -160,6 +160,7 @@ button { cursor: pointer; }
 .float small { display: block; margin-top: 4px; font-family: var(--body); font-size: 19px; line-height: 1; color: var(--bone); }
 .float.t2 { font-size: 60px; color: #f5c044; }
 .float.t3 { font-size: 84px; color: var(--ember); }
+.float.word { font-size: 50px; }
 @keyframes rise {
   0% { opacity: 0; transform: translate(-50%, -60%) scale(0.5); }
   10% { opacity: 1; transform: translate(-50%, -100%) scale(1.25); }
@@ -225,6 +226,7 @@ dialog p { margin: 0 0 14px; }
 .app.short .float { font-size: 38px; }
 .app.short .float.t2 { font-size: 46px; }
 .app.short .float.t3 { font-size: 58px; }
+.app.short .float.word { font-size: 38px; }
 .app.short .hud { font-size: 26px; padding: 5px 10px; }
 .app.short .bottom { bottom: calc(8px + var(--safe-b)); gap: 6px; }
 .app.short .answer-row input { padding: 8px 10px; }
@@ -277,7 +279,7 @@ dialog p { margin: 0 0 14px; }
 
   <section class="top" id="fightTop" hidden>
     <div class="plate">
-      <div class="plate-top"><span class="foe" id="foe"></span><span id="cat"></span></div>
+      <div class="plate-top"><span class="foe" id="foe"></span><span id="health"></span></div>
       <p class="question" id="qText" aria-live="polite"></p>
       <p class="rule" id="rule"></p>
       <div class="chips" id="chips" aria-label="Answers given"></div>
@@ -337,6 +339,7 @@ dialog p { margin: 0 0 14px; }
     <ol>
       <li>Each foe asks for a name from history, such as a Roman emperor. Any true answer strikes it. Small spelling slips are forgiven.</li>
       <li>Give the oldest answer you can. The older it is, the harder the blow: 1, 2 or 3 damage. You only learn which when it lands.</li>
+      <li>The oldest answer of all fells any foe outright, whatever its health. So does one a hair younger.</li>
       <li>Keep giving new names until its health is gone. Every blow drives it back and buys you time.</li>
       <li>True answers in a row build a combo. Each one is worth more glory, and the knight strikes faster and harder.</li>
       <li>A wrong name lets the foe gain a pace and breaks the combo. If it reaches you, one of your five torches goes out.</li>
@@ -352,6 +355,8 @@ dialog p { margin: 0 0 14px; }
 <script src="js/daily.js"></script>
 <script src="js/sprites.js"></script>
 <script src="js/scene.js"></script>
+<script src="js/sound.js"></script>
+<script src="js/cape.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>
