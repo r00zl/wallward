@@ -1,4 +1,4 @@
-// Logic tests for Wallward. Run with:  node tests/run.mjs
+// Logic tests for Predate. Run with:  node tests/run.mjs
 import '../js/questions.js';
 import '../js/answers.js';
 import '../js/daily.js';
@@ -276,7 +276,7 @@ ok(D.hitGlory(1, 5) > D.hitGlory(1, 1) && D.hitGlory(1, 50) === D.hitGlory(1, 11
 }
 ok(D.fellGlory(8, true) > D.fellGlory(2, true) && D.fellGlory(5, true) > D.fellGlory(5, false), 'quick and clean kills earn more');
 ok(D.shareText(3, ['F', 'W', 'S', 'K', 'X'], 6400, 5, 'https://x.test/', 7) ===
-  'Wallward No. 3 · 6,400 glory\n⚔️🗡️💨💀💥  3/5 · combo ×7\nhttps://x.test/', 'share text');
+  'Predate No. 3 · 6,400 glory\n⚔️🗡️💨💀💥  3/5 · combo ×7\nhttps://x.test/', 'share text');
 ok(D.felledCount(['K', 'F', 'W', 'S', 'X']) === 3, 'a foe felled outright counts as felled');
 
 // ---------- the oldest answer ----------
@@ -371,6 +371,7 @@ console.log('Archives');
   };
   const ladders = ['P279 Q49757 under Q36180', 'P361 Q8087 under Q362']; // a poet is a writer; the Italian campaign was part of the war
   let calls = 0, down = false, slowService = false;
+  const busy = { all: 0, wide: false, exact: false, names: false }; // ways the search can be too busy to answer
   globalThis.fetch = address => {
     calls++;
     if (down) return Promise.reject(new Error('offline'));
@@ -381,7 +382,13 @@ console.log('Archives');
       const to = [...text.matchAll(/VALUES \?to \{ ([^}]*)\}/g)][0][1].match(/Q\d+/g), prop = /wdt:(P\d+)/.exec(text)[1];
       return reply({ boolean: ladders.some(l => from.some(f => to.some(t => l === prop + ' ' + f + ' under ' + t))) });
     }
+    if (ask.get('action') === 'wbsearchentities') {
+      if (busy.names) return reply({ error: { code: 'failed-search' } });
+      return reply({ search: Object.keys(world).filter(id => A.norm(world[id].name).startsWith(A.norm(ask.get('search')))).map(id => ({ id })) });
+    }
     if (ask.get('list') === 'search') {
+      const filtered = /haswbstatement:P(106|31)=Q(?!5\b)/.test(ask.get('srsearch'));
+      if (busy.all > 0 || (busy.wide && !filtered) || (busy.exact && filtered)) { busy.all--; return reply({ error: { code: 'cirrussearch-too-busy-error' } }); }
       const words = ask.get('srsearch').replace(/ haswbstatement:\S+/, ''), want = /haswbstatement:(\S+)/.exec(ask.get('srsearch'));
       const hits = Object.keys(world).filter(id => A.norm(world[id].name).includes(A.norm(words)) || world[id].alts.some(a => A.norm(a) === A.norm(words)));
       const fits = id => !want || want[1].split('|').some(pair => { const [prop, val] = pair.split('='); return (world[id].claims[prop] || []).some(c => c.mainsnak.datavalue.value.id === val); });
@@ -422,6 +429,22 @@ console.log('Archives');
   const before = calls;
   await L.find('painters', 'HITLER!', true);
   ok(calls === before, 'the same name is not asked twice');
+  // a search that is too busy
+  world.Q909 = item('Paul Nash', [], { P31: [q('Q5')], P106: [q('Q1028181')], P569: [when('+1889-05-11T00:00:00Z', 11)] });
+  world.Q910 = item('John Nash', [], { P31: [q('Q5')], P106: [q('Q1028181')], P569: [when('+1893-04-11T00:00:00Z', 11)] });
+  world.Q911 = item('Gwen John', [], { P31: [q('Q5')], P106: [q('Q1028181')], P569: [when('+1876-06-22T00:00:00Z', 11)] });
+  busy.all = 2;
+  ok((await L.find('painters', 'paul nash', true)).status === 'found', 'a search too busy the first time is asked again');
+  busy.all = 0; busy.wide = true;
+  ok((await L.find('painters', 'john nash', true)).status === 'found', 'with the wide search down, the search by name stands in');
+  ok((await L.find('painters', 'no such painter at all', true)).status === 'none', 'and can still rule a name out');
+  busy.names = true;
+  ok((await L.find('painters', 'gwen john', true)).status === 'found', 'one search alone can still find a name');
+  ok((await L.find('painters', 'nobody of that name', true)).status === 'unreachable', 'but cannot rule one out: no ground is lost');
+  busy.exact = true;
+  ok((await L.find('painters', 'paul nash the second', true)).status === 'unreachable', 'no search at all is no answer');
+  busy.wide = busy.names = busy.exact = false;
+
   // with the query service down, the ladders are climbed by hand through the main site
   slowService = true;
   world.Q49757 = item('poet', [], { P279: [q('Q36180')] });
