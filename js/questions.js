@@ -5581,14 +5581,18 @@ Verdun|1792.67|Siege of Verdun`);
     return out;
   }
 
+  /** What an answer of a given date is worth: 3 up to the first cut-off, 2 up to the second, 1 after. */
   function damage(year, cut) { return year <= cut[0] ? 3 : year <= cut[1] ? 2 : 1; }
+
+  /** Is an answer within a question's bounds? Every answer on a roll is; a variant asks for only some of them. */
+  function within(q, a) {
+    return (q.from == null || a.year >= q.from) && (q.to == null || a.year <= q.to) && (!q.pattern || q.pattern.test(a.name));
+  }
 
   function makePrompt(def, family, source, people, by) {
     var inside = [], outside = [];
     source.forEach(function (a) {
-      var ok = (def.from == null || a.year >= def.from) && (def.to == null || a.year <= def.to) &&
-        (!def.pattern || def.pattern.test(a.name));
-      if (!ok) { outside.push(a); return; }
+      if (!within(def, a)) { outside.push(a); return; }
       inside.push({ name: a.name, year: a.year, approx: a.approx, alts: a.alts, key: a.key, dmg: damage(a.year, def.cut) });
     });
     var total = 0, oldest = inside[0], newest = inside[0];
@@ -5598,6 +5602,7 @@ Verdun|1792.67|Siege of Verdun`);
       if (a.year > newest.year) newest = a;
     });
     return { id: def.id, family: family, tier: def.tier, q: def.q, by: by, cut: def.cut.slice(), people: people,
+      from: def.from, to: def.to, pattern: def.pattern,
       answers: inside, outside: outside, oldest: oldest, span: newest.year - oldest.year,
       total: total, hpCap: Math.max(3, Math.floor(total / 2)) };
   }
@@ -5629,4 +5634,6 @@ Verdun|1792.67|Siege of Verdun`);
   WW.hashStr = hashStr;
   WW.buildBank = buildBank;
   WW.fmtYear = fmtYear;
+  WW.damage = damage;
+  WW.within = within;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

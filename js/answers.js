@@ -167,6 +167,22 @@
     return hit ? hit.list.slice() : [];
   }
 
+  /**
+   * The answer on a question's roll that goes by one of `names`, or the one just outside its
+   * bounds: { ans } or { ans, outside: true }, or null if the roll knows none of the names.
+   * For a name found elsewhere, which may be an answer the roll lists under another spelling.
+   */
+  function known(names, prompt) {
+    var forms = names.map(norm).filter(Boolean), inside = ix(prompt), found = null;
+    [inside, prompt._out].forEach(function (index, n) {
+      forms.forEach(function (f) {
+        var hit = !found && index ? lookup(index, f, stripNoise(f)) : null;
+        if (hit && hit.list.length === 1) found = n ? { ans: hit.list[0], outside: true } : { ans: hit.list[0] };
+      });
+    });
+    return found;
+  }
+
   var guard = null;
 
   /** Register every spelling in the bank, so a correctly spelled other name is never "close enough". */
@@ -233,5 +249,5 @@
     return { ok: true, ans: best, exact: false };
   }
 
-  WW.Answers = { norm: norm, setGuard: setGuard, check: check, named: named };
+  WW.Answers = { norm: norm, setGuard: setGuard, check: check, named: named, known: known };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -1,7 +1,7 @@
 /* Wallward: game flow, drawing of the characters, and the page controls. */
 (function () {
   'use strict';
-  var WW = window.WW, D = WW.Daily, A = WW.Answers, Scene = WW.Scene, Sp = WW.Sprites, Cape = WW.Cape, sfx = WW.Sound.sfx;
+  var WW = window.WW, D = WW.Daily, A = WW.Answers, Lookup = WW.Lookup, Scene = WW.Scene, Sp = WW.Sprites, Cape = WW.Cape, sfx = WW.Sound.sfx;
 
   // ---------- rules you may want to tune ----------
   var CONFIG = {
@@ -28,6 +28,12 @@
   var STRIKE_POSE = { out: POSE.lunge, cut: POSE.lunge, back: POSE.pass,
     leap: POSE.air, hang: POSE.air, plunge: POSE.air, hold: POSE.air, rip: POSE.air, land: POSE.lunge, pose: POSE.stand };
   var GHOST = { gap: 7, life: 0.2 }; // after-images of a dash: pixels apart, and seconds each lasts
+  var REEL = 0.24;       // seconds a foe staggers after a blow
+  var BRACE = 0.82;      // share of the wait between steps after which a foe gathers itself to move
+  var LOST_HOLD = 0.4;   // seconds lost health stays blanched on the bar before it drains
+  var LOST_DRAIN = 12;   // pips a second it then drains at
+  var STILL = { sink: 0, lean: 0, jolt: 0 }, BREATH = { sink: 1, lean: 0, jolt: 0 };
+  var DUST = ['#8a8496', '#6b6474', '#a59fb0'];
   var BLINK = { every: 4.2, lasts: 0.13 }; // seconds
   // Seconds each part of a strike takes.
   var CUT = { quick: 0.085, last: 0.16, cleave: 0.2, back: 0.3 };
@@ -84,7 +90,7 @@
     mode: null, phase: 'title', phaseT: 0, num: 0, plan: null, idx: 0, total: 0,
     lives: CONFIG.LIVES, score: 0, results: [], recap: [], flawless: true, combo: 0, bestCombo: 0,
     enemy: null, def: null, prompt: null, used: {}, usedList: [],
-    reveal: '', recent: [], skipArmed: 0, told: false,
+    reveal: '', recent: [], skipArmed: 0, told: false, asking: null,
     camFrom: 0, camTo: 0, walkDur: 2.4, spawned: false,
     strike: null, bits: [], arcs: [], trail: [], fx: [], shake: 0, stop: 0, emberT: 0,
     hero: { dx: 0, dy: 0, walkT: 0, hurt: 0, sword: SWORD.rest },
@@ -206,7 +212,7 @@
   }
 
   function setPrompt(p, note) {
-    G.prompt = p;
+    G.prompt = p; G.asking = null;
     if (p) { G.used = {}; G.usedList = []; }
     el.qText.textContent = p ? p.q : (note || '');
     el.rule.textContent = p ? 'Give the oldest answer you can. Dated by ' + p.by + '.' : '';
@@ -216,35 +222,40 @@
 
   /** The question is over: say what became of the foe in its place. */
   function closePrompt(text) {
-    G.prompt = null;
+    G.prompt = null; G.asking = null;
     el.qText.textContent = text;
     el.rule.textContent = '';
   }
 
-  /** What to say of a question once its foe is done with: the oldest name on the roll. */
-  function oldest(p) {
-    return p ? 'The oldest answer was ' + p.oldest.name + ', ' + WW.fmtYear(p.oldest) + '.' : '';
+  /** A three-damage answer the player did not give: something to carry away once a foe is done with. */
+  function example(p) {
+    var heavy = p.answers.filter(function (a) { return a.dmg === 3; });
+    var unused = heavy.filter(function (a) { return !G.used[a.key]; });
+    var pool = unused.length ? unused : heavy;
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   function dated(a) { return a.name + ', ' + WW.fmtYear(a); }
 
   /**
    * Note how a foe was dealt with: its mark for the shared result, and the question, the
-   * answers given and the oldest there was, to be read over when the wall is done.
+   * answers given and a three-damage answer that was not, to be read over when the wall is
+   * done. Returns what to say of it on the question plate.
    */
   function record(mark) {
-    var p = G.prompt;
+    var p = G.prompt, found = G.usedList.indexOf(p.oldest) !== -1, tip = found ? '' : dated(example(p));
     G.results.push(mark);
-    G.recap.push({ q: p.q, oldest: dated(p.oldest), given: G.usedList.map(dated) });
+    G.recap.push({ q: p.q, given: G.usedList.map(dated), tip: tip, found: found });
+    return found ? 'You gave the oldest answer there is.' : 'A 3-damage answer was ' + tip + '.';
   }
 
-  /** The questions of a run as list items: what was asked, what was given, and the oldest answer. */
+  /** The questions of a run as list items: what was asked, what was given, and a three-damage answer. */
   function recapHtml(results, recap) {
     return (recap || []).map(function (r, i) {
-      var found = r.given.indexOf(r.oldest) !== -1;
+      var tip = r.tip || r.oldest; // walls saved before the tip was kept hold the oldest answer in its place
       return '<li><p class="asked">' + D.markRow([results[i]], 1) + ' ' + esc(r.q) + '</p>' +
         '<p>You: ' + (r.given.length ? esc(r.given.join(' · ')) : 'no answer') + '</p>' +
-        '<p class="' + (found ? 'found' : 'oldest') + '">Oldest: ' + esc(r.oldest) + (found ? ' (you found it)' : '') + '</p></li>';
+        (r.found ? '<p class="found">You found the oldest answer.</p>' : '<p class="tip">A 3-damage answer: ' + esc(tip) + '</p>') + '</li>';
     }).join('');
   }
 
@@ -365,8 +376,8 @@
   function spawn() {
     G.spawned = true;
     G.enemy = { kind: G.def.kind, spr: SPR[G.def.kind], pace: CONFIG.START, shown: CONFIG.START + 12, interval: G.def.interval,
-      hp: G.def.hp, maxHp: G.def.hp, hpShown: G.def.hp,
-      stepT: 0, hop: 0, foot: 0, flash: 0, attack: 0, struck: false, gone: false };
+      hp: G.def.hp, maxHp: G.def.hp, hpShown: G.def.hp, hpLost: G.def.hp, lostWait: 0,
+      stepT: 0, hop: 0, foot: 0, flash: 0, reel: 0, attack: 0, struck: false, gone: false };
     foeCape.ready = false;
   }
 
@@ -385,6 +396,7 @@
     var e = G.enemy;
     e.pace = Math.max(0, e.pace - 1);
     e.hop = 1; e.foot ^= 1;
+    dust(e);
     if (!quiet) sfx.step();
     if (e.pace <= 0) { e.attack = 0.0001; e.struck = false; }
   }
@@ -502,7 +514,7 @@
 
   /** The point goes in: the foe is finished, but still standing. */
   function finisherImpact(e, blow) {
-    e.hpShown = 0; e.flash = 0.3;
+    e.hpShown = 0; e.lostWait = LOST_HOLD; e.flash = 0.3;
     floatDamage(e, blow);
     embers(e, 30); bolt(e); ring(e); veil('flash');
     sfx.hit(3, blow.combo); sfx.thud();
@@ -511,6 +523,7 @@
 
   /** The blade is wrenched free, and the foe comes apart. */
   function finisherBurst(e) {
+    shatter(e);
     e.gone = true;
     burst(e, 70); embers(e, 40); ring(e); bolt(e);
     sfx.fell(); sfx.thud();
@@ -522,13 +535,45 @@
     if (G.phase !== 'fight' || !G.prompt || G.enemy.attack > 0) return;
     var res = A.check(String(text), G.prompt, G.used);
     if (res.empty) return;
+    if (G.asking) { G.asking.next = String(text); el.answer.value = ''; return; } // it waits its turn
     disarmSkip();
     if (res.vague) { feedback('miss', 'More than one answer goes by that name. Which one?'); return; }
     el.answer.value = '';
     if (res.ok) hit(res);
     else if (res.used) feedback('miss', 'You have already struck with ' + res.ans.name + '.');
     else if (res.outside) miss(res.several ? 'That name is real, but not what this foe asks.' : res.ans.name + ' is real, but not what this foe asks.');
+    else if (Lookup.covers(G.prompt.family)) consult(String(text));
     else miss('No such name on the roll.');
+  }
+
+  /**
+   * A name that is not on the roll may still be a true answer: no roll holds every painter.
+   * Ask the archives. The foe holds its ground until they reply, since the wait is not the
+   * player's doing, and an answer typed meanwhile is kept and judged straight after.
+   */
+  function consult(text) {
+    var p = G.prompt, asking = G.asking = { next: '' };
+    feedback('tip', 'Not on the roll. Searching the archives…', 12000);
+    Lookup.find(p.family, text, p.people).then(function (found) {
+      if (G.asking !== asking) return; // the foe is done with, or the run is over
+      G.asking = null;
+      judge(found, p);
+      if (asking.next) submit(asking.next); // an answer given meanwhile
+    });
+  }
+
+  /** Act on what the archives said of a name that was not on the roll. */
+  function judge(found, p) {
+    if (found.status === 'none') { miss('No such name on the roll, nor in the archives.'); return; }
+    if (found.status === 'unreachable') { feedback('miss', 'Not on the roll, and the archives cannot be reached. No ground lost.'); return; }
+    if (found.status === 'undated') { feedback('miss', found.name + ' is in the archives, but with no date to go by. No ground lost.'); return; }
+    // the archives may know an answer on the roll by another of its names
+    var a = found.ans, listed = A.known([a.name].concat(a.alts), p);
+    if (listed ? listed.outside : !WW.within(p, a)) { miss(a.name + ' is real, but not what this foe asks.'); return; }
+    var ans = listed ? listed.ans : { name: a.name, year: a.year, approx: a.approx, alts: [], key: a.key,
+      dmg: WW.damage(a.year, p.cut), archive: true };
+    if (G.used[ans.key]) feedback('miss', 'You have already struck with ' + ans.name + '.');
+    else hit({ ans: ans, exact: true });
   }
 
   function hit(res) {
@@ -541,20 +586,21 @@
     e.hp = outright ? 0 : Math.max(0, e.hp - a.dmg);
     var blow = { ans: a, dmg: a.dmg, combo: G.combo, killed: e.hp <= 0, outright: outright, oldest: a === p.oldest };
     var gain = D.hitGlory(blow.dmg, blow.combo);
-    var worth = !outright ? blow.dmg + ' damage.' : blow.oldest ? 'the oldest answer.' : 'all but the oldest answer.';
-    var said = a.name + ', ' + WW.fmtYear(a) + ': ' + worth + (res.exact ? '' : ' Close enough.');
+    var worth = !outright ? blow.dmg + ' damage.' : blow.oldest ? 'the oldest answer.'
+      : a.year < p.oldest.year ? 'older than any answer on the roll.' : 'all but the oldest answer.';
+    var said = a.name + ', ' + WW.fmtYear(a) + ': ' + worth + (a.archive ? ' Found in the archives.' : res.exact ? '' : ' Close enough.');
     var learned = blow.oldest && store.found[p.id] !== a.name;
     if (learned) { store.found[p.id] = a.name; save(); }
     if (blow.killed) {
       gain += D.fellGlory(e.pace, G.flawless) + (outright ? D.OLDEST_GLORY : 0);
-      record(outright ? 'K' : G.flawless ? 'F' : 'W');
+      var told = record(outright ? 'K' : G.flawless ? 'F' : 'W');
       G.phase = 'felled'; G.phaseT = 0;
       var relit = G.mode === 'endless' && (G.idx + 1) % CONFIG.RELIGHT_EVERY === 0 && G.lives < CONFIG.LIVES;
       if (relit) G.lives++;
       var how = outright ? 'Felled outright' : G.flawless ? 'Felled cleanly' : 'Felled';
       feedback('ok t' + blow.dmg, said + ' ' + how + ', +' + D.fmt(gain) + ' glory.' + (learned ? ' Written in your almanac.' : '') +
         (relit ? ' A torch is relit.' : ''), 5200);
-      G.reveal = NAMES[e.kind] + (outright ? ' felled outright. ' : ' felled. ') + oldest(p);
+      G.reveal = NAMES[e.kind] + (outright ? ' felled outright. ' : ' felled. ') + told;
       closePrompt(G.reveal);
     } else {
       feedback('ok t' + blow.dmg, said + ' +' + D.fmt(gain) + ' glory.');
@@ -572,17 +618,19 @@
   /** The moment the blade lands: the damage shows, the foe is thrown back, and the sparks fly. */
   function impact(e, blow) {
     var dmg = blow.dmg;
-    e.hpShown = e.hp;
+    chips(e, e.hp, e.hpShown);
+    e.hpShown = e.hp; e.lostWait = LOST_HOLD;
     e.flash = dmg === 3 ? 0.26 : 0.16;
     if (!blow.killed) {
       e.pace = Math.min(CONFIG.MAX_PACE, e.pace + CONFIG.KNOCK[dmg]);
       e.stepT = 0;
+      e.reel = REEL;
     }
     floatDamage(e, blow);
     burst(e, blow.killed ? 40 : 5 + dmg * 5);
     if (dmg >= 2) embers(e, dmg === 3 ? 28 : 10);
     if (dmg === 3) { bolt(e); ring(e); if (!calm) veil('flash'); }
-    if (blow.killed) { e.gone = true; sfx.fell(); }
+    if (blow.killed) { shatter(e); e.gone = true; sfx.fell(); }
     sfx.hit(dmg, blow.combo);
     if (!calm) { G.shake = [0, 0.16, 0.24, 0.44][dmg] + (blow.killed ? 0.1 : 0); G.stop = [0, 0.04, 0.06, 0.11][dmg]; }
   }
@@ -609,10 +657,10 @@
     drawHud();
     if (G.mode === 'daily' && store.daily) { store.daily.lives = G.lives; store.daily.combo = 0; save(); }
     if (G.lives <= 0) {
-      record('X');
+      var told = record('X');
       G.phase = 'falling'; G.phaseT = 0;
       feedback('miss', text + ' The last torch goes out.', 6000);
-      closePrompt(oldest(G.prompt));
+      closePrompt(told);
       sfx.fall();
       return false;
     }
@@ -642,11 +690,11 @@
     }
     disarmSkip();
     settleStrike();
-    var p = G.prompt, name = NAMES[e.kind];
+    var name = NAMES[e.kind];
     if (!loseTorch('You let the ' + name.toLowerCase() + ' pass.')) return;
-    record('S');
+    var told = record('S');
     G.phase = 'fleeing'; G.phaseT = 0;
-    G.reveal = name + ' slipped past. ' + oldest(p);
+    G.reveal = name + ' slipped past. ' + told;
     closePrompt(G.reveal);
     drawFoe('Slipped past');
   }
@@ -675,6 +723,36 @@
         vx: (Math.random() - 0.5) * 70, vy: -30 - Math.random() * 110, life: 0.5 + Math.random() * 0.8, g: -30,
         col: EMBER[i % EMBER.length], size: Math.random() < 0.3 ? 2 : 1 });
     }
+  }
+
+  /** Grit kicked up from the wall top as a foe steps. The dread knight's tread shakes the stones. */
+  function dust(e) {
+    if (e.spr.floats || calm) return;
+    var c = foeAt(e), heavy = e.kind === 'dread', n = heavy ? 6 : 3, i;
+    for (i = 0; i < n; i++) {
+      G.bits.push({ x: c.x + (Math.random() - 0.3) * e.spr.w * 0.6, y: c.feet - 1,
+        vx: 6 + Math.random() * 26, vy: -8 - Math.random() * 22, life: 0.22 + Math.random() * 0.26, g: 70,
+        col: DUST[i % DUST.length], size: 1 });
+    }
+    if (heavy) G.shake = Math.max(G.shake, 0.07);
+  }
+
+  /** The pips a blow knocks off a foe's health bar fall away as red chips. */
+  function chips(e, from, to) {
+    if (calm) return;
+    var c = foeAt(e), box = barBox(e, c.x, c.feet - e.spr.h - foeLift(e)), i;
+    for (i = from; i < to; i++) {
+      G.bits.push({ x: box.left + 1 + i * (box.pw + 1) + Math.random() * box.pw, y: box.top + 2,
+        vx: (Math.random() - 0.5) * 44, vy: -24 - Math.random() * 34, life: 0.32 + Math.random() * 0.22, g: 260,
+        col: i % 2 ? '#ff8a6a' : '#d9432e', size: 1 });
+    }
+  }
+
+  /** What is left of a felled foe: its shape, breaking into bands that slide apart as it fades. */
+  function shatter(e) {
+    var c = foeAt(e), spr = e.spr;
+    G.fx.push({ kind: 'shatter', img: spr.flash[foeFrame(e)], x: Math.round(c.x - spr.w / 2), y: c.feet - spr.h - foeLift(e),
+      feet: c.feet, rise: !!spr.floats, t: 0, life: calm ? 0.2 : 0.5 });
   }
 
   function ring(e) {
@@ -823,7 +901,7 @@
     el.endlessBest.textContent = s.bestEndless ? 'Best ' + D.fmt(s.bestEndless) : 'No end';
     // until the switch has been used (or a few walls played), it asks to be noticed
     var nudge = !store.sound && !store.soundSet && s.played < 3;
-    el.soundBtn.textContent = nudge ? 'Turn on sound' : 'Sound: ' + (store.sound ? 'on' : 'off');
+    el.soundBtn.textContent = nudge ? 'Turn on sound and music' : 'Sound and music: ' + (store.sound ? 'on' : 'off');
     el.soundBtn.classList.toggle('nudge', nudge);
     el.soundBtn.setAttribute('aria-pressed', store.sound ? 'true' : 'false');
     el.stats.textContent = s.played
@@ -856,6 +934,77 @@
   /** How far off the ground a foe is drawn this frame: wraiths hover, the rest bob as they step. */
   function foeLift(e) {
     return e.spr.floats ? 4 + Math.round(Math.sin(scene.t * 3) * 2) : Math.round(Math.sin(Math.PI * e.hop) * 3);
+  }
+
+  /** Which frame of a foe to draw: hovering, mid-step, or standing. */
+  function foeFrame(e) {
+    var spr = e.spr;
+    if (spr.floats) return Math.floor(scene.t * 4) % 2;
+    if (spr.frames.length === 2) return e.hop > 0 ? e.foot : (spr.runs ? 0 : 1);
+    return e.hop > 0 ? e.foot : 2;
+  }
+
+  /**
+   * How a foe holds itself this frame, in whole pixels. `sink` presses its upper body down:
+   * a breath, or the crouch before a step. `lean` tips it: forward into a step, back from a
+   * blow. `jolt` shakes all of it as a blow lands.
+   */
+  function foeStance(e) {
+    var spr = e.spr, waiting = G.phase === 'fight' && e.attack === 0 && e.hop <= 0;
+    if (e.reel > 0) {
+      var u = 1 - e.reel / REEL; // thrown back, then upright again
+      return { sink: 0, lean: Math.round(Math.sin(u * Math.PI) * 2), jolt: u < 0.35 ? (Math.floor(scene.t * 50) % 2 ? 1 : -1) : 0 };
+    }
+    if (!waiting || spr.floats || calm) return STILL;
+    if (e.pace <= 1 || e.stepT / e.interval > BRACE) return { sink: 1, lean: spr.runs ? 0 : -1, jolt: 0 }; // gathered to move
+    return Math.sin(scene.t * (spr.runs ? 5 : 2.2) + e.pace) > 0.3 ? BREATH : STILL;
+  }
+
+  /** Draw a figure with its upper body pressed down and tipped as its stance says; the legs stay planted. */
+  function drawStance(g, img, x, y, st) {
+    if (!st.sink && !st.lean) { g.drawImage(img, x, y); return; }
+    var waist = Math.round(img.height * 0.62);
+    g.drawImage(img, 0, waist, img.width, img.height - waist, x, y + waist, img.width, img.height - waist);
+    g.drawImage(img, 0, 0, img.width, waist, x + st.lean, y + st.sink, img.width, waist);
+  }
+
+  /** Where a foe's health bar sits: over its head, clear of any weapon it holds upright. */
+  function barBox(e, cx, top) {
+    var pw = e.maxHp <= 8 ? 4 : e.maxHp <= 10 ? 3 : 2, w = e.maxHp * (pw + 1) + 1;
+    return { pw: pw, w: w, left: Math.round(cx) - Math.floor(w / 2), top: top - (e.spr.weapon && e.spr.weapon !== 'dagger' ? 23 : 10) };
+  }
+
+  /**
+   * A foe's health: a pip for each point of damage it can still take. Pips just lost stay
+   * blanched for a moment and then drain away, so the size of a blow can be read at a glance.
+   * Beneath it runs the time left before the foe's next step.
+   */
+  function drawHealth(g, e, box) {
+    var left = box.left, top = box.top, i;
+    var last = e.hpShown === 1 && e.maxHp > 1 && Math.floor(scene.t * 5) % 2 === 0; // the last pip flickers
+    g.fillStyle = Sp.OUTLINE; g.fillRect(left, top, box.w, 7);
+    if (e.kind === 'dread') { // the dread knight's bar is capped in gold
+      g.fillStyle = '#c9a24a'; g.fillRect(left - 1, top + 1, 1, 5); g.fillRect(left + box.w, top + 1, 1, 5);
+    }
+    for (i = 0; i < e.maxHp; i++) {
+      var x = left + 1 + i * (box.pw + 1);
+      if (i < e.hpShown) {
+        g.fillStyle = last ? '#ff6a4a' : '#d9432e'; g.fillRect(x, top + 1, box.pw, 5);
+        g.fillStyle = '#ff9a7a'; g.fillRect(x, top + 1, box.pw, 1);
+        g.fillStyle = '#9a2a22'; g.fillRect(x, top + 5, box.pw, 1);
+      } else if (i < e.hpLost) {
+        g.fillStyle = '#f6e7c1'; g.fillRect(x, top + 1, box.pw, 5);
+      } else {
+        g.fillStyle = '#2b2836'; g.fillRect(x, top + 1, box.pw, 5);
+        g.fillStyle = '#1d1b26'; g.fillRect(x, top + 1, box.pw, 1);
+      }
+    }
+    if (G.phase !== 'fight' || e.attack > 0) return;
+    // the wait before its next step: grey while it is held, and burning red when that step will reach the knight
+    var held = !!G.strike || !!G.asking, near = e.pace <= 1;
+    g.fillStyle = Sp.OUTLINE; g.fillRect(left, top + 7, box.w, 3);
+    g.fillStyle = held ? '#8a8496' : near ? (Math.floor(scene.t * 8) % 2 ? '#ff5a3c' : '#ffd0b0') : e.pace <= 3 ? '#ff8a6a' : '#f5c044';
+    g.fillRect(left + 1, top + 8, Math.round((box.w - 2) * (1 - e.stepT / e.interval)), 1);
   }
 
   /** Which frame of the knight to draw: walking, standing, or the pose of the blow he is striking. */
@@ -980,7 +1129,7 @@
           loseTorch('The ' + NAMES[e.kind].toLowerCase() + ' reaches you.');
         }
         if (e.attack > 0.55 && G.phase === 'fight') { e.attack = 0; e.pace = CONFIG.START; e.stepT = 0; }
-      } else if (!G.strike) {
+      } else if (!G.strike && !G.asking) {
         e.stepT += dt;
         if (e.stepT >= e.interval) { e.stepT -= e.interval; stepEnemy(); }
       }
@@ -1044,7 +1193,12 @@
       e.shown += (e.pace - e.shown) * (1 - Math.exp(-dt * 12)); // it slides to where it stands, not jumps
       e.hop = Math.max(0, e.hop - dt / 0.28);
     }
-    if (e) e.flash = Math.max(0, e.flash - dt);
+    if (e) {
+      e.flash = Math.max(0, e.flash - dt);
+      e.reel = Math.max(0, e.reel - dt);
+      if (e.lostWait > 0) e.lostWait -= dt;
+      else e.hpLost = Math.max(e.hpShown, e.hpLost - dt * LOST_DRAIN);
+    }
     updateStrike(dt);
     updateAura(dt);
     updateSparks(dt);
@@ -1065,10 +1219,11 @@
   }
 
   /** In failing light, a thin pale edge keeps a dark figure apart from dark hills. */
-  function rim(g, white, x, y) {
+  function rim(g, white, x, y, stance) {
     if (!Scene.STAGES[scene.shownStage()].lit) return;
+    var st = stance || STILL;
     g.globalAlpha = 0.32;
-    g.drawImage(white, x - 1, y); g.drawImage(white, x + 1, y); g.drawImage(white, x, y - 1);
+    drawStance(g, white, x - 1, y, st); drawStance(g, white, x + 1, y, st); drawStance(g, white, x, y - 1, st);
     g.globalAlpha = 1;
   }
 
@@ -1111,6 +1266,16 @@
         g.fillRect(Math.round(f.x) - 1, Math.round(f.y) - 1, 3, 3);
         g.fillStyle = '#ffffff';
         g.fillRect(Math.round(f.x), Math.round(f.y), 1, 1);
+      } else if (f.kind === 'shatter') {
+        // the foe's shape in bands: each slides its own way as the whole sinks (a wraith's rises) and fades
+        var band = 3, rows = Math.ceil(f.img.height / band);
+        g.globalAlpha = 1 - u;
+        for (k = 0; k < rows; k++) {
+          var drift = Math.round((k % 2 ? 1 : -1) * u * (3 + (k * 7) % 5));
+          var fall = Math.round(u * u * (f.rise ? -(6 + k) : 5 + (rows - k) * 1.5));
+          g.drawImage(f.img, 0, k * band, f.img.width, band, f.x + drift, Math.min(f.feet - band, f.y + k * band + fall), f.img.width, band);
+        }
+        g.globalAlpha = 1;
       } else if (f.kind === 'slash') {
         var half = f.tier === 3 ? 13 : f.tier === 2 ? 10 : 8;
         g.fillStyle = u < 0.5 ? '#ffffff' : f.tier === 3 ? '#f08a2c' : f.tier === 2 ? '#f5c044' : '#bfe6ff';
@@ -1125,38 +1290,31 @@
 
     // foe
     if (e && !e.gone) {
-      var spr = e.spr, ex = home + foeX(e);
-      var frame = spr.floats ? Math.floor(scene.t * 4) % 2
-        : spr.frames.length === 2 ? (e.hop > 0 ? e.foot : (spr.runs ? 0 : 1))
-          : (e.hop > 0 ? e.foot : 2);
+      var spr = e.spr, ex = home + foeX(e), frame = foeFrame(e), st = foeStance(e);
       var lunge = e.attack > 0 ? -Math.round(Math.sin(Math.min(1, e.attack / 0.3) * Math.PI) * 9) : 0;
       var shudder = G.strike && G.strike.embed && Math.floor(scene.t * 40) % 2 ? 1 : 0; // run through
-      var sx = Math.round(ex - spr.w / 2) + lunge + shudder, sy = feet - spr.h - foeLift(e);
+      var sx = Math.round(ex - spr.w / 2) + lunge + shudder + st.jolt, sy = feet - spr.h - foeLift(e);
+      var body = e.flash > 0 ? spr.flash[frame] : lit(e.kind, 'frames', frame);
       shadow(g, ex + lunge, feet, Math.round(spr.w * (spr.floats ? 0.5 : 0.75)));
+      if (spr.floats && !calm) {
+        // a wraith leaves a little of itself behind as it drifts
+        g.globalAlpha = 0.2; g.drawImage(body, sx + 3, sy + 1);
+        g.globalAlpha = 0.09; g.drawImage(body, sx + 6, sy + 2);
+        g.globalAlpha = 1;
+      }
       if (spr.cape) foeCape.draw(g);
-      rim(g, spr.flash[frame], sx, sy);
-      g.drawImage(e.flash > 0 ? spr.flash[frame] : lit(e.kind, 'frames', frame), sx, sy);
+      rim(g, spr.flash[frame], sx, sy, st);
+      drawStance(g, body, sx, sy, st);
       if (spr.weapon) {
-        // weapons are held upright, and swung down when the foe strikes
+        // weapons are held upright, drawn back as the foe closes for the kill, and swung down when it strikes
         var swing = e.attack > 0 ? Math.sin(Math.min(1, e.attack / 0.3) * Math.PI) * 70 : 0;
-        var rest = spr.weapon === 'dagger' ? 118 : 96;
-        Sp.drawWeapon(g, sx + spr.hand[0], sy + spr.hand[1] + spr.bob[frame], rest + swing + Math.sin(scene.t * 2) * 2, spr.weapon);
+        var poised = e.attack === 0 && e.pace <= 1 && G.phase === 'fight';
+        var rest = (spr.weapon === 'dagger' ? 118 : 96) - (poised ? 14 : 0);
+        var sway = poised ? Math.sin(scene.t * 16) * 1.5 : Math.sin(scene.t * 2) * 2;
+        Sp.drawWeapon(g, sx + spr.hand[0] + st.lean, sy + spr.hand[1] + spr.bob[frame] + st.sink, rest + swing + sway, spr.weapon);
       }
       if ((G.phase === 'fight' || G.phase === 'felled' || G.phase === 'falling') && !finishing()) {
-        // its health, one pip for each point of damage it can still take, and the time before its next step
-        var pw = e.maxHp <= 8 ? 4 : e.maxHp <= 10 ? 3 : 2, w = e.maxHp * (pw + 1) + 1;
-        var cx = Math.round(ex) + lunge, left = cx - Math.floor(w / 2), top = sy - (spr.weapon && spr.weapon !== 'dagger' ? 22 : 9);
-        g.fillStyle = Sp.OUTLINE; g.fillRect(left, top, w, 6);
-        for (i = 0; i < e.maxHp; i++) {
-          var pxp = left + 1 + i * (pw + 1);
-          g.fillStyle = i < e.hpShown ? '#d9432e' : '#3a3646'; g.fillRect(pxp, top + 1, pw, 4);
-          if (i < e.hpShown) { g.fillStyle = '#ff8a6a'; g.fillRect(pxp, top + 1, pw, 1); }
-        }
-        if (G.phase === 'fight' && e.attack === 0) {
-          g.fillStyle = Sp.OUTLINE; g.fillRect(left, top + 7, w, 3);
-          g.fillStyle = e.pace <= 3 ? '#ff8a6a' : '#f5c044';
-          g.fillRect(left + 1, top + 8, Math.round((w - 2) * (1 - e.stepT / e.interval)), 1);
-        }
+        drawHealth(g, e, barBox(e, ex + lunge + st.jolt, sy));
       }
     }
 
@@ -1240,8 +1398,11 @@
   el.doneCopy.addEventListener('click', function () { copyResult(el.doneCopy); });
   el.soundBtn.addEventListener('click', function () {
     store.sound = WW.Sound.enabled = !store.sound; store.soundSet = true; save(); drawMenu();
-    if (store.sound) sfx.hit(1, 0);
+    if (store.sound) { WW.Sound.wake(); sfx.hit(1, 0); } else WW.Sound.hush();
   });
+  // browsers allow sound only after a tap or a key press: the score starts on the first one, and rests while the page is hidden
+  ['pointerdown', 'touchend', 'click', 'keydown'].forEach(function (name) { window.addEventListener(name, function () { WW.Sound.wake(); }, { passive: true }); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) WW.Sound.hush(); else WW.Sound.wake(); });
   el.howBtn.addEventListener('click', function () { openDialog(el.howto); });
   el.howClose.addEventListener('click', function () { closeDialog(el.howto); });
   el.almanacBtn.addEventListener('click', function () { openBook('Almanac', almanacHtml()); });
