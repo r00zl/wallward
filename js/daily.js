@@ -18,6 +18,10 @@
   var LIVES = 5;      // torches a run starts with
   var START = 8;      // paces away a foe begins
   var MAX_PACE = 10;  // the furthest a foe can be driven back
+  // The oldest answer to a question fells any foe outright, and so does any answer dated
+  // within this share of the roll's whole span of time after it (2% of 500 years of Roman
+  // emperors is 10 years; of the three years of Moon landings, about three weeks).
+  var KILL_RANGE = 0.02;
 
   // The five foes of a daily wall: the tier of question each asks, how much
   // damage it takes to fell, and the seconds between its steps.
@@ -39,10 +43,6 @@
     return DAY_MS - (((t - EPOCH_UTC) % DAY_MS) + DAY_MS) % DAY_MS;
   }
 
-  function dateOfDay(num) {
-    return new Date(EPOCH_UTC + (num - 1) * DAY_MS);
-  }
-
   function mulberry32(seed) {
     var a = seed >>> 0;
     return function () {
@@ -54,15 +54,6 @@
     };
   }
 
-  function shuffled(arr, rng) {
-    var a = arr.slice();
-    for (var i = a.length - 1; i > 0; i--) {
-      var j = Math.floor(rng() * (i + 1));
-      var x = a[i]; a[i] = a[j]; a[j] = x;
-    }
-    return a;
-  }
-
   function byId(a, b) { return a.id < b.id ? -1 : a.id > b.id ? 1 : 0; }
 
   // ----- the calendar of walls -----
@@ -72,7 +63,7 @@
   // from one roll never share a day, and a roll used yesterday is avoided today.
   var SEASON = 30;
   var MIN_GAP = { 1: 7, 2: 10, 3: 10 };
-  var calendar = { size: -1, days: [], lastUse: {}, lastFam: {} };
+  var calendar = { bank: null, days: [], lastUse: {}, lastFam: {} };
 
   function buildSeason(cal, bank, s) {
     var rng = mulberry32(WW.hashStr('wallward3|season|' + s));
@@ -109,7 +100,7 @@
    */
   function dailyPlan(num, bank) {
     var day = Math.max(0, num - 1);
-    if (calendar.size !== bank.length) calendar = { size: bank.length, days: [], lastUse: {}, lastFam: {} };
+    if (calendar.bank !== bank) calendar = { bank: bank, days: [], lastUse: {}, lastFam: {} };
     while (calendar.days.length <= day) buildSeason(calendar, bank, Math.floor(calendar.days.length / SEASON));
     var picks = calendar.days[day];
     return { enemies: DAILY_ENEMIES.map(function (e, i) {
@@ -144,6 +135,11 @@
     return p;
   }
 
+  /** True if this answer fells a foe outright: the oldest on the roll, or within KILL_RANGE of it. */
+  function kills(prompt, ans) {
+    return ans.year - prompt.oldest.year <= prompt.span * KILL_RANGE;
+  }
+
   // ----- glory -----
   var HIT_GLORY = [0, 100, 250, 450]; // for a blow of 1, 2 or 3 damage
   /** Glory for one blow. Each answer in an unbroken run adds a tenth, up to double. */
@@ -154,6 +150,8 @@
   function fellGlory(pacesLeft, flawless) {
     return 300 + 40 * Math.max(0, Math.min(MAX_PACE, Math.round(pacesLeft))) + (flawless ? 200 : 0);
   }
+
+  var OLDEST_GLORY = 800; // on top of the rest, for felling a foe with the oldest answer
 
   var RANKS = [
     [10000, 'Warden of the Wall'], [8000, 'Commander'], [6000, 'Captain'],
@@ -166,8 +164,11 @@
 
   function fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
-  /** results: 'F' felled cleanly, 'W' felled, 'S' skipped, 'X' the wall fell here. */
-  var MARKS = { F: '⚔️', W: '🗡️', S: '💨', X: '💥' };
+  /** results: 'K' felled outright by the oldest answer, 'F' felled cleanly, 'W' felled, 'S' skipped, 'X' the wall fell here. */
+  var MARKS = { K: '💀', F: '⚔️', W: '🗡️', S: '💨', X: '💥' };
+  function felledCount(results) {
+    return results.filter(function (r) { return r === 'K' || r === 'F' || r === 'W'; }).length;
+  }
   function markRow(results, total) {
     var row = '';
     for (var i = 0; i < total; i++) row += MARKS[results[i]] || '⬛';
@@ -175,7 +176,7 @@
   }
 
   function shareText(num, results, glory, total, url, bestCombo) {
-    var felled = results.filter(function (r) { return r === 'F' || r === 'W'; }).length;
+    var felled = felledCount(results);
     var lines = ['Wallward No. ' + num + ' · ' + fmt(glory) + ' glory',
       markRow(results, total) + '  ' + felled + '/' + total + (bestCombo > 1 ? ' · combo ×' + bestCombo : '')];
     if (url) lines.push(url);
@@ -183,10 +184,10 @@
   }
 
   WW.Daily = {
-    EPOCH_UTC: EPOCH_UTC, LIVES: LIVES, START: START, MAX_PACE: MAX_PACE, DAILY_ENEMIES: DAILY_ENEMIES,
-    dayNumber: dayNumber, msToNextWall: msToNextWall, dateOfDay: dateOfDay,
-    mulberry32: mulberry32, shuffled: shuffled, dailyPlan: dailyPlan,
-    endlessEnemy: endlessEnemy, drawPrompt: drawPrompt,
-    hitGlory: hitGlory, fellGlory: fellGlory, rankFor: rankFor, fmt: fmt, markRow: markRow, shareText: shareText
+    LIVES: LIVES, START: START, MAX_PACE: MAX_PACE, KILL_RANGE: KILL_RANGE, DAILY_ENEMIES: DAILY_ENEMIES,
+    dayNumber: dayNumber, msToNextWall: msToNextWall, dailyPlan: dailyPlan,
+    endlessEnemy: endlessEnemy, drawPrompt: drawPrompt, kills: kills,
+    hitGlory: hitGlory, fellGlory: fellGlory, OLDEST_GLORY: OLDEST_GLORY, rankFor: rankFor, fmt: fmt,
+    markRow: markRow, felledCount: felledCount, shareText: shareText
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

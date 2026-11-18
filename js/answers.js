@@ -12,7 +12,7 @@
   var WW = root.WW = root.WW || {};
 
   var SPECIAL = { 'ł': 'l', 'ø': 'o', 'đ': 'd', 'ß': 'ss', 'æ': 'ae', 'œ': 'oe', 'ı': 'i', 'þ': 'th', 'ð': 'd' };
-  var SYN = { st: 'saint', ste: 'saint', mt: 'mount' };
+  var SYN = { st: 'saint', ste: 'saint' };
 
   // Generic words a player may add or drop without changing the answer.
   var NOISE = {}, TITLE = {};
@@ -224,6 +224,5 @@
     return { ok: true, ans: best, exact: false };
   }
 
-  WW.Answers = { norm: norm, stripNoise: stripNoise, distance: distance, tolerance: tolerance, parts: parts,
-    index: ix, setGuard: setGuard, check: check };
+  WW.Answers = { norm: norm, setGuard: setGuard, check: check };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

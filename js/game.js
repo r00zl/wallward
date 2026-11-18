@@ -1,7 +1,7 @@
 /* Wallward: game flow, drawing of the characters, and the page controls. */
 (function () {
   'use strict';
-  var WW = window.WW, D = WW.Daily, A = WW.Answers, Scene = WW.Scene, Sp = WW.Sprites;
+  var WW = window.WW, D = WW.Daily, A = WW.Answers, Scene = WW.Scene, Sp = WW.Sprites, Cape = WW.Cape, sfx = WW.Sound.sfx;
 
   // ---------- rules you may want to tune ----------
   var CONFIG = {
@@ -13,19 +13,27 @@
     RELIGHT_EVERY: 5,       // endless march: felling every fifth foe relights a torch
     SHARE_URL: ''           // public address of the game, added to copied results
   };
+  var COMBO_STEPS = [3, 5, 8]; // answers in a row at which the knight's strikes, and his blade, step up
   var TRACK = CONFIG.MAX_PACE;
   var GAP = 22;             // pixels between warrior and a foe at pace 0
   var NAMES = { cultist: 'Cultist', wolf: 'Dire wolf', skeleton: 'Skeleton', wraith: 'Wraith', dread: 'Dread knight' };
   var STORE_KEY = 'wallward.v3';
   var EMBER = ['#fff1c9', '#f5c044', '#f08a2c', '#d9432e'];
   var AURA = [null, ['#fff1c9', '#f5c044'], ['#f5c044', '#f08a2c', '#d9432e'], ['#ffffff', '#9fd8ff', '#5fa8ff']];
+  // Sword angles in degrees: 0 points ahead, 90 straight up, 270 straight down.
+  var SWORD = { rest: 55, raised: 150, low: -55, up: 90, down: 270 };
+  // Seconds each part of a strike takes.
+  var CUT = { quick: 0.085, last: 0.16, cleave: 0.2, back: 0.3 };
+  var FINISH = { run: 0.18, leap: 0.42, hang: 0.2, plunge: 0.07, hold: 0.6, rip: 0.16, land: 0.3, pose: 0.6 };
+  var FINISH_RISE = 10; // how far above his mark the knight hangs before the plunge
+  var BLADE_DEPTH = 7;  // how far the point is driven into the skull
 
   var $ = function (id) { return document.getElementById(id); };
   var el = {};
   ['app', 'cv', 'veil', 'hud', 'lives', 'progress', 'score', 'quitBtn', 'banner', 'floats', 'combo', 'comboN', 'titleBlock',
     'menu', 'playDaily', 'dailyNo', 'dailyDone', 'doneMarks', 'doneLine', 'doneCopy', 'doneNext',
     'playEndless', 'endlessBest', 'howBtn', 'soundBtn', 'stats',
-    'fightTop', 'cat', 'foe', 'qText', 'rule', 'chips', 'fightBottom', 'answerForm', 'answer', 'skipBtn', 'strikeBtn', 'feedback',
+    'fightTop', 'health', 'foe', 'qText', 'rule', 'chips', 'fightBottom', 'answerForm', 'answer', 'skipBtn', 'strikeBtn', 'feedback',
     'end', 'endKicker', 'endTitle', 'endScore', 'endRank', 'endMarks', 'copyBtn', 'againBtn', 'homeBtn', 'nextIn',
     'copyBox', 'copyText', 'howto', 'howClose'].forEach(function (id) { el[id] = $(id); });
 
@@ -54,157 +62,7 @@
   function save() {
     try { window.localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* ignore */ }
   }
-
-  // ---------- sound (off until switched on) ----------
-  var AC = null;
-  function audio() {
-    if (!store.sound) return null;
-    if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
-    if (AC && AC.state === 'suspended' && AC.resume) AC.resume();
-    return AC;
-  }
-  function tone(freq, dur, type, vol, slideTo, delay) {
-    var ac = audio();
-    if (!ac) return;
-    try {
-      var o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + (delay || 0);
-      o.type = type || 'square';
-      o.frequency.setValueAtTime(freq, t0);
-      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
-      g.gain.setValueAtTime(vol || 0.05, t0);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      o.connect(g); g.connect(ac.destination);
-      o.start(t0); o.stop(t0 + dur + 0.02);
-    } catch (e) { /* ignore */ }
-  }
-  var sfx = {
-    dash: function () { tone(300, 0.1, 'triangle', 0.04, 700); },
-    cut: function (k) { tone(700 + 90 * k, 0.04, 'square', 0.03, 300); },
-    // the pitch climbs with the combo; heavier blows add weight and, at three damage, thunder
-    hit: function (tier, combo) {
-      var up = Math.pow(2, Math.min(combo, 12) / 24);
-      tone(520 * up, 0.05, 'square', 0.05, 180); tone(140, 0.14, 'sawtooth', 0.05, 60, 0.03);
-      if (tier >= 2) tone(660 * up, 0.07, 'square', 0.05, 240, 0.07);
-      if (tier === 3) { tone(1500, 0.16, 'square', 0.04, 180); tone(74, 0.55, 'sawtooth', 0.08, 28, 0.03); }
-    },
-    combo: function (n) { [0, 1, 2].forEach(function (i) { tone(392 * Math.pow(1.26, i) * (1 + n / 30), 0.09, 'triangle', 0.05, 0, i * 0.06); }); },
-    wrong: function () { tone(210, 0.12, 'square', 0.04, 120); },
-    leap: function () { tone(180, 0.4, 'triangle', 0.05, 900); },
-    thud: function () { tone(110, 0.3, 'sawtooth', 0.09, 34); tone(60, 0.45, 'triangle', 0.08, 30, 0.02); },
-    miss: function () { tone(160, 0.25, 'sawtooth', 0.06, 60); },
-    step: function () { tone(80, 0.05, 'triangle', 0.04, 55); },
-    fell: function () { tone(392, 0.1, 'square', 0.05); tone(523, 0.1, 'square', 0.05, 0, 0.09); tone(659, 0.2, 'square', 0.05, 0, 0.18); },
-    fall: function () { tone(220, 0.5, 'sawtooth', 0.07, 40); },
-    win: function () { [392, 494, 587, 784].forEach(function (f, i) { tone(f, 0.18, 'square', 0.05, 0, i * 0.13); }); }
-  };
-
-  // ---------- a cloak that streams in the wind ----------
-  // A short chain of points hung from the shoulders. Each frame the points are
-  // pushed by wind and their own momentum, then pulled back to arm's length of
-  // each other, so the cloth trails when its wearer dashes and settles after.
-  function Cape(n, seg, widths, cols) {
-    this.n = n; this.seg = seg; this.widths = widths; this.cols = cols;
-    this.x = []; this.y = []; this.px = []; this.py = [];
-    this.acc = 0; this.ready = false; this.dir = -1;
-  }
-  Cape.prototype.reset = function (ax, ay, dir) {
-    for (var i = 0; i < this.n; i++) {
-      this.x[i] = this.px[i] = ax + dir * i * this.seg * 0.8;
-      this.y[i] = this.py[i] = ay + i * this.seg * 0.6;
-    }
-    this.ready = true;
-  };
-  Cape.prototype.step = function (ax, ay, dir, dt, t, floor) {
-    this.dir = dir;
-    if (!this.ready || Math.abs(this.x[0] - ax) > 90) this.reset(ax, ay, dir);
-    this.acc = Math.min(0.1, this.acc + dt);
-    var h = 1 / 60, i, k;
-    while (this.acc >= h) {
-      this.acc -= h;
-      for (i = 1; i < this.n; i++) {
-        var vx = (this.x[i] - this.px[i]) * 0.9, vy = (this.y[i] - this.py[i]) * 0.9;
-        this.px[i] = this.x[i]; this.py[i] = this.y[i];
-        var gust = 150 + 90 * Math.sin(t * 2.1) + 50 * Math.sin(t * 5.3 + i * 0.7);
-        var flutter = 110 * Math.sin(t * 9 - i * 0.9) * (i / this.n);
-        this.x[i] += vx + dir * gust * h * h;
-        this.y[i] += vy + (70 + flutter) * h * h;
-        // a cloak is pinned behind the shoulders: it may flare when its wearer stops short,
-        // but it is drawn back rather than swinging round in front, and it does not sink into the stone
-        var ahead = (this.x[i] - ax) * -dir;
-        if (ahead > 0) this.x[i] += dir * ahead * 0.3;
-        if (this.y[i] < ay - 3) this.y[i] += (ay - 3 - this.y[i]) * 0.3; // nor does it stand up over the head
-        if (floor != null && this.y[i] > floor - this.widths[i] * 0.4) this.y[i] = floor - this.widths[i] * 0.4;
-      }
-      this.x[0] = ax; this.y[0] = ay;
-      for (k = 0; k < 3; k++) {
-        for (i = 1; i < this.n; i++) {
-          var dx = this.x[i] - this.x[i - 1], dy = this.y[i] - this.y[i - 1];
-          var d = Math.sqrt(dx * dx + dy * dy) || 0.001, f = (d - this.seg) / d;
-          this.x[i] -= dx * f; this.y[i] -= dy * f;
-        }
-      }
-    }
-    this.x[0] = ax; this.y[0] = ay;
-  };
-  /**
-   * Drawn as one unbroken ribbon of cloth. The chain is its upper edge; at every point
-   * the cloth hangs off it at right angles, and neighbouring points share that angle,
-   * so the pieces meet exactly and nothing gaps or doubles up when the cape bends.
-   * Stretches running downhill fall into shade, which is what makes it read as folds.
-   */
-  Cape.prototype.draw = function (g) {
-    var n = this.n, s = -this.dir, i, j, top = [], bot = [], slope = [], cols = {}, xs = [];
-    for (i = 0; i < n; i++) {
-      var a = Math.max(0, i - 1), b = Math.min(n - 1, i + 1);
-      var tx = this.x[b] - this.x[a], ty = this.y[b] - this.y[a];
-      var d = Math.sqrt(tx * tx + ty * ty) || 1;
-      tx /= d; ty /= d;
-      var nx = ty * s, ny = -tx * s; // towards the hanging side of the cloth
-      top.push([this.x[i] - nx, this.y[i] - ny]);
-      bot.push([this.x[i] + nx * this.widths[i], this.y[i] + ny * this.widths[i]]);
-      slope.push(ty);
-    }
-    // each stretch between two points is a four-sided patch: find the pixels of every column it covers
-    for (i = 0; i < n - 1; i++) {
-      var q = [top[i], top[i + 1], bot[i + 1], bot[i]];
-      var x0 = Math.min(q[0][0], q[1][0], q[2][0], q[3][0]), x1 = Math.max(q[0][0], q[1][0], q[2][0], q[3][0]);
-      var along = top[i + 1][0] - top[i][0];
-      var fold = (slope[i] + slope[i + 1]) / 2;
-      for (var px = Math.round(x0); px <= Math.round(x1 - 0.001); px++) {
-        var cx = Math.min(x1, Math.max(x0, px + 0.5)), lo = 1e9, hi = -1e9;
-        for (j = 0; j < 4; j++) {
-          var p0 = q[j], p1 = q[(j + 1) % 4], ex0 = Math.min(p0[0], p1[0]), ex1 = Math.max(p0[0], p1[0]);
-          if (cx < ex0 || cx > ex1) continue;
-          if (ex1 - ex0 < 0.001) { lo = Math.min(lo, p0[1], p1[1]); hi = Math.max(hi, p0[1], p1[1]); continue; }
-          var y = p0[1] + (p1[1] - p0[1]) * (cx - p0[0]) / (p1[0] - p0[0]);
-          if (y < lo) lo = y;
-          if (y > hi) hi = y;
-        }
-        if (hi < lo) continue;
-        var u = Math.abs(along) > 0.01 ? Math.max(0, Math.min(1, (cx - top[i][0]) / along)) : 0;
-        var y0 = Math.round(lo), y1 = Math.max(y0, Math.round(hi) - 1);
-        // the hem is torn: notches cut up into the last stretch, fixed to the cloth so they do not crawl
-        if (i === n - 2 && Math.floor(u * 3) === 1) y1 = Math.max(y0, y1 - 2);
-        if (i === n - 3 && Math.floor(u * 3) === 2) y1 = Math.max(y0, y1 - 1);
-        // neighbouring patches share their boundary columns: keep one span for each column
-        var c = cols[px];
-        if (!c) { cols[px] = [y0, y1, fold]; xs.push(px); }
-        else { if (y0 < c[0]) c[0] = y0; if (y1 > c[1]) c[1] = y1; c[2] = (c[2] + fold) / 2; }
-      }
-    }
-    // a dark edge all round, like the figures have, then the cloth itself
-    g.fillStyle = Sp.OUTLINE;
-    for (i = 0; i < xs.length; i++) { var o = cols[xs[i]]; g.fillRect(xs[i] - 1, o[0] - 1, 3, o[1] - o[0] + 3); }
-    for (i = 0; i < xs.length; i++) {
-      var x = xs[i], t0 = cols[x][0], h = cols[x][1] - t0 + 1, f = cols[x][2];
-      // how deep the lit band and the mid band run: more light on a rising fold, more shade on a falling one
-      var lit = f < -0.12 ? Math.ceil(h * 0.5) : f > 0.3 ? 0 : Math.min(2, Math.ceil(h * 0.25));
-      var mid = f < -0.12 ? h - 1 : f > 0.3 ? Math.ceil(h * 0.35) : Math.ceil(h * 0.62);
-      g.fillStyle = this.cols[2]; g.fillRect(x, t0, 1, h);
-      if (mid > 0) { g.fillStyle = this.cols[1]; g.fillRect(x, t0, 1, Math.min(h, mid)); }
-      if (lit > 0) { g.fillStyle = this.cols[0]; g.fillRect(x, t0, 1, Math.min(h, lit)); }
-    }
-  };
+  WW.Sound.enabled = store.sound;
 
   var heroCape = new Cape(9, 3, [6, 7, 8, 8, 8, 7, 6, 5, 3], ['#c12a3a', '#8f1d2c', '#5e1220']);
   var foeCape = new Cape(10, 3, [8, 9, 10, 10, 10, 9, 8, 7, 5, 4], ['#6e1420', '#3a0b14', '#1f060b']);
@@ -216,8 +74,8 @@
     enemy: null, def: null, prompt: null, used: {}, usedList: [],
     reveal: '', recent: [], skipArmed: 0, told: false,
     camFrom: 0, camTo: 0, walkDur: 2.4, spawned: false,
-    strike: null, bits: [], arcs: [], trail: [], fx: [], shake: 0, stop: 0, emberT: 0, tip: null,
-    hero: { dx: 0, dy: 0, walkT: 0, hurt: 0, sword: 55 },
+    strike: null, bits: [], arcs: [], trail: [], fx: [], shake: 0, stop: 0, emberT: 0,
+    hero: { dx: 0, dy: 0, walkT: 0, hurt: 0, sword: SWORD.rest },
     titleT: 0
   };
 
@@ -287,11 +145,11 @@
     el.score.textContent = D.fmt(G.score);
   }
 
-  function drawFoe() {
+  /** The foe's name and health on the question plate; `fate` replaces the health once it is done with. */
+  function drawFoe(fate) {
     var e = G.enemy;
-    if (!e) { el.foe.textContent = ''; el.cat.textContent = ''; return; }
-    el.foe.textContent = NAMES[e.kind];
-    el.cat.textContent = e.hp > 0 ? 'Health ' + e.hp + ' of ' + e.maxHp : 'Felled';
+    el.foe.textContent = e ? NAMES[e.kind] : '';
+    el.health.textContent = !e ? '' : fate || (e.hp > 0 ? 'Health ' + e.hp + ' of ' + e.maxHp : 'Felled');
   }
 
   var fbTimer = 0;
@@ -309,6 +167,11 @@
     el.banner.classList.remove('go'); void el.banner.offsetWidth; el.banner.classList.add('go');
     window.clearTimeout(bannerTimer);
     bannerTimer = window.setTimeout(function () { el.banner.hidden = true; }, 2800);
+  }
+
+  function clearBanner() {
+    window.clearTimeout(bannerTimer);
+    el.banner.hidden = true;
   }
 
   function veil(kind) {
@@ -339,22 +202,26 @@
     drawChips();
   }
 
+  /** The question is over: say what became of the foe in its place. */
+  function closePrompt(text) {
+    G.prompt = null;
+    el.qText.textContent = text;
+    el.rule.textContent = '';
+  }
+
   /** What to say of a question once its foe is done with: the oldest name on the roll. */
   function oldest(p) {
-    if (!p) return '';
-    var best = p.answers[0], i;
-    for (i = 1; i < p.answers.length; i++) if (p.answers[i].year < best.year) best = p.answers[i];
-    return 'The oldest answer was ' + best.name + ', ' + WW.fmtYear(best) + '.';
+    return p ? 'The oldest answer was ' + p.oldest.name + ', ' + WW.fmtYear(p.oldest) + '.' : '';
   }
 
   function showCombo(n) {
     if (n < 2) { el.combo.hidden = true; return; }
     el.comboN.textContent = '×' + n;
-    el.combo.className = 'combo outlined l' + (n >= 8 ? 3 : n >= 5 ? 2 : 1);
+    el.combo.className = 'combo outlined l' + Math.max(1, comboLevel(n));
     el.combo.hidden = false;
     void el.combo.offsetWidth;
     el.combo.classList.add('pop');
-    if (n === 3 || n === 5 || n === 8 || n === 12) sfx.combo(n);
+    if (COMBO_STEPS.indexOf(n) !== -1) sfx.combo(n);
   }
 
   function breakCombo() {
@@ -365,11 +232,16 @@
     G.combo = 0;
   }
 
-  function comboLevel() { return G.combo >= 8 ? 3 : G.combo >= 5 ? 2 : G.combo >= 3 ? 1 : 0; }
+  /** 0 to 3: how many of the combo steps a run of `n` true answers has passed. */
+  function comboLevel(n) {
+    var level = 0;
+    while (level < COMBO_STEPS.length && n >= COMBO_STEPS[level]) level++;
+    return level;
+  }
 
   // ---------- a run ----------
   function startRun(mode, resume) {
-    audio();
+    WW.Sound.wake();
     G.mode = mode; G.results = []; G.score = 0; G.lives = CONFIG.LIVES; G.idx = 0;
     G.combo = 0; G.bestCombo = 0; G.recent = []; G.reveal = ''; G.told = false;
     G.bits = []; G.arcs = []; G.trail = []; G.fx = [];
@@ -463,77 +335,127 @@
    * adds quick cuts before the blow: one at three in a row, two at five, three at eight.
    */
   function strike(tier, combo, onImpact) {
-    if (G.strike && !G.strike.landed) { G.strike.landed = true; G.strike.onImpact(); }
-    var flurry = combo >= 8 ? 3 : combo >= 5 ? 2 : combo >= 3 ? 1 : 0;
-    var cuts = Math.min(4, (tier === 2 ? 2 : 1) + flurry);
-    if (calm) cuts = 1;
-    G.strike = { stage: 'out', t: 0, from: G.hero.dx, onImpact: onImpact, landed: false,
-      tier: tier, cuts: cuts, cut: 0, ticked: false, leap: tier === 3 && !calm, level: comboLevel() };
+    settleStrike();
+    var level = comboLevel(combo);
+    var cuts = calm ? 1 : Math.min(4, (tier === 2 ? 2 : 1) + level);
+    G.strike = { kind: 'cut', stage: 'out', t: 0, from: G.hero.dx, onImpact: onImpact, landed: false,
+      tier: tier, cuts: cuts, cut: 0, ticked: false, leap: tier === 3 && !calm, level: level };
     sfx.dash();
+  }
+
+  /** A new answer, or a skip, cannot wait for a blow still in the air: land it now. */
+  function settleStrike() {
+    var s = G.strike;
+    if (s && !s.landed) { s.landed = true; s.onImpact(); }
   }
 
   /**
-   * The finishing blow, for the dread knight that ends a wall (and each one met on the
-   * endless march): a run, a leap, a held breath at the top with the sword reversed, then
-   * the point driven down through the helm. The knight stays there a moment before
-   * wrenching the blade free, and only then does the foe come apart.
+   * The finishing blow, for any foe felled outright by the oldest answer and for every dread
+   * knight: a run, a leap, a held breath at the top with the sword reversed, then the point
+   * driven down through the skull. The knight stays there a moment before wrenching the
+   * blade free, and only then does the foe come apart.
    */
-  function finisher(e, onImpact, onBurst) {
-    if (G.strike && !G.strike.landed) { G.strike.landed = true; G.strike.onImpact(); }
-    G.strike = { finisher: true, stage: 'run', t: 0, from: G.hero.dx, onImpact: onImpact, onBurst: onBurst,
-      landed: false, embed: false, tier: 3, level: comboLevel(), spark: 0 };
+  function finisher(combo, onImpact, onBurst) {
+    settleStrike();
+    G.strike = { kind: 'finisher', stage: 'run', t: 0, from: G.hero.dx, onImpact: onImpact, onBurst: onBurst,
+      landed: false, embed: false, tier: 3, level: comboLevel(combo), sparkT: 0, sparks: 0 };
     sfx.dash();
   }
 
-  /** Where the knight must be for the reversed blade to stand in the middle of the foe's helm. */
+  /** True while the finishing blow is being struck (not once the knight is walking back). */
+  function finishing() {
+    return !!G.strike && G.strike.kind === 'finisher' && G.strike.stage !== 'back';
+  }
+
+  /** The crown of a foe's head on screen: where the reversed blade goes in. */
+  function skullY(e) {
+    return foeAt(e).feet - e.spr.h - foeLift(e) + e.spr.skull[1];
+  }
+
+  /**
+   * Where the knight must be for the reversed blade to stand in the foe's skull. The blade
+   * hangs 16 pixels in from his left edge and its point 37 below his top, and it is sunk
+   * BLADE_DEPTH pixels into the head.
+   */
   function finisherMark(e) {
-    return { dx: foeX(e) - 8, dy: SPR.warrior.h - e.spr.h - 26 };
+    var ws = SPR.warrior, bladeX = ws.shoulder[0] + 3, bladeTip = ws.shoulder[1] + 5 + 18;
+    return { dx: Math.round(foeX(e) - e.spr.w / 2) + e.spr.skull[0] - bladeX + 9,
+      dy: skullY(e) + BLADE_DEPTH - bladeTip - (foeAt(e).feet - ws.h) };
+  }
+
+  /** A gleam on the point of the sword. */
+  function glint() {
+    var sw = swordAt(heroPose());
+    G.fx.push({ kind: 'glint', x: sw.tipX, y: sw.tipY + 3, t: 0, life: 0.2 });
   }
 
   function updateFinisher(dt) {
-    var s = G.strike, h = G.hero, e = G.enemy, m = finisherMark(e), u;
+    var s = G.strike, h = G.hero, e = G.enemy, m = finisherMark(e), top = m.dy - FINISH_RISE, u;
     s.t += dt;
+    function next(stage) { s.stage = stage; s.t = 0; }
     if (s.stage === 'run') {
-      u = Math.min(1, s.t / 0.18);
+      u = Math.min(1, s.t / FINISH.run);
       h.dx = s.from + (m.dx - 30 - s.from) * easeOut(u);
-      h.sword = 150;
-      if (u >= 1) { s.stage = 'leap'; s.t = 0; s.from = h.dx; sfx.leap(); }
+      h.sword = SWORD.raised;
+      if (u >= 1) { next('leap'); s.from = h.dx; sfx.leap(); }
     } else if (s.stage === 'leap') {
-      u = Math.min(1, s.t / 0.42);
+      u = Math.min(1, s.t / FINISH.leap);
       h.dx = s.from + (m.dx - s.from) * easeOut(u);
-      h.dy = (m.dy - 10) * easeOut(u);
-      h.sword = 150 + 120 * ease(u); // the blade comes over and round to point straight down
-      if (u >= 1) { s.stage = 'hang'; s.t = 0; if (G.tip) G.fx.push({ kind: 'glint', x: G.tip.x, y: G.tip.y + 3, t: 0, life: 0.2 }); }
+      h.dy = top * easeOut(u);
+      h.sword = SWORD.raised + (SWORD.down - SWORD.raised) * ease(u); // the blade comes over and round to point straight down
+      if (u >= 1) { next('hang'); glint(); }
     } else if (s.stage === 'hang') {
-      u = Math.min(1, s.t / 0.2);
-      h.dx = m.dx; h.dy = m.dy - 10 - Math.sin(u * Math.PI) * 2; h.sword = 270;
-      if (u >= 1) { s.stage = 'plunge'; s.t = 0; }
+      u = Math.min(1, s.t / FINISH.hang);
+      h.dx = m.dx; h.dy = top - Math.sin(u * Math.PI) * 2; h.sword = SWORD.down;
+      if (u >= 1) next('plunge');
     } else if (s.stage === 'plunge') {
-      u = Math.min(1, s.t / 0.07);
-      h.dx = m.dx; h.dy = m.dy - 10 + 10 * u * u; h.sword = 270;
-      if (u >= 1) { s.stage = 'hold'; s.t = 0; s.landed = true; s.embed = true; s.onImpact(); }
+      u = Math.min(1, s.t / FINISH.plunge);
+      h.dx = m.dx; h.dy = top + FINISH_RISE * u * u; h.sword = SWORD.down;
+      if (u >= 1) { next('hold'); s.landed = true; s.embed = true; s.onImpact(); }
     } else if (s.stage === 'hold') {
-      u = Math.min(1, s.t / 0.6);
-      h.dx = m.dx; h.dy = m.dy; h.sword = 270;
-      s.spark -= dt;
-      if (s.spark <= 0) { s.spark = 0.05; s.n = (s.n || 0) + 1; embers(e, 2); if (s.n % 4 === 0) e.flash = 0.04; }
-      if (u >= 1) { s.stage = 'rip'; s.t = 0; s.embed = false; s.onBurst(); }
+      h.dx = m.dx; h.dy = m.dy; h.sword = SWORD.down;
+      s.sparkT -= dt;
+      if (s.sparkT <= 0) {
+        // sparks from the wound, and now and then a white flicker through the foe
+        s.sparkT = 0.05; s.sparks++;
+        embers(e, 2);
+        if (s.sparks % 4 === 0) e.flash = 0.04;
+      }
+      if (s.t >= FINISH.hold) { next('rip'); s.embed = false; s.onBurst(); }
     } else if (s.stage === 'rip') {
-      u = Math.min(1, s.t / 0.16);
+      u = Math.min(1, s.t / FINISH.rip);
       var before = h.sword;
       h.dy = m.dy - 7 * Math.sin(u * Math.PI / 2);
-      h.sword = 270 + 180 * easeOut(u); // wrenched free and swept up overhead
+      h.sword = SWORD.down + 180 * easeOut(u); // wrenched free and swept up overhead
       G.arcs.push({ a0: before, a1: h.sword, life: 0.16, tier: 3, level: s.level, big: true });
-      if (u >= 1) { s.stage = 'land'; s.t = 0; s.from = h.dy; h.sword = 90; }
+      if (u >= 1) { next('land'); s.from = h.dy; h.sword = SWORD.up; }
     } else if (s.stage === 'land') {
-      u = Math.min(1, s.t / 0.3);
-      h.dy = s.from * (1 - u * u); h.sword = 90;
-      if (u >= 1) { s.stage = 'pose'; s.t = 0; h.dy = 0; if (!calm) G.shake = 0.14; }
+      u = Math.min(1, s.t / FINISH.land);
+      h.dy = s.from * (1 - u * u); h.sword = SWORD.up;
+      if (u >= 1) { next('pose'); h.dy = 0; G.shake = 0.14; }
     } else if (s.stage === 'pose') {
-      h.sword = 90 + Math.sin(s.t * 9) * 3;
-      if (s.t >= 0.6) { s.stage = 'back'; s.t = 0; s.from = h.dx; s.swordFrom = 90; s.finisher = false; }
+      h.sword = SWORD.up + Math.sin(s.t * 9) * 3;
+      if (s.t >= FINISH.pose) { next('back'); s.from = h.dx; s.swordFrom = SWORD.up; }
     }
     if (s.stage === 'leap' || s.stage === 'plunge' || s.stage === 'rip') G.trail.push({ dx: h.dx, dy: h.dy, life: 0.18 });
+  }
+
+  /** The point goes in: the foe is finished, but still standing. */
+  function finisherImpact(e, blow) {
+    e.hpShown = 0; e.flash = 0.3;
+    floatDamage(e, blow);
+    embers(e, 30); bolt(e); ring(e); veil('flash');
+    sfx.hit(3, blow.combo); sfx.thud();
+    G.shake = 0.6; G.stop = 0.2;
+  }
+
+  /** The blade is wrenched free, and the foe comes apart. */
+  function finisherBurst(e) {
+    e.gone = true;
+    burst(e, 70); embers(e, 40); ring(e); bolt(e);
+    sfx.fell(); sfx.thud();
+    G.shake = 0.5; G.stop = 0.07;
+    if (e.kind === 'dread') banner(G.mode === 'daily' ? 'The wall holds' : 'A dread knight falls');
   }
 
   function submit(text) {
@@ -550,65 +472,56 @@
   }
 
   function hit(res) {
-    var e = G.enemy, a = res.ans, dmg = a.dmg;
+    var e = G.enemy, p = G.prompt, a = res.ans;
     G.used[a.key] = true; G.usedList.push(a);
+    clearBanner(); // the fight is on: whatever was written across the sky has been read
     G.combo++; G.bestCombo = Math.max(G.bestCombo, G.combo);
-    var combo = G.combo, gain = D.hitGlory(dmg, combo);
-    e.hp = Math.max(0, e.hp - dmg);
-    var killed = e.hp <= 0;
-    var line = a.name + ', ' + WW.fmtYear(a) + ': ' + dmg + ' damage.' + (res.exact ? '' : ' Close enough.');
-    if (killed) {
-      gain += D.fellGlory(e.pace, G.flawless);
-      G.results.push(G.flawless ? 'F' : 'W');
+    // the oldest answer on the roll (or one as good as) fells any foe, whatever health it has left
+    var outright = D.kills(p, a);
+    e.hp = outright ? 0 : Math.max(0, e.hp - a.dmg);
+    var blow = { ans: a, dmg: a.dmg, combo: G.combo, killed: e.hp <= 0, outright: outright, oldest: a === p.oldest };
+    var gain = D.hitGlory(blow.dmg, blow.combo);
+    var worth = !outright ? blow.dmg + ' damage.' : blow.oldest ? 'the oldest answer.' : 'all but the oldest answer.';
+    var said = a.name + ', ' + WW.fmtYear(a) + ': ' + worth + (res.exact ? '' : ' Close enough.');
+    if (blow.killed) {
+      gain += D.fellGlory(e.pace, G.flawless) + (outright ? D.OLDEST_GLORY : 0);
+      G.results.push(outright ? 'K' : G.flawless ? 'F' : 'W');
       G.phase = 'felled'; G.phaseT = 0;
       var relit = G.mode === 'endless' && (G.idx + 1) % CONFIG.RELIGHT_EVERY === 0 && G.lives < CONFIG.LIVES;
       if (relit) G.lives++;
-      feedback('ok t' + dmg, line + ' ' + (G.flawless ? 'Felled cleanly' : 'Felled') + ', +' + D.fmt(gain) + ' glory.' + (relit ? ' A torch is relit.' : ''), 5200);
-      G.reveal = NAMES[e.kind] + ' felled. ' + oldest(G.prompt);
-      G.prompt = null;
-      el.qText.textContent = G.reveal; el.rule.textContent = '';
+      var how = outright ? 'Felled outright' : G.flawless ? 'Felled cleanly' : 'Felled';
+      feedback('ok t' + blow.dmg, said + ' ' + how + ', +' + D.fmt(gain) + ' glory.' + (relit ? ' A torch is relit.' : ''), 5200);
+      G.reveal = NAMES[e.kind] + (outright ? ' felled outright. ' : ' felled. ') + oldest(p);
+      closePrompt(G.reveal);
     } else {
-      feedback('ok t' + dmg, line + ' +' + D.fmt(gain) + ' glory.');
+      feedback('ok t' + blow.dmg, said + ' +' + D.fmt(gain) + ' glory.');
     }
     G.score += gain;
-    showCombo(combo);
-    if (killed && e.kind === 'dread' && !calm) {
-      finisher(e, function () {
-        // the point goes in: the foe is finished but still standing
-        e.hpShown = 0; e.flash = 0.3;
-        floatDamage(e, a, dmg);
-        embers(e, 30); bolt(e); ring(e); veil('flash');
-        sfx.hit(3, combo); sfx.thud();
-        G.shake = 0.6; G.stop = 0.2;
-      }, function () {
-        // the blade is wrenched free and it comes apart
-        e.gone = true;
-        burst(e, 70); embers(e, 40); ring(e); bolt(e);
-        sfx.fell(); sfx.thud();
-        G.shake = 0.5; G.stop = 0.07;
-        banner(G.mode === 'daily' ? 'The wall holds' : 'A dread knight falls');
-      });
+    showCombo(blow.combo);
+    if (blow.killed && (outright || e.kind === 'dread') && !calm) {
+      finisher(blow.combo, function () { finisherImpact(e, blow); }, function () { finisherBurst(e); });
     } else {
-      strike(dmg, combo, function () { impact(e, a, dmg, combo, killed); });
+      strike(blow.dmg, blow.combo, function () { impact(e, blow); });
     }
     drawChips(); drawHud(); drawFoe();
   }
 
   /** The moment the blade lands: the damage shows, the foe is thrown back, and the sparks fly. */
-  function impact(e, a, dmg, combo, killed) {
+  function impact(e, blow) {
+    var dmg = blow.dmg;
     e.hpShown = e.hp;
     e.flash = dmg === 3 ? 0.26 : 0.16;
-    if (!killed) {
+    if (!blow.killed) {
       e.pace = Math.min(CONFIG.MAX_PACE, e.pace + CONFIG.KNOCK[dmg]);
       e.stepT = 0;
     }
-    floatDamage(e, a, dmg);
-    burst(e, killed ? 40 : 5 + dmg * 5);
+    floatDamage(e, blow);
+    burst(e, blow.killed ? 40 : 5 + dmg * 5);
     if (dmg >= 2) embers(e, dmg === 3 ? 28 : 10);
     if (dmg === 3) { bolt(e); ring(e); if (!calm) veil('flash'); }
-    if (killed) { e.gone = true; sfx.fell(); }
-    sfx.hit(dmg, combo);
-    if (!calm) { G.shake = [0, 0.16, 0.24, 0.44][dmg] + (killed ? 0.1 : 0); G.stop = [0, 0.04, 0.06, 0.11][dmg]; }
+    if (blow.killed) { e.gone = true; sfx.fell(); }
+    sfx.hit(dmg, blow.combo);
+    if (!calm) { G.shake = [0, 0.16, 0.24, 0.44][dmg] + (blow.killed ? 0.1 : 0); G.stop = [0, 0.04, 0.06, 0.11][dmg]; }
   }
 
   /** A name that is not on the roll: the foe gains ground and the combo is lost. No torch goes out. */
@@ -636,8 +549,7 @@
       G.results.push('X');
       G.phase = 'falling'; G.phaseT = 0;
       feedback('miss', text + ' The last torch goes out.', 6000);
-      el.qText.textContent = oldest(G.prompt); el.rule.textContent = '';
-      G.prompt = null;
+      closePrompt(oldest(G.prompt));
       sfx.fall();
       return false;
     }
@@ -666,15 +578,14 @@
       return;
     }
     disarmSkip();
-    if (G.strike && !G.strike.landed) { G.strike.landed = true; G.strike.onImpact(); }
+    settleStrike();
     var p = G.prompt, name = NAMES[e.kind];
     if (!loseTorch('You let the ' + name.toLowerCase() + ' pass.')) return;
     G.results.push('S');
     G.phase = 'fleeing'; G.phaseT = 0;
     G.reveal = name + ' slipped past. ' + oldest(p);
-    G.prompt = null;
-    el.qText.textContent = G.reveal; el.rule.textContent = '';
-    el.cat.textContent = 'Slipped past';
+    closePrompt(G.reveal);
+    drawFoe('Slipped past');
   }
 
   // ---------- sparks and such ----------
@@ -726,11 +637,12 @@
     G.fx.push({ kind: 'slash', x: c.x, y: c.feet - e.spr.h * 0.55, dir: k % 2 ? 1 : -1, t: 0, life: 0.13, tier: tier });
   }
 
-  /** The damage, and the date that earned it, leaping off the foe. */
-  function floatDamage(e, a, dmg) {
+  /** The damage, and the date that earned it, leaping off the foe. A blow that fells outright says so instead. */
+  function floatDamage(e, blow) {
     var c = foeAt(e), d = document.createElement('div');
-    d.className = 'float outlined t' + dmg;
-    d.innerHTML = dmg + '<small>' + esc(WW.fmtYear(a)) + '</small>';
+    var worth = !blow.outright ? blow.dmg : blow.oldest ? 'Oldest' : 'Felled';
+    d.className = 'float outlined t' + blow.dmg + (blow.outright ? ' word' : '');
+    d.innerHTML = worth + '<small>' + esc(WW.fmtYear(blow.ans)) + '</small>';
     d.style.left = Math.round(c.x * scene.scale) + 'px';
     d.style.top = Math.round((c.feet - e.spr.h - 12) * scene.scale) + 'px';
     el.floats.appendChild(d);
@@ -750,7 +662,7 @@
 
   function finish(held) {
     G.phase = 'over'; G.enemy = null; G.strike = null; G.hero.dx = 0; G.hero.dy = 0; G.prompt = null; G.reveal = '';
-    var felled = G.results.filter(function (r) { return r === 'F' || r === 'W'; }).length;
+    var felled = D.felledCount(G.results);
     var s = store.stats, comboLine = G.bestCombo > 1 ? ' Best combo ×' + G.bestCombo + '.' : '';
     if (G.mode === 'daily') {
       var d = store.daily;
@@ -870,80 +782,102 @@
 
   function foeX(e) { return GAP + e.shown * paceLen(); } // relative to the warrior's post
 
+  /** How far off the ground a foe is drawn this frame: wraiths hover, the rest bob as they step. */
+  function foeLift(e) {
+    return e.spr.floats ? 4 + Math.round(Math.sin(scene.t * 3) * 2) : Math.round(Math.sin(Math.PI * e.hop) * 3);
+  }
+
+  /** Where the knight is drawn this frame: the top-left of his sprite, and which frame of it. */
+  function heroPose() {
+    var p = scene.plane(), h = G.hero, moving = G.phase === 'title' || G.phase === 'walk' || !!G.strike;
+    var home = scene.warriorX() + p.x, feet = scene.groundY + 4 + p.y;
+    return { home: home, feet: feet, moving: moving,
+      frame: moving ? Math.floor(h.walkT * 8 + (G.strike ? scene.t * 14 : 0)) % 2 : 2,
+      x: home + Math.round(h.dx) - 9 - (h.hurt > 0.45 ? 3 : 0), y: feet - SPR.warrior.h + Math.round(h.dy) };
+  }
+
+  /** The knight's shoulder, sword hand and the point of his blade, for a pose. */
+  function swordAt(pose) {
+    var ws = SPR.warrior, a = G.hero.sword * Math.PI / 180;
+    var breathe = !pose.moving && Math.sin(scene.t * 2.4) > 0.6 ? 1 : 0;
+    var sx = pose.x + ws.shoulder[0], sy = pose.y + ws.shoulder[1] + ws.bob[pose.frame] + breathe;
+    var hx = sx + Math.round(Math.cos(a) * 3 + 2), hy = sy + Math.round(-Math.sin(a) * 3 + 2);
+    return { sx: sx, sy: sy, hx: hx, hy: hy, tipX: hx + Math.cos(a) * 15, tipY: hy - Math.sin(a) * 15 };
+  }
+
+  /** With no blow in hand the knight settles back to his post and his guard. */
+  function settleHero(dt) {
+    var h = G.hero;
+    h.dx += (0 - h.dx) * (1 - Math.exp(-dt * 12));
+    if (Math.abs(h.dx) < 0.3) h.dx = 0;
+    h.dy += (0 - h.dy) * (1 - Math.exp(-dt * 16));
+    if (Math.abs(h.dy) < 0.3) h.dy = 0;
+    h.sword += (SWORD.rest - h.sword) * (1 - Math.exp(-dt * 10));
+  }
+
   function updateStrike(dt) {
     var s = G.strike, h = G.hero, e = G.enemy;
-    if (!s) {
-      h.dx += (0 - h.dx) * (1 - Math.exp(-dt * 12));
-      if (Math.abs(h.dx) < 0.3) h.dx = 0;
-      h.dy += (0 - h.dy) * (1 - Math.exp(-dt * 16));
-      if (Math.abs(h.dy) < 0.3) h.dy = 0;
-      h.sword += (55 - h.sword) * (1 - Math.exp(-dt * 10));
-      return;
-    }
-    if (s.finisher) { updateFinisher(dt); return; }
+    if (!s) { settleHero(dt); return; }
+    if (finishing()) { updateFinisher(dt); return; }
     s.t += dt;
-    var reach = e ? foeX(e) - (e.spr.w / 2 + 11) : 40;
     if (s.stage === 'out') {
+      var reach = e ? foeX(e) - (e.spr.w / 2 + 11) : 40;
       var dur = Math.max(0.1, Math.min(0.2, Math.abs(reach - s.from) / 800)) + (s.leap ? 0.07 : 0);
       var u = Math.min(1, s.t / dur);
       h.dx = s.from + (reach - s.from) * easeOut(u);
-      h.sword = 150;
+      h.sword = SWORD.raised;
       if (s.leap) h.dy = -20 * Math.sin(u * Math.PI / 2); // up and over for the cleave
       if (u >= 1) { s.stage = 'cut'; s.t = 0; s.cut = 0; s.ticked = false; }
     } else if (s.stage === 'cut') {
       var last = s.cut === s.cuts - 1;
-      var len = last ? (s.tier === 3 ? 0.2 : 0.16) : 0.085;
-      var c = Math.min(1, s.t / len);
+      var c = Math.min(1, s.t / (!last ? CUT.quick : s.tier === 3 ? CUT.cleave : CUT.last));
       // cuts alternate, and the last always comes down
       var down = (s.cuts - 1 - s.cut) % 2 === 0;
-      var a0 = down ? 150 : -55, a1 = down ? -55 : 150;
-      var before = h.sword;
+      var a0 = down ? SWORD.raised : SWORD.low, a1 = down ? SWORD.low : SWORD.raised;
+      var before = s.t === dt ? a0 : h.sword;
       h.sword = a0 + (a1 - a0) * easeOut(c);
-      G.arcs.push({ a0: s.t === dt ? a0 : before, a1: h.sword, life: 0.14, tier: last ? s.tier : 1, level: s.level, big: last && s.tier === 3 });
-      if (s.leap && last) h.dy = -20 * (1 - Math.min(1, c / 0.55) * Math.min(1, c / 0.55));
+      G.arcs.push({ a0: before, a1: h.sword, life: 0.14, tier: last ? s.tier : 1, level: s.level, big: last && s.tier === 3 });
+      var landAt = s.leap ? 0.55 : 0.35; // how far through the last cut the blade meets the foe
+      if (s.leap && last) h.dy = -20 * (1 - Math.pow(Math.min(1, c / landAt), 2));
       if (!last && !s.ticked && c >= 0.45) {
         // a quick cut of the combo: it marks the foe but the damage comes with the last
         s.ticked = true;
         if (e && !e.gone) { e.flash = 0.06; slashMark(e, s.cut, 1); burst(e, 3); }
         sfx.cut(s.cut);
       }
-      if (last && !s.landed && c >= (s.leap ? 0.55 : 0.35)) {
+      if (last && !s.landed && c >= landAt) {
         s.landed = true;
         if (e && !e.gone) slashMark(e, s.cut, s.tier);
         s.onImpact();
       }
       if (c >= 1) {
-        if (last) { s.stage = 'back'; s.t = 0; s.from = h.dx; }
-        else { s.cut++; s.t = 0; s.ticked = false; }
+        if (last) { s.stage = 'back'; s.from = h.dx; }
+        else { s.cut++; s.ticked = false; }
+        s.t = 0;
       }
     } else {
-      var b = Math.min(1, s.t / 0.3);
+      // back to his post, bringing the sword round to guard from wherever the blow left it
+      var b = Math.min(1, s.t / CUT.back), from = s.swordFrom == null ? SWORD.low : s.swordFrom;
       h.dx = s.from * (1 - ease(b));
       h.dy *= 0.6;
-      var sw = s.swordFrom == null ? -55 : s.swordFrom;
-      h.sword = sw + (55 - sw) * ease(b);
+      h.sword = from + (SWORD.rest - from) * ease(b);
       if (b >= 1) { h.dx = 0; h.dy = 0; G.strike = null; }
     }
     if (!calm && (s.stage !== 'cut' || s.level > 0)) G.trail.push({ dx: h.dx, dy: h.dy, life: 0.16 });
   }
 
-  function update(dt) {
-    var e = G.enemy, h = G.hero, i;
-    if (G.stop > 0) { G.stop -= dt; return; } // a held breath as a blow lands
-    G.phaseT += dt;
-    h.hurt = Math.max(0, h.hurt - dt);
-    G.shake = Math.max(0, G.shake - dt);
-
+  /** Move the run on: the walk between foes, the foe's advance, and what follows its end. */
+  function updatePhase(dt) {
+    var e = G.enemy, h = G.hero;
     if (G.phase === 'title') {
       G.titleT += dt;
       scene.camX += dt * 24;
       h.walkT += dt;
       if (!calm && G.titleT > 10) { G.titleT = 0; scene.setStage(scene.shownStage() + 1); }
     } else if (G.phase === 'walk') {
-      var u = Math.min(1, G.phaseT / G.walkDur);
+      var u = Math.min(1, G.phaseT / G.walkDur), lead = 1.0; // the foe comes into view over the last second
       scene.camX = G.camFrom + (G.camTo - G.camFrom) * ease(u);
       h.walkT += dt;
-      var lead = 1.0;
       if (!G.spawned && G.phaseT >= G.walkDur - lead) spawn();
       if (G.spawned) {
         var v = Math.min(1, (G.phaseT - (G.walkDur - lead)) / lead);
@@ -954,7 +888,7 @@
       if (u >= 1) engage();
     } else if (G.phase === 'fight') {
       if (e.attack > 0) {
-        // it has reached the warrior: it strikes, then is thrown back to where it began
+        // it has reached the knight: it strikes, then is thrown back to where it began
         e.attack += dt;
         if (!e.struck && e.attack > 0.2) {
           e.struck = true;
@@ -966,8 +900,8 @@
         if (e.stepT >= e.interval) { e.stepT -= e.interval; stepEnemy(); }
       }
     } else if (G.phase === 'felled') {
-      if (e && e.gone && !G.strike && G.phaseT > 1.5) afterEnemy();
-      else if (G.phaseT > 6) afterEnemy();
+      // wait for the blow to play out; the long stop is only a guard against a stuck animation
+      if ((e && e.gone && !G.strike && G.phaseT > 1.5) || G.phaseT > 6) afterEnemy();
     } else if (G.phase === 'fleeing') {
       // it runs on past the knight and off along the wall
       e.pace -= dt * 26;
@@ -978,28 +912,23 @@
     } else if (G.phase === 'falling') {
       if (G.phaseT > 1.7) finish(false);
     }
+  }
 
-    e = G.enemy;
-    if (e && (G.phase === 'fight' || G.phase === 'felled' || G.phase === 'falling')) {
-      e.shown += (e.pace - e.shown) * (1 - Math.exp(-dt * 12));
-      e.hop = Math.max(0, e.hop - dt / 0.28);
-    }
-    if (e) e.flash = Math.max(0, e.flash - dt);
-    updateStrike(dt);
+  /** A blade that has not missed in a while smoulders, then burns, then burns blue. */
+  function updateAura(dt) {
+    var level = comboLevel(G.combo);
+    if (!level || calm || !G.mode) return;
+    G.emberT -= dt;
+    if (G.emberT > 0) return;
+    G.emberT = [0, 0.09, 0.05, 0.035][level];
+    var sw = swordAt(heroPose()), cols = AURA[level];
+    G.bits.push({ x: sw.tipX + (Math.random() - 0.5) * 3, y: sw.tipY + (Math.random() - 0.5) * 3,
+      vx: -14 + (Math.random() - 0.5) * 16, vy: -18 - Math.random() * 26, life: 0.3 + Math.random() * 0.35, g: -20,
+      col: cols[Math.floor(Math.random() * cols.length)], size: 1 });
+  }
 
-    // a blade that has not missed in a while smoulders, then burns, then burns blue
-    var lvl = comboLevel();
-    if (lvl && G.tip && !calm && G.mode) {
-      G.emberT -= dt;
-      if (G.emberT <= 0) {
-        G.emberT = lvl === 3 ? 0.035 : lvl === 2 ? 0.05 : 0.09;
-        var cols = AURA[lvl];
-        G.bits.push({ x: G.tip.x + (Math.random() - 0.5) * 3, y: G.tip.y + (Math.random() - 0.5) * 3,
-          vx: -14 + (Math.random() - 0.5) * 16, vy: -18 - Math.random() * 26, life: 0.3 + Math.random() * 0.35, g: -20,
-          col: cols[Math.floor(Math.random() * cols.length)], size: 1 });
-      }
-    }
-
+  function updateSparks(dt) {
+    var i;
     for (i = G.bits.length - 1; i >= 0; i--) {
       var b = G.bits[i];
       b.life -= dt; b.vy += b.g * dt; b.x += b.vx * dt; b.y += b.vy * dt;
@@ -1008,18 +937,34 @@
     for (i = G.arcs.length - 1; i >= 0; i--) { G.arcs[i].life -= dt; if (G.arcs[i].life <= 0) G.arcs.splice(i, 1); }
     for (i = G.trail.length - 1; i >= 0; i--) { G.trail[i].life -= dt; if (G.trail[i].life <= 0) G.trail.splice(i, 1); }
     for (i = G.fx.length - 1; i >= 0; i--) { G.fx[i].t += dt; if (G.fx[i].t >= G.fx[i].life) G.fx.splice(i, 1); }
-    scene.update(dt);
+  }
 
-    // cloaks
-    var p = scene.plane(), feet = scene.groundY + 4 + p.y, ws = SPR.warrior;
-    var moving = G.phase === 'title' || G.phase === 'walk' || G.strike;
-    var wf = moving ? Math.floor(h.walkT * 8 + (G.strike ? scene.t * 14 : 0)) % 2 : 2;
-    var hx = scene.warriorX() + p.x + Math.round(h.dx) - 9;
-    heroCape.step(hx + ws.neck[0], feet - ws.h + ws.neck[1] + ws.bob[wf] + Math.round(h.dy), -1, dt, scene.t, feet);
+  function updateCloaks(dt) {
+    var pose = heroPose(), ws = SPR.warrior, e = G.enemy;
+    heroCape.step(pose.x + ws.neck[0], pose.y + ws.neck[1] + ws.bob[pose.frame], -1, dt, scene.t, pose.feet);
     if (e && !e.gone && e.spr.cape) {
-      var ex = scene.warriorX() + p.x + foeX(e);
-      foeCape.step(Math.round(ex - e.spr.w / 2) + e.spr.cape[0], feet - e.spr.h + e.spr.cape[1], 1, dt, scene.t + 2, feet);
+      var c = foeAt(e);
+      foeCape.step(Math.round(c.x - e.spr.w / 2) + e.spr.cape[0], c.feet - e.spr.h + e.spr.cape[1], 1, dt, scene.t + 2, c.feet);
     }
+  }
+
+  function update(dt) {
+    if (G.stop > 0) { G.stop -= dt; return; } // a held breath as a blow lands
+    G.phaseT += dt;
+    G.hero.hurt = Math.max(0, G.hero.hurt - dt);
+    G.shake = Math.max(0, G.shake - dt);
+    updatePhase(dt);
+    var e = G.enemy;
+    if (e && (G.phase === 'fight' || G.phase === 'felled' || G.phase === 'falling')) {
+      e.shown += (e.pace - e.shown) * (1 - Math.exp(-dt * 12)); // it slides to where it stands, not jumps
+      e.hop = Math.max(0, e.hop - dt / 0.28);
+    }
+    if (e) e.flash = Math.max(0, e.flash - dt);
+    updateStrike(dt);
+    updateAura(dt);
+    updateSparks(dt);
+    scene.update(dt);
+    updateCloaks(dt);
   }
 
   // ---------- drawing the characters ----------
@@ -1090,21 +1035,18 @@
   }
 
   function render() {
-    var g = scene.g, p = scene.plane(), e = G.enemy, h = G.hero, i;
-    var home = scene.warriorX() + p.x, feet = scene.groundY + 4 + p.y;
+    var g = scene.g, e = G.enemy, h = G.hero, pose = heroPose(), home = pose.home, feet = pose.feet, i;
     scene.drawBack();
 
     // foe
     if (e && !e.gone) {
       var spr = e.spr, ex = home + foeX(e);
-      var hopY = spr.floats ? 4 + Math.round(Math.sin(scene.t * 3) * 2) : Math.round(Math.sin(Math.PI * e.hop) * 3);
       var frame = spr.floats ? Math.floor(scene.t * 4) % 2
         : spr.frames.length === 2 ? (e.hop > 0 ? e.foot : (spr.runs ? 0 : 1))
           : (e.hop > 0 ? e.foot : 2);
       var lunge = e.attack > 0 ? -Math.round(Math.sin(Math.min(1, e.attack / 0.3) * Math.PI) * 9) : 0;
-      var held = G.strike && G.strike.stage === 'hold'; // run through, and shuddering
-      var sx = Math.round(ex - spr.w / 2) + lunge + (held && Math.floor(scene.t * 40) % 2 ? 1 : 0), sy = feet - spr.h - hopY;
-      G.foeTop = sy;
+      var shudder = G.strike && G.strike.embed && Math.floor(scene.t * 40) % 2 ? 1 : 0; // run through
+      var sx = Math.round(ex - spr.w / 2) + lunge + shudder, sy = feet - spr.h - foeLift(e);
       shadow(g, ex + lunge, feet, Math.round(spr.w * (spr.floats ? 0.5 : 0.75)));
       if (spr.cape) foeCape.draw(g);
       rim(g, spr.flash[frame], sx, sy);
@@ -1115,7 +1057,7 @@
         var rest = spr.weapon === 'dagger' ? 118 : 96;
         Sp.drawWeapon(g, sx + spr.hand[0], sy + spr.hand[1] + spr.bob[frame], rest + swing + Math.sin(scene.t * 2) * 2, spr.weapon);
       }
-      if ((G.phase === 'fight' || G.phase === 'felled' || G.phase === 'falling') && !(G.strike && G.strike.finisher)) {
+      if ((G.phase === 'fight' || G.phase === 'felled' || G.phase === 'falling') && !finishing()) {
         // its health, one pip for each point of damage it can still take, and the time before its next step
         var pw = e.maxHp <= 8 ? 4 : e.maxHp <= 10 ? 3 : 2, w = e.maxHp * (pw + 1) + 1;
         var cx = Math.round(ex) + lunge, left = cx - Math.floor(w / 2), top = sy - (spr.weapon && spr.weapon !== 'dagger' ? 22 : 9);
@@ -1133,14 +1075,9 @@
       }
     }
 
-    // warrior
-    var ws = SPR.warrior, s = G.strike;
-    var moving = G.phase === 'title' || G.phase === 'walk' || s;
-    var wf = moving ? Math.floor(h.walkT * 8 + (s ? scene.t * 14 : 0)) % 2 : 2;
-    var breathe = !moving && Math.sin(scene.t * 2.4) > 0.6 ? 1 : 0;
-    var lift = Math.round(h.dy);
-    var wx = home + Math.round(h.dx) - 9 - (h.hurt > 0.45 ? 3 : 0), wy = feet - ws.h + lift;
-    shadow(g, wx + 9, feet, lift < -6 ? 12 : 16);
+    // knight
+    var ws = SPR.warrior, s = G.strike, wf = pose.frame, wx = pose.x, wy = pose.y, sw = swordAt(pose);
+    shadow(g, wx + 9, feet, h.dy < -6 ? 12 : 16);
     for (i = 0; i < G.trail.length; i++) {
       // pale after-images mark the dash
       g.globalAlpha = Math.min(0.4, G.trail[i].life * 2.2);
@@ -1152,20 +1089,17 @@
     var blink = h.hurt > 0 && Math.floor(h.hurt * 16) % 2 === 0;
     g.drawImage(blink ? ws.flash[wf] : lit('warrior', 'frames', wf), wx, wy);
     // sword arm, from the shoulder
-    var shx = wx + ws.shoulder[0], shy = wy + ws.shoulder[1] + ws.bob[wf] + breathe;
-    var a = h.sword * Math.PI / 180;
-    var hx = shx + Math.round(Math.cos(a) * 3 + 2), hy = shy + Math.round(-Math.sin(a) * 3 + 2);
-    g.fillStyle = '#5d6779'; g.fillRect(Math.min(shx, hx), Math.min(shy, hy), Math.abs(hx - shx) + 2, Math.abs(hy - shy) + 2);
+    var hx = sw.hx, hy = sw.hy;
+    g.fillStyle = '#5d6779'; g.fillRect(Math.min(sw.sx, hx), Math.min(sw.sy, hy), Math.abs(hx - sw.sx) + 2, Math.abs(hy - sw.sy) + 2);
     g.fillStyle = '#9aa3b3'; g.fillRect(hx, hy, 2, 2);
     if (s && s.embed && e) {
-      // the blade is buried in the helm: only what stands above it shows
-      g.save(); g.beginPath(); g.rect(0, 0, scene.W, G.foeTop + 5); g.clip();
+      // the blade is buried in the foe's head: only what stands above the skull shows
+      g.save(); g.beginPath(); g.rect(0, 0, scene.W, skullY(e) + 1); g.clip();
       Sp.drawWeapon(g, hx + 1, hy, h.sword, 'sword');
       g.restore();
     } else {
       Sp.drawWeapon(g, hx + 1, hy, h.sword, 'sword');
     }
-    G.tip = { x: hx + Math.cos(a) * 15, y: hy - Math.sin(a) * 15 };
     // the sweep of the blade: white for a plain cut, gold for two damage, fire for three
     for (i = 0; i < G.arcs.length; i++) {
       var arc = G.arcs[i], k, r, fresh = arc.life > 0.07;
@@ -1190,12 +1124,12 @@
   }
 
   var last = 0;
-  function frame(now) {
+  function loop(now) {
     var dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
     last = now;
     update(dt);
     render();
-    window.requestAnimationFrame(frame);
+    window.requestAnimationFrame(loop);
   }
 
   // ---------- controls ----------
@@ -1216,7 +1150,7 @@
   el.copyBtn.addEventListener('click', function () { copyResult(el.copyBtn); });
   el.doneCopy.addEventListener('click', function () { copyResult(el.doneCopy); });
   el.soundBtn.addEventListener('click', function () {
-    store.sound = !store.sound; save(); drawMenu();
+    store.sound = WW.Sound.enabled = !store.sound; save(); drawMenu();
     if (store.sound) sfx.hit(1, 0);
   });
   el.howBtn.addEventListener('click', function () {
@@ -1256,7 +1190,7 @@
     scene.setStage(2, true);
     toMenu();
     last = window.performance.now();
-    window.requestAnimationFrame(frame);
+    window.requestAnimationFrame(loop);
   }
 
   WW.game = { G: G, CONFIG: CONFIG, BANK: BANK, scene: scene, store: store, submit: submit, skip: skip, startRun: startRun, toMenu: toMenu };

@@ -568,7 +568,7 @@
 
   /** The watchtower beside each fight, lantern posts, and banners on the wall face. */
   Scene.prototype.drawProps = function (g, st, p) {
-    var gy = this.groundY + p.y, cam = this.camX, W = this.W, t = this.t, s = st.stone, n, x;
+    var gy = this.groundY + p.y, cam = this.camX, W = this.W, t = this.t, n, x;
     var topY = gy - TOP;
     var wx = this.warriorX(), towers = [];
     var first = Math.floor((cam - 160) / Scene.WALK), last = Math.ceil((cam + W + 160) / Scene.WALK);
@@ -694,7 +694,7 @@
 
   // ---------- weather ----------
   Scene.prototype.stepWeather = function (dt) {
-    var i = this.shownStage(), kind = STAGES[i].weather, W = this.W, H = this.H, n, p, floor = this.groundY + 30;
+    var i = this.shownStage(), kind = STAGES[i].weather, W = this.W, n, p, floor = this.groundY + 30;
     if (this.weatherStage !== i) {
       this.weatherStage = i;
       var area = Math.max(1, W * floor / 30000);

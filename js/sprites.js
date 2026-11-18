@@ -373,13 +373,14 @@
     var wraith = [compose(WRAITH.body, WRAITH.tails[0], WRAITH.pal, 0), compose(WRAITH.body, WRAITH.tails[1], WRAITH.pal, 0)];
     var dreadRaw = [compose(DREAD.body, DREAD.legs[1], DREAD.pal, 1), compose(DREAD.body, DREAD.legs[0], DREAD.pal, 0)];
     var dw = dreadRaw[0].width;
+    // skull: the crown of the head as drawn, where the finishing blow goes in
     built = {
       warrior: human(WARRIOR, false, { shoulder: WARRIOR.shoulder, neck: WARRIOR.neck }),
-      cultist: human(CULTIST, true, { weapon: 'dagger', bits: ['#5a1a26', '#3a2a34', '#ffb347', '#b9a58f'] }),
-      skeleton: human(SKELETON, true, { weapon: 'spear', bits: ['#e3dcc6', '#b3ab94', '#7a5a48', '#7dffb0'] }),
-      wolf: pack(wolf, { runs: true, bob: [0, 0], bits: ['#565666', '#353542', '#d9d4c8', '#ff3b3b'] }),
-      wraith: pack(wraith, { floats: true, bob: [0, 0], bits: ['#d6f3fb', '#8fc4dd', '#5a8fb3', '#ff5c8a'] }),
-      dread: pack(dreadRaw.map(flipped), { weapon: 'halberd', bob: [1, 0], big: true,
+      cultist: human(CULTIST, true, { weapon: 'dagger', skull: [9, 1], bits: ['#5a1a26', '#3a2a34', '#ffb347', '#b9a58f'] }),
+      skeleton: human(SKELETON, true, { weapon: 'spear', skull: [9, 1], bits: ['#e3dcc6', '#b3ab94', '#7a5a48', '#7dffb0'] }),
+      wolf: pack(wolf, { runs: true, bob: [0, 0], skull: [6, 2], bits: ['#565666', '#353542', '#d9d4c8', '#ff3b3b'] }),
+      wraith: pack(wraith, { floats: true, bob: [0, 0], skull: [10, 1], bits: ['#d6f3fb', '#8fc4dd', '#5a8fb3', '#ff5c8a'] }),
+      dread: pack(dreadRaw.map(flipped), { weapon: 'halberd', bob: [1, 0], skull: [12, 4],
         hand: [dw - 1 - DREAD.hand[0], DREAD.hand[1]], cape: [dw - 1 - DREAD.cape[0], DREAD.cape[1]],
         bits: ['#45455a', '#272735', '#a8323a', '#6e1420', '#ff3a2a'] })
     };

@@ -14,6 +14,13 @@
  *     negative years are BC, "~" marks an approximate year, and a decimal
  *     orders events inside one year.
  *
+ *   M(id, roll) adds more lines to a roll; the long tail of names lives further
+ *   down the file that way, so the main rolls stay readable.
+ *
+ *   The oldest name on a roll matters most: giving it (or one within a hair of
+ *   it, see KILL_RANGE in daily.js) fells any foe outright. So the oldest line
+ *   of every roll must really be the oldest answer there is.
+ *
  *   V(id, base, tier, question, [cut3, cut2], from, to, pattern?)
  *     a narrower question drawn from a roll above (a "variant"). Names outside
  *     from..to are recognised but refused.
@@ -1160,7 +1167,7 @@ Norman Schwarzkopf|1991`, 'P');
 
   L('eras', 1, 'Name an age or era of history.', 'when it began', [-1000, 1499], `
 Ice Age|~-2600000|Pleistocene;Last Ice Age
-Stone Age|~-2500000|Paleolithic;Palaeolithic;Old Stone Age
+Stone Age|~-3300000|Paleolithic;Palaeolithic;Old Stone Age
 Mesolithic|~-10000|Middle Stone Age
 Neolithic|~-9500|New Stone Age
 Copper Age|~-4500|Chalcolithic
@@ -1651,8 +1658,8 @@ Ptolemy XIII|-51.5
 Cleopatra|-51|Cleopatra VII
 Ptolemy XV|-44|Caesarion`);
 
-  L('soviet-leaders', 2, 'Name a leader of the Soviet Union or Russia since 1917.', 'coming to power', [1917.9, 1953.9], `
-Vladimir Lenin|1917.85
+  L('soviet-leaders', 2, 'Name a leader of the Soviet Union or Russia since 1917.', 'coming to power', [1917, 1953.9], `
+Vladimir Lenin|1917
 Joseph Stalin|1924|Josef Stalin
 Georgy Malenkov|1953
 Nikita Khrushchev|1953.7|Kruschev;Khruschev;Krushchev
@@ -1682,7 +1689,7 @@ Colossus of Rhodes|~-280|Colossus;Rhodes
 Lighthouse of Alexandria|~-279|Pharos;Lighthouse;Pharos of Alexandria;Alexandria`);
 
   L('royal-houses', 2, 'Name a royal house that has ruled England or Britain.', 'when it took the throne', [1066, 1485], `
-Wessex|871|Anglo-Saxon;Saxon
+Wessex|802|Anglo-Saxon;Saxon
 Denmark|1013|Knytlinga;Danish
 Normandy|1066|Norman;Normans
 Blois|1135
@@ -1975,7 +1982,7 @@ Ligny|1815.45
 Quatre Bras|1815.46
 Waterloo|1815.47`);
 
-  L('crusades', 3, 'Name a crusade.', 'when it set out', [1099, 1204], `
+  L('crusades', 3, 'Name a crusade.', 'when it set out', [1101, 1204], `
 People's Crusade|1096|Peasants' Crusade
 First Crusade|1096.5
 Second Crusade|1147
@@ -2159,8 +2166,6 @@ Carloman I|768.5
 John I|1316.9|John the Posthumous`);
 
   M('russian-tsars', `
-Ivan the Great|1462|Ivan III
-Vasili III|1505|Vasily III
 Feodor II|1605.2|Fyodor II`);
 
   M('chinese-dynasties', `
@@ -2210,10 +2215,6 @@ Ptolemy V|-204
 Ptolemy VI|-180
 Ptolemy VIII|-145
 Ptolemy XII|-80`);
-
-  M('soviet-leaders', `
-Georgy Lvov|1917.2|Prince Lvov
-Alexander Kerensky|1917.55`);
 
   M('royal-houses', `
 Godwin|1066|Godwinson`);
@@ -2625,7 +2626,7 @@ Five Forks|1865.25
 Sailor's Creek|1865.265`);
 
   M('empires', `
-Elamite Empire|~-2700|Elam
+Elamite Empire|~-1500|Elam
 Mitanni|~-1500|Mitanni Empire
 Kushite Empire|~-744|Kush;Kingdom of Kush;Nubian Empire
 Lydian Empire|~-680|Lydia
@@ -4315,6 +4316,66 @@ Pomare IV|1827
 Ranavalona III|1883
 Zewditu|1916|Empress Zewditu`);
 
+  // The true oldest answers, where the rolls above stopped short of them.
+  M('wars', `
+Sumer-Elam war|~-2700|Sumerian-Elamite war;Kish-Elam war;Sumer and Elam
+Lagash-Umma war|~-2450|Umma-Lagash war;Lagash and Umma`);
+  M('explorers', `
+Harkhuf|~-2290`);
+  M('inventions', `
+Stone tools|~-3300000|Stone tool;Hand axe;Handaxe
+Fire|~-1000000|Control of fire;Fire making
+Spear|~-400000
+Clothing|~-170000|Clothes
+Bow and arrow|~-70000|Bow;Arrow
+Sewing needle|~-50000|Needle
+Flute|~-40000
+Rope|~-28000
+Fish hook|~-23000|Fishhook
+Agriculture|~-10000|Farming
+Canoe|~-8000|Dugout canoe`);
+  M('landmarks', `
+Tower of Jericho|~-8000|Jericho`);
+  M('scientists', `
+Imhotep|~-2650`);
+  M('writers', `
+Enheduanna|~-2285`);
+  M('painters', `
+Sophilos|~-620
+Kleitias|~-600|Clitias
+Exekias|~-575
+Polygnotus|~-500
+Zeuxis|~-464
+Apelles|~-370
+Gu Kaizhi|~344
+Wu Daozi|~680`);
+  M('composers', `
+Limenius|~-128
+Mesomedes|~130|Mesomedes of Crete
+Kassia|~810|Kassiani
+Notker the Stammerer|~840|Notker
+Leonin|~1150|Léonin`);
+  M('generals', `
+Narmer|~-3100|Menes
+Eannatum|~-2450`);
+  M('ships', `
+Khufu ship|~-2500|Khufu's ship;Solar barque;Khufu barque
+Sutton Hoo ship|~625|Sutton Hoo
+Oseberg ship|~820|Oseberg
+Gokstad ship|~890|Gokstad
+Mora|1066
+White Ship|1120
+Grace Dieu|1418`);
+  M('queens', `
+Kubaba|~-2500|Kug-Bau`);
+  M('documents', `
+Treaty of Mesilim|~-2550|Mesilim
+Reforms of Urukagina|~-2350|Urukagina;Code of Urukagina
+Treaty of Ebla|~-2350|Ebla-Abarsal treaty;Ebla and Abarsal
+Code of Ur-Nammu|~-2100|Ur-Nammu`);
+  M('japanese-periods', `
+Japanese Paleolithic|~-35000|Paleolithic`);
+
   // ---------- building the bank ----------
   /** Small stable string hash (FNV-1a), used for seeds and ids. */
   function hashStr(s) {
@@ -4351,9 +4412,15 @@ Zewditu|1916|Empress Zewditu`);
       if (!ok) { outside.push(a); return; }
       inside.push({ name: a.name, year: a.year, approx: a.approx, alts: a.alts, key: a.key, dmg: damage(a.year, def.cut) });
     });
-    var total = inside.reduce(function (s, a) { return s + a.dmg; }, 0);
+    var total = 0, oldest = inside[0], newest = inside[0];
+    inside.forEach(function (a) {
+      total += a.dmg;
+      if (a.year < oldest.year) oldest = a;
+      if (a.year > newest.year) newest = a;
+    });
     return { id: def.id, family: family, tier: def.tier, q: def.q, by: by, cut: def.cut.slice(), people: people,
-      answers: inside, outside: outside, total: total, hpCap: Math.max(3, Math.floor(total / 2)) };
+      answers: inside, outside: outside, oldest: oldest, span: newest.year - oldest.year,
+      total: total, hpCap: Math.max(3, Math.floor(total / 2)) };
   }
 
   /** Expand the rolls into the list of questions the game draws from. */
