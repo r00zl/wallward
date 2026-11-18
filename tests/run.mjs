@@ -2,8 +2,9 @@
 import '../js/questions.js';
 import '../js/answers.js';
 import '../js/daily.js';
+import '../js/lookup.js';
 
-const WW = globalThis.WW, A = WW.Answers, D = WW.Daily;
+const WW = globalThis.WW, A = WW.Answers, D = WW.Daily, L = WW.Lookup;
 const bank = WW.buildBank();
 A.setGuard(bank);
 
@@ -311,6 +312,119 @@ for (const p of bank) {
   ok(D.kills(p, by('Augustus')) && !D.kills(p, by('Tiberius')) && !D.kills(p, by('Nero')), 'only Augustus fells outright among the emperors');
   const m = P('moonwalkers'), who = n => m.answers.find(a => a.name === n);
   ok(D.kills(m, who('Neil Armstrong')) && D.kills(m, who('Buzz Aldrin')) && !D.kills(m, who('Pete Conrad')), 'the first two on the Moon both fell outright');
+}
+
+// ---------- the archives ----------
+console.log('Archives');
+{
+  // every roll the archives cover exists, and holds the kind of thing the archives look for
+  for (const family of Object.keys(L.KINDS)) {
+    const p = bank.find(x => x.id === family);
+    ok(!!p, 'the archives cover a real roll: ' + family);
+    if (p) ok(p.people === L.KINDS[family].human, 'people on the roll, people in the archives: ' + family);
+  }
+  ok(L.covers('painters') && !L.covers('us-presidents') && !L.covers('nonsense'), 'open rolls are covered, closed ones are not');
+
+  // dates as Wikidata writes them
+  const y = (t, prec) => L.yearOf(t, prec);
+  ok(Math.floor(y('+1889-04-20T00:00:00Z', 11).year) === 1889 && !y('+1889-04-20T00:00:00Z', 11).approx, 'a day in 1889');
+  ok(y('+1889-04-20T00:00:00Z', 11).year > y('+1889-01-05T00:00:00Z', 11).year, 'later in the year sorts later');
+  ok(y('+1889-00-00T00:00:00Z', 9).year === 1889, 'a bare year');
+  ok(y('-0480-00-00T00:00:00Z', 9).year === -480, '480 BC');
+  ok(y('-0500-00-00T00:00:00Z', 7).approx === true, 'a century is approximate');
+  ok(y('', 9) === null && y(undefined, 9) === null, 'no date at all');
+
+  // names from outside the rolls
+  const pool = [{ name: 'Adolf Hitler', alts: ['Hitler'], key: 'a' }, { name: 'Alois Hitler', alts: [], key: 'b' }, { name: 'Battle of Thermopylae', alts: [], key: 'c' }];
+  ok(A.named('hitler', pool, true).length === 1 && A.named('hitler', pool, true)[0].key === 'a', 'a listed short name outranks a shared surname');
+  ok(A.named('thermopylae', pool, false)[0].key === 'c', '"Battle of" may be dropped');
+  ok(A.named('hitlor', pool, true).length === 0, 'no allowance for slips among outside names');
+  const painters = P('painters'), later = P('painters-1800-on');
+  ok(A.known(['Michelangelo di Lodovico Buonarroti Simoni', 'Michelangelo'], painters).ans.name === 'Michelangelo', 'the roll knows an archive name by its other spelling');
+  ok(A.known(['Stan Lee'], painters) === null, 'a name the roll has never heard of');
+  ok(A.known(['Rembrandt'], later).outside === true, 'a name just outside a narrower question');
+
+  // bounds and damage
+  ok(WW.within(later, { name: 'x', year: 1850 }) && !WW.within(later, { name: 'x', year: 1700 }), 'a narrower question keeps its bounds');
+  ok(WW.within(painters, { name: 'x', year: -400 }), 'a whole roll has no bounds');
+  ok(WW.damage(-400, painters.cut) === 3 && WW.damage(1900, painters.cut) === 1, 'damage by date for any answer');
+  const elder = { name: 'Older Still', year: painters.oldest.year - 50, approx: true, alts: [], key: 'archive:Q1', dmg: 3 };
+  ok(D.kills(painters, elder), 'an archive answer older than the whole roll fells outright');
+  ok(!D.kills(painters, { name: 'Bob Ross', year: 1942, alts: [], key: 'archive:Q2', dmg: 1 }), 'a late archive answer does not');
+
+  // a small pretend Wikidata
+  const q = id => ({ rank: 'normal', mainsnak: { snaktype: 'value', datavalue: { value: { id } } } });
+  const when = (time, precision) => ({ rank: 'normal', mainsnak: { snaktype: 'value', datavalue: { value: { time, precision } } } });
+  const item = (name, alts, claims, wiki = true) => ({ name, alts, claims, wiki });
+  const world = {
+    Q352: item('Adolf Hitler', ['Hitler'], { P31: [q('Q5')], P106: [{ ...q('Q82955'), rank: 'preferred' }, q('Q1028181')], P569: [when('+1889-04-20T00:00:00Z', 11)] }),
+    Q181900: item('Stan Lee', [], { P31: [q('Q5')], P106: [q('Q11892507'), q('Q36180')], P569: [when('+1922-12-28T00:00:00Z', 11)] }),
+    Q76483: item('Sylvia Plath', [], { P31: [q('Q5')], P106: [q('Q49757')], P569: [when('+1932-10-27T00:00:00Z', 11)] }),
+    Q900: item('Thermopylae', [], { P31: [q('Q133056')] }),
+    Q901: item('Battle of Thermopylae', [], { P31: [q('Q178561')], P585: [when('-0480-00-00T00:00:00Z', 9)] }),
+    Q902: item('Unsung Painter', [], { P31: [q('Q5')], P106: [q('Q1028181')], P569: [when('+1700-00-00T00:00:00Z', 9)] }, false),
+    Q903: item('Dateless Painter', [], { P31: [q('Q5')], P106: [q('Q1028181')] }),
+    Q904: item('Withdrawn Painter', [], { P31: [q('Q5')], P106: [{ ...q('Q1028181'), rank: 'deprecated' }], P569: [when('+1800-00-00T00:00:00Z', 9)] }),
+    Q905: item('Battle of Anzio', [], { P31: [q('Q178561')], P585: [when('+1944-01-22T00:00:00Z', 11)], P361: [q('Q8087')] }),
+    Q906: item('Battle of Waterloo', [], { P31: [q('Q178561')], P585: [when('+1815-06-18T00:00:00Z', 11)], P361: [q('Q2550014')] }),
+    Q907: item('Bear Grylls', [], { P31: [q('Q5')], P106: [q('Q11900058')], P569: [when('+1974-06-07T00:00:00Z', 11)] })
+  };
+  const ladders = ['P279 Q49757 under Q36180', 'P361 Q8087 under Q362']; // a poet is a writer; the Italian campaign was part of the war
+  let calls = 0, down = false;
+  globalThis.fetch = address => {
+    calls++;
+    if (down) return Promise.reject(new Error('offline'));
+    const url = new URL(address), ask = url.searchParams, reply = data => Promise.resolve({ ok: true, json: () => Promise.resolve(data) });
+    if (url.hostname === 'query.wikidata.org') {
+      const text = ask.get('query'), from = [...text.matchAll(/VALUES \?from \{ ([^}]*)\}/g)][0][1].match(/Q\d+/g);
+      const to = [...text.matchAll(/VALUES \?to \{ ([^}]*)\}/g)][0][1].match(/Q\d+/g), prop = /wdt:(P\d+)/.exec(text)[1];
+      return reply({ boolean: ladders.some(l => from.some(f => to.some(t => l === prop + ' ' + f + ' under ' + t))) });
+    }
+    if (ask.get('list') === 'search') {
+      const words = ask.get('srsearch').replace(/ haswbstatement:\S+/, ''), want = /haswbstatement:(\S+)/.exec(ask.get('srsearch'));
+      const hits = Object.keys(world).filter(id => A.norm(world[id].name).includes(A.norm(words)) || world[id].alts.some(a => A.norm(a) === A.norm(words)));
+      const fits = id => !want || want[1].split('|').some(pair => { const [prop, val] = pair.split('='); return (world[id].claims[prop] || []).some(c => c.mainsnak.datavalue.value.id === val); });
+      return reply({ query: { search: hits.filter(fits).map(title => ({ title })) } });
+    }
+    if (ask.get('action') === 'wbgetentities') {
+      const entities = {};
+      for (const id of ask.get('ids').split('|')) {
+        const it = world[id];
+        entities[id] = { labels: { en: { value: it.name } }, aliases: { en: it.alts.map(value => ({ value })) }, sitelinks: it.wiki ? { enwiki: {} } : {} };
+      }
+      return reply({ entities });
+    }
+    const prop = ask.get('property');
+    return reply({ claims: { [prop]: world[ask.get('entity')].claims[prop] || [] } });
+  };
+
+  const hitler = await L.find('painters', 'Hitler', true);
+  ok(hitler.status === 'found' && hitler.ans.name === 'Adolf Hitler' && Math.floor(hitler.ans.year) === 1889 && hitler.ans.key === 'archive:Q352',
+    'a painter who is listed first as something else: ' + JSON.stringify(hitler));
+  ok((await L.find('painters', 'stan lee', true)).status === 'none', 'a writer is not a painter');
+  ok((await L.find('writers', 'stan lee', true)).status === 'found', 'but he is a writer');
+  const plath = await L.find('writers', 'Sylvia Plath', true);
+  ok(plath.status === 'found' && Math.floor(plath.ans.year) === 1932, 'a poet is a writer, by way of the ladder of callings');
+  const pass = await L.find('battles', 'Thermopylae', false);
+  ok(pass.status === 'found' && pass.ans.name === 'Battle of Thermopylae' && pass.ans.year === -480, 'the battle, not the mountain pass of the same name: ' + JSON.stringify(pass));
+  ok((await L.find('painters', 'unsung painter', true)).status === 'none', 'nothing without a Wikipedia article counts');
+  const dateless = await L.find('painters', 'dateless painter', true);
+  ok(dateless.status === 'undated' && dateless.name === 'Dateless Painter', 'the right kind, but no date to go by');
+  ok((await L.find('painters', 'withdrawn painter', true)).status === 'none', 'a withdrawn statement does not count');
+  ok((await L.find('ww2-battles', 'anzio', false)).status === 'found', 'a battle that was part of the war asked for');
+  ok((await L.find('ww2-battles', 'waterloo', false)).status === 'none', 'a battle of some other war');
+  ok((await L.find('battles', 'waterloo', false)).status === 'found', 'which is still a battle');
+  const grylls = await L.find('explorers', 'bear grylls', true);
+  ok(grylls.status === 'found' && Math.floor(grylls.ans.year) === 2004 && grylls.ans.approx, 'a roll dated by deeds takes birth and thirty years');
+  ok((await L.find('us-presidents', 'hitler', true)).status === 'none', 'a closed roll is never looked up');
+  ok((await L.find('painters', '   ', true)).status === 'none', 'nothing typed, nothing asked');
+  const before = calls;
+  await L.find('painters', 'HITLER!', true);
+  ok(calls === before, 'the same name is not asked twice');
+  down = true;
+  ok((await L.find('painters', 'monet the younger', true)).status === 'unreachable', 'no answer from the archives');
+  down = false;
+  ok((await L.find('painters', 'monet the younger', true)).status === 'none', 'and a failure is not remembered');
 }
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
