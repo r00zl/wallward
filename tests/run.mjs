@@ -143,45 +143,61 @@ ok(D.msToNextWall(Date.UTC(2026, 10, 18, 23, 0, 0)) === 3600000, 'one hour to ne
 ok(D.msToNextWall(Date.UTC(2026, 10, 19, 0, 0, 0)) === 86400000, 'full day at midnight');
 
 const lastSeen = new Map();
-let minGap = Infinity, short = 0;
+let minGap = Infinity;
 const DAYS = 365;
+const flat = plan => plan.enemies.flatMap(e => e.questions).concat(Object.values(plan.reserve).flat());
 for (let d = 1; d <= DAYS; d++) {
   const plan = D.dailyPlan(d, bank);
-  const again = D.dailyPlan(d, bank);
-  ok(JSON.stringify(plan.map(e => e.questions.map(q => q.id))) ===
-     JSON.stringify(again.map(e => e.questions.map(q => q.id))), 'deterministic day ' + d);
-  ok(plan.length === 5, '5 enemies day ' + d);
-  const all = plan.flatMap(e => e.questions);
-  for (const e of plan) if (e.questions.length < D.PER_ENEMY) short++;
-  ok(plan.every(e => e.questions.length >= 4), 'each enemy has at least 4 questions, day ' + d);
-  ok(new Set(all.map(q => q.id)).size === all.length, 'no duplicate question in day ' + d);
+  ok(JSON.stringify(flat(plan).map(q => q.id)) === JSON.stringify(flat(D.dailyPlan(d, bank)).map(q => q.id)), 'deterministic day ' + d);
+  ok(plan.enemies.length === 5, '5 enemies day ' + d);
+  ok(plan.enemies.every(e => e.questions.length === D.HITS && e.questions.every(Boolean)), 'three questions per enemy, day ' + d);
+  plan.enemies.forEach((e, ei) => e.questions.forEach((q, qi) => ok(q.tier === D.DAILY_ENEMIES[ei].tiers[qi], `tier fits enemy ${ei + 1} day ${d}`)));
+  // a spare for every life that can be lost, in each tier the day uses
+  // (on the odd day a clash trims one spare; the game then draws an unseen question)
+  for (const t of [1, 2]) ok(plan.reserve[t].length >= D.LIVES - 2 && plan.reserve[t].every(q => q.tier === t), `reserve tier ${t} day ${d}`);
+  const all = flat(plan);
+  ok(new Set(all.map(q => q.id)).size === all.length, 'no question twice in day ' + d);
   for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
     ok(!D.clash(all[i], all[j]), `no clash day ${d}: "${all[i].q}" / "${all[j].q}"`);
   }
-  // tiers follow the plan
-  plan.forEach((e, ei) => e.questions.forEach((q, qi) => {
-    const tiers = D.DAILY_ENEMIES[ei].tiers;
-    ok(tiers.includes(q.tier), `tier fits enemy ${ei + 1} day ${d}`);
-  }));
   for (const q of all) {
     if (lastSeen.has(q.id)) minGap = Math.min(minGap, d - lastSeen.get(q.id));
     lastSeen.set(q.id, d);
   }
 }
 const d1 = D.dailyPlan(1, bank), d2 = D.dailyPlan(2, bank);
-ok(d1[0].questions[0].id !== d2[0].questions[0].id, 'day 1 and day 2 differ');
-console.log(`  ${DAYS} days: shortest gap before any question repeats = ${minGap} days; ` +
-  `${lastSeen.size}/${bank.length} questions used; enemies with fewer than ${D.PER_ENEMY} ready: ${short}`);
+ok(d1.enemies[0].questions[0].id !== d2.enemies[0].questions[0].id, 'day 1 and day 2 differ');
+console.log(`  ${DAYS} days: shortest gap before any question repeats = ${minGap} days; ${lastSeen.size} questions used`);
 
 console.log('Sample day 1');
-d1.forEach((e, i) => console.log(`  ${i + 1}. ${e.kind}: ` + e.questions.map(q => `[T${q.tier}${q.cat}] ${q.q} -> ${q.a[0]}`).join('\n      ')));
+d1.enemies.forEach((e, i) => console.log(`  ${i + 1}. ${e.kind}: ` + e.questions.map(q => `[T${q.tier}${q.cat}] ${q.q} -> ${q.a[0]}`).join('\n      ')));
+
+// ---------- hints ----------
+console.log('Hints');
+const H = WW.Hints;
+let worst = 0;
+for (const q of bank) {
+  const h = H.hintFor(q);
+  ok(h.cap < h.letters || h.letters === 0, 'hint never shows every letter: ' + q.a[0]);
+  ok(h.cap <= Math.floor(h.letters / 2), 'hint shows at most half: ' + q.a[0]);
+  if (h.letters) worst = Math.max(worst, h.cap / h.letters);
+  ok(H.hintCount(q, 12) === 0, 'no letters at full distance');
+  ok(H.hintCount(q, 1) === Math.min(h.cap, H.REVEAL_AT.length), 'most letters when close');
+  const cells = H.hintCells(q, 99);
+  ok(cells.filter(c => c.state === 'open').length === h.cap, 'cells respect the cap: ' + q.a[0]);
+  let last = -1;
+  for (let pace = 12; pace >= 0; pace--) { const n = H.hintCount(q, pace); ok(n >= last, 'hints only grow'); last = n; }
+}
+const kl = find('capital of Malaysia');
+console.log('  largest share of an answer ever shown: ' + Math.round(worst * 100) + '%');
+console.log('  e.g. Kuala Lumpur at 12, 9, 5, 2 paces: ' + [12, 9, 5, 2].map(p => H.hintCells(kl, H.hintCount(kl, p)).map(c => c.state === 'gap' ? ' ' : c.ch || '_').join('')).join(' | '));
 
 ok(D.liFor(12, true) * 5 === 10000, 'perfect wall is 10,000 li');
 ok(D.rankFor(10000) === 'Warden of the Wall' && D.rankFor(0) === 'Recruit', 'ranks');
-ok(D.shareText(3, ['F', 'W', 'X'], 4550, 5).includes('🎯🏹💥⬛⬛'), 'share row');
+ok(D.shareText(3, ['F', 'W', 'X'], 4550, 5).includes('⚔️🗡️💥⬛⬛'), 'share row');
 for (let n = 1; n <= 40; n++) {
   const e = D.endlessEnemy(n);
-  ok(e.interval >= 2 && e.tiers.length > 0 && e.stage >= 0 && e.stage < 5, 'endless enemy ' + n);
+  ok(e.interval >= 2 && e.tiers.length === D.HITS && e.stage >= 0 && e.stage < 5, 'endless enemy ' + n);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
