@@ -200,6 +200,14 @@ button { cursor: pointer; }
 .score-big small { font-size: 32px; color: var(--bone); }
 .center .rank { margin: 8px 0 0; }
 .center .note { color: var(--bone-dim); }
+/* what was asked, what was given, and the oldest answer there was */
+.recap { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 18px; line-height: 1.25; }
+.recap:empty { display: none; }
+.recap li { padding-left: 10px; box-shadow: inset 3px 0 0 var(--iron-lit); }
+.recap p { margin: 0; color: var(--bone-dim); }
+.recap .asked { color: var(--bone); }
+.recap .oldest { color: #f5c044; }
+.recap .found { color: #c9f0b0; }
 .copy-box textarea { width: 100%; height: 76px; padding: 8px; border: 0; background: var(--parchment); color: var(--ink); resize: none; }
 
 /* ---------- how to play ---------- */
@@ -210,6 +218,13 @@ dialog h2 { margin: 0 0 10px; font-family: var(--title); font-weight: 400; font-
 dialog ol { margin: 0 0 14px; padding-left: 24px; }
 dialog li { margin: 0 0 8px; }
 dialog p { margin: 0 0 14px; }
+dialog h3 { margin: 14px 0 6px; font-weight: 400; font-size: 20px; color: var(--bone-dim); }
+dialog .recap { margin-bottom: 14px; }
+.unfound { margin: 0 0 14px; padding-left: 22px; font-size: 18px; color: var(--bone-dim); }
+.unfound li { margin: 0 0 3px; }
+/* the sound switch asks to be noticed until it has been used */
+.text-btn.nudge { color: var(--ember); animation: nudge 1.6s steps(2) infinite; }
+@keyframes nudge { 50% { color: #ffe08a; } }
 
 /* short windows, and phones with the keyboard up */
 .app.short .plate { padding: 6px 10px 8px; }
@@ -244,6 +259,8 @@ dialog p { margin: 0 0 14px; }
   dialog p { margin-bottom: 10px; }
   .answer-row .btn[type=submit] { padding-left: 12px; padding-right: 12px; }
 }
+/* on a small phone the gate, once today's wall is done, needs the room the introduction takes */
+@media (max-height: 620px) { .title-block.brief p { display: none; } }
 /* a phone held sideways: keep the words to the left and the fight in view */
 @media (orientation: landscape) and (max-height: 480px) {
   .top { left: calc(12px + var(--safe-l)); transform: none; width: min(46%, 420px); }
@@ -251,7 +268,7 @@ dialog p { margin: 0 0 14px; }
   .menu { left: 50%; right: auto; transform: translateX(-50%); width: min(560px, calc(100% - 24px)); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .banner.go, .veil.hurt, .veil.flash, .float, .combo.pop b, .combo.broke { animation: none; }
+  .banner.go, .veil.hurt, .veil.flash, .float, .combo.pop b, .combo.broke, .text-btn.nudge { animation: none; }
   .btn:active { transform: none; }
 }
 </style>
@@ -305,10 +322,12 @@ dialog p { margin: 0 0 14px; }
         <button class="btn small" id="doneCopy" type="button">Copy result</button>
         <span id="doneNext"></span>
       </div>
+      <button class="text-btn" id="answersBtn" type="button">Today's answers</button>
     </div>
     <button class="btn alt" id="playEndless" type="button">Endless march <span id="endlessBest">No end</span></button>
     <div class="row outlined">
       <button class="text-btn outlined" id="howBtn" type="button">How to play</button>
+      <button class="text-btn outlined" id="almanacBtn" type="button">Almanac</button>
       <button class="text-btn outlined" id="soundBtn" type="button" aria-pressed="false">Sound: off</button>
     </div>
     <p class="note outlined" id="stats"></p>
@@ -332,6 +351,7 @@ dialog p { margin: 0 0 14px; }
       <textarea id="copyText" readonly aria-label="Your result"></textarea>
     </div>
     <p class="note" id="nextIn"></p>
+    <ol class="recap" id="endRecap" aria-label="Your answers, and the oldest answer to each question"></ol>
   </section>
 
   <dialog id="howto" aria-labelledby="howTitle">
@@ -345,8 +365,14 @@ dialog p { margin: 0 0 14px; }
       <li>A wrong name lets the foe gain a pace and breaks the combo. If it reaches you, one of your five torches goes out.</li>
       <li>Out of names? Skip the foe. It costs a torch, and you keep the glory for the damage done.</li>
     </ol>
-    <p>Today's wall has five foes and is the same for everyone. It changes at 00:00 UTC.</p>
+    <p>Today's wall has five foes and is the same for everyone. It changes at 00:00 UTC. Every oldest answer you find is kept in your Almanac.</p>
     <button class="btn small" id="howClose" type="button">Close</button>
+  </dialog>
+
+  <dialog id="book" aria-labelledby="bookTitle">
+    <h2 id="bookTitle"></h2>
+    <div id="bookBody"></div>
+    <button class="btn small" id="bookClose" type="button">Close</button>
   </dialog>
 </div>
 

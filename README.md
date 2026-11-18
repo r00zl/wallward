@@ -19,9 +19,10 @@ screen.
   blow lands and its date is shown.
 - **The oldest answer fells any foe outright**, whatever health it has left,
   and earns 800 glory on top. So does an answer dated within 2% of the roll's
-  whole span of time after it: Augustus alone among the emperors, but both
-  Armstrong and Aldrin among the Moon walkers. When a foe falls, the plate
-  names the oldest answer, so the next time the question comes round you know.
+  whole span of time after it, though never more than the three oldest dates
+  on a roll: Augustus alone among the emperors, but both Armstrong and Aldrin
+  among the Moon walkers. When a foe falls, the plate names the oldest answer,
+  so the next time the question comes round you know.
 - Keep giving new names until the foe's health is gone. Every blow drives it
   back 2 or 3 paces and so buys time. A name cannot be used twice on one foe.
 - **Combos.** True answers in a row raise a combo that carries from foe to foe.
@@ -54,6 +55,11 @@ Wallward No. 1 · 8,765 glory
 💀 felled outright by the oldest answer, ⚔️ felled without a slip, 🗡️ felled,
 💨 skipped, 💥 the wall fell there.
 
+**After the wall** the end screen lists every question with the answers you
+gave and the oldest answer there was; "Today's answers" at the gate shows it
+again. The **Almanac** at the gate keeps every oldest answer you have ever
+given, out of all the questions in the bank.
+
 **Endless march** has no end: foes gain health and speed, and the questions get
 harder, until the last torch goes out. Felling every fifth foe relights one.
 
@@ -65,14 +71,15 @@ There is no server. Every browser works out the same wall from the date:
   **UTC**. A new wall starts at **00:00 UTC** for everyone at the same moment.
 - Walls are laid out 30 days at a time by a seeded shuffle, each stretch
   picking up where the last ended. Within it the questions of a tier are used
-  evenly, no question returns within a week, two questions drawn from the same
-  roll of names never share a day, and a roll used one day is not used the next.
-- The bank has 70 questions built on 43 rolls holding about 4,130 names. The
+  evenly, a tier-1 question does not return within 12 days nor a tier-2
+  question within 20, two questions drawn from the same roll of names never
+  share a day, and a roll used one day is not used the next.
+- The bank has 113 questions built on 64 rolls holding about 5,240 names. The
   rolls aim to hold most answers a player could fairly give; closed sets such
   as monarchs, presidents and prime ministers are complete. The daily wall
-  uses three tier-1 questions and two tier-2 questions, so a question comes
-  round again every 10 to 15 days. Tier 3 appears deep in the endless march
-  only.
+  uses three tier-1 questions and two tier-2 questions, so a tier-1 question
+  comes round again about every 14 days and a tier-2 question about every 24.
+  Tier 3 appears deep in the endless march only.
 
 Adding rolls lengthens the gaps automatically. Changing the bank reshuffles
 future days, so avoid editing it in the middle of a UTC day once people are
@@ -128,7 +135,9 @@ refused.
 
 `js/daily.js` holds `LIVES` (torches), `START` (paces a foe begins at),
 `DAILY_ENEMIES` (the health, speed and question tier of the five daily foes),
-`KILL_RANGE` (how close to the oldest answer still fells a foe outright),
+`KILL_RANGE` and `KILL_MOST` (how close to the oldest answer still fells a
+foe outright, and how many of the oldest dates may), `MIN_GAP` (days before a
+question may return),
 `HIT_GLORY`, `OLDEST_GLORY` and the other scoring. The top of `js/game.js` has a `CONFIG`
 block: paces a blow drives the foe back, the cost of a wrong name, how often
 the endless march relights a torch, and the address added to shared results.
@@ -157,8 +166,8 @@ open index.html          # or serve the folder with any static server
 node tests/run.mjs       # bank, answer matching and a year of daily walls
 ```
 
-Progress, streaks and the sound setting are kept in the browser's local
-storage, so they stay on the device they were played on.
+Progress, streaks, the almanac and the sound setting are kept in the browser's
+local storage, so they stay on the device they were played on.
 
 ## On a phone
 
@@ -187,5 +196,8 @@ results include that address automatically.
 
 Type is Jacquard 24, Jersey 10 and Jersey 20, loaded from Google Fonts under
 the SIL Open Font License. All art is drawn in code. Dates in the bank were
-written from general knowledge and not checked against a source one by one;
-corrections are welcome. Released under the MIT licence.
+written from general knowledge; the oldest answer on the rolls where that is
+open to argument was checked against published sources, the rest were not
+checked one by one. Corrections are welcome.
+
+© 2026 r00zl. All rights reserved: see `LICENSE`.
