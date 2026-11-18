@@ -198,12 +198,20 @@ Google Fonts.
 
 ## Sound and music
 
-Both are off until switched on at the gate. The effects are single synthesised
-tones. The score is a slow, dark air in D minor written for the game and played
-by the browser from oscillators: a low drone, wind, a soft pad moving through
-eight chords, a distant bell, and a few plucked notes chosen afresh on every
-pass, all heard through a synthetic stone-hall echo. It rests while the page
-is hidden.
+Both are off until switched on at the gate. The effects are synthesised tones
+and bursts of filtered noise; the finishing blow has its own: rushing air on
+the leap, the ring of the blade turning over, the plunge, a crack and a deep
+blow as the point goes in, then steel dragged free and a bell tolling the foe
+away.
+
+The score is a slow, dark air in D minor written for the game and played by
+the browser from oscillators: a low drone, wind, a soft pad over a falling
+bass, a far-off bell, a few plucked notes, and over them a lone reedy voice
+that glides from note to note, leans into its long notes like a piper, and
+wavers like a worn tape. The voice sings a call and an answer in one half of
+each pass and leaves the other half empty; which phrases it sings, and where,
+changes every time. Everything is heard through a synthetic stone-hall echo,
+and the score rests while the page is hidden.
 
 ## On a phone
 
