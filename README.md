@@ -102,6 +102,17 @@ given, out of all the questions in the bank.
 **Endless march** has no end: foes gain health and speed, and the questions get
 harder, until the last torch goes out. Felling every fifth foe relights one.
 
+**The foes do not wait.** A run is played against the real clock, not against
+the frames the page happens to draw, so there is no pausing it to look an
+answer up. Hide the tab, lock the phone, close the page or go back to the gate,
+and the foe in front of you keeps coming: about 25 seconds away costs a torch,
+a little over two minutes costs the wall. Today's wall is written down as it
+stands (the foe's health and ground, the names already spent on it, and the
+moment) every second and whenever anything changes, so the page opens straight
+back into the fight with the time away already played out, and says what it
+cost. A foe felled is banked the instant the answer is given. An endless march
+is not kept when the page is closed, but hiding the page does not stop it.
+
 ## How the daily questions are chosen
 
 There is no server. Every browser works out the same wall from the date:
@@ -199,6 +210,8 @@ question may return),
 `HIT_GLORY`, `OLDEST_GLORY` and the other scoring. The top of `js/game.js` has a `CONFIG`
 block: paces a blow drives the foe back, the cost of a wrong name, how often
 the endless march relights a torch, and the address added to shared results.
+`AWAY`, just below it, sets how long a pause must be before it is made up, and
+how long before it is made up unseen and unheard.
 
 ## Project layout
 
