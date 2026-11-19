@@ -260,17 +260,18 @@ otherwise. Pressing Skip or Strike keeps the keyboard open.
 
 ## Hosting on GitHub Pages
 
-In the repository settings choose **Pages → Deploy from a branch → main / (root)**.
-The game is then served at `https://<user>.github.io/<repo>/`, and copied
-results include that address automatically.
+The game lives at **https://predate.quest**. It is served by GitHub Pages
+(**Pages → Deploy from a branch → main / (root)** in the repository settings),
+and copied results include whatever address the page was opened at.
 
-To serve it from a domain of its own, such as `playpredate.quest`: at the
-registrar, point the domain's four `A` records at GitHub Pages
-(`185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`)
-and a `www` `CNAME` at `<user>.github.io`; then enter the domain under
-**Pages → Custom domain** and tick **Enforce HTTPS** once the certificate is
-issued. Do this only after the DNS records exist, or the old address will
-redirect to a domain that does not answer yet.
+The domain is wired like this: at the registrar, four `A` records for `@`
+point at GitHub Pages (`185.199.108.153`, `185.199.109.153`,
+`185.199.110.153`, `185.199.111.153`) and a `www` `CNAME` points at
+`<user>.github.io`; the domain is entered under **Pages → Custom domain**,
+which writes the `CNAME` file in this repository, and **Enforce HTTPS** is
+ticked. The old `github.io` address redirects to the domain. Set the DNS
+records before the custom domain, or the old address will redirect to a
+domain that does not answer yet. Do not delete the `CNAME` file.
 
 ## Inspirations
 
