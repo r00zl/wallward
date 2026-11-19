@@ -4,15 +4,17 @@
 
 A daily dark-fantasy pixel trivia game. A lone knight holds a great wall; each
 foe that comes along it demands a name, such as "Name a Roman emperor" or
-"Name a Grand Theft Auto game". Any true answer strikes it, and **the older
+"Name a model of car". Any true answer strikes it, and **the older
 your answer, the harder the blow**: to win, give an answer that predates the
 rest.
 
 The questions are of two kinds. **History**: emperors, battles, inventions,
-painters. **Everyday knowledge**: video games, consoles, mobile phones, Disney,
-Pixar, Bond, Star Wars and Marvel films, albums, football clubs and champions,
-soft drinks, chocolate bars, comic-book heroes. Everybody can name a phone;
-the game is who can name the oldest.
+painters, universities. **Everyday knowledge**: video games, consoles, mobile
+phones, cars, films (Disney, Pixar, DreamWorks, Bond, Marvel, Spielberg, the
+Oscars), sitcoms, children's television, cartoon characters, musicals, books,
+fast food, fashion and sportswear, technology companies, airlines, toys,
+football, tennis, soft drinks, chocolate bars, comic-book heroes. Everybody can
+name a phone; the game is who can name the oldest.
 
 The name is set in blackletter with a sword, point down, standing for its t;
 the knight's helm is the icon. The game was built under the working title
@@ -43,7 +45,9 @@ screen.
   questions (painters, writers, composers, scientists, philosophers,
   mathematicians, architects, explorers, generals, wars, battles, revolutions,
   landmarks, ships, aeroplanes, board games, treaties, empires, space
-  missions, video games, mobile phones and British football clubs). A name that is not on the roll is looked up on Wikidata: it must
+  missions, universities, video games, mobile phones, British football clubs,
+  airlines, car makers, restaurant chains, social networks, sitcoms, musicals,
+  and books by Stephen King or Roald Dahl). A name that is not on the roll is looked up on Wikidata: it must
   be of the right kind, have an English Wikipedia article and carry a date,
   and it is then worth whatever its date earns. The foe waits while the
   archives are searched, usually about a second. Closed lists, such as the
@@ -104,20 +108,25 @@ There is no server. Every browser works out the same wall from the date:
   **UTC**. A new wall starts at **00:00 UTC** for everyone at the same moment.
 - Walls are laid out 30 days at a time by a seeded shuffle, each stretch
   picking up where the last ended. Within it the questions of a tier are used
-  evenly, a tier-1 question does not return within 12 days nor a tier-2
-  question within 20, two questions drawn from the same roll of names never
-  share a day, and a roll used one day is not used the next.
-- The bank has 152 questions built on 89 rolls holding about 6,340 names: 113
-  questions of history and 39 of everyday knowledge. The rolls aim to hold
+  evenly, **no question returns until more than a month has passed** (32 days
+  at the least), two questions drawn from the same roll of names never share a
+  day, and a roll used one day is not used the next.
+- The bank has 216 questions built on 111 rolls holding about 8,400 names: 116
+  questions of history and 100 of everyday knowledge. The rolls aim to hold
   most answers a player could fairly give; closed sets such as monarchs,
-  presidents, Bond films and Pixar films are complete.
+  presidents, Bond films, Best Picture winners and FA Cup winners are complete.
+- A month without a repeat needs enough questions for each foe's place: the
+  two everyday tier-1 foes draw on 72 questions, the history tier-1 foe on 43,
+  and the two tier-2 foes on 79. The tests check both the numbers and three
+  years of walls. Take questions away and the month can no longer be kept.
 - The five foes of a wall take turns: the first and third ask an everyday
   question, the second and fourth a history question, and the last may ask
-  either. The first three are tier 1 and the last two tier 2. An everyday
-  tier-1 question comes round again about every 15 days; a history one
-  rather less often. Tier 3 appears deep in the endless march only.
-- The everyday rolls are current to 18 November 2026 (Grand Theft Auto VI,
-  out the next day, is on the roll). New releases need adding by hand.
+  either. The first three are tier 1 and the last two tier 2. A question
+  comes round again every five or six weeks. Tier 3 appears deep in the
+  endless march only.
+- The everyday rolls are current to 19 November 2026 (that year's Best
+  Picture, Ballon d'Or, Wimbledon and Eurovision winners are on them). New
+  releases and new winners need adding by hand.
 
 Adding rolls lengthens the gaps automatically. Changing the bank reshuffles
 future days, so avoid editing it in the middle of a UTC day once people are
@@ -148,6 +157,15 @@ Tiberius|14
 - **The oldest line of a roll must be the oldest answer there is**, because it
   fells a foe outright. The tests keep a list of each roll's oldest name and
   fail if an edit changes one without the list being updated.
+- **A question must not give its oldest answer away.** "Name a Star Wars film"
+  is no good: the oldest is *Star Wars*, so typing the question back fells the
+  foe. Nor is "Name a French king called Louis" (Louis I) or "Name a crusade"
+  (the First). The tests type every question back at itself, bare and with
+  "first", "one" and "I" added, and fail if any of it fells a foe outright.
+  Series whose first entry is simply the series name do not make questions.
+- `R(id, datedBy, roll)` declares a roll that is never asked whole and only
+  feeds narrower questions made with `V(...)`. The Apple roll is one: "Apple I"
+  would give the whole roll away, but "launched since 2000" is a fair question.
 - `V(id, roll, tier, question, [cut3, cut2], from, to)` makes a narrower
   question from an existing roll, with its own cut-offs ("Name a US president
   who took office in the 20th century").
@@ -202,7 +220,7 @@ tests/run.mjs          logic tests (Node 18+)
 
 ```
 open index.html          # or serve the folder with any static server
-node tests/run.mjs       # bank, answer matching, the archives (against a pretend Wikidata) and a year of daily walls
+node tests/run.mjs       # bank, answer matching, the archives (against a pretend Wikidata) and three years of daily walls
 ```
 
 Progress, streaks, the almanac and the sound setting are kept in the browser's
