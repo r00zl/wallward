@@ -40,6 +40,11 @@
   var FINISH = { run: 0.18, leap: 0.42, hang: 0.2, plunge: 0.07, hold: 0.6, rip: 0.16, land: 0.3, pose: 0.6 };
   var FINISH_RISE = 10; // how far above his mark the knight hangs before the plunge
   var BLADE_DEPTH = 7;  // how far the point is driven into the skull
+  // Seconds. A foe keeps coming whether or not anyone is watching, so time the page did not
+  // run for is played out when it runs again: any pause over `gap`, in steps of `step`, and
+  // unseen and unheard once it is as long as `quiet`. No wall outlasts `most` left alone.
+  var AWAY = { gap: 0.25, quiet: 1, step: 0.05, most: 900 };
+  var AWAY_FELL = 'It fell while you were away. ';
 
   var $ = function (id) { return document.getElementById(id); };
   var el = {};
@@ -107,6 +112,8 @@
     hero: { dx: 0, dy: 0, walkT: 0, hurt: 0, sword: SWORD.rest },
     titleT: 0
   };
+  var clockAt = Date.now(); // the moment, by the clock on the wall, the game has been played out to
+  var absent = false;       // true while time no one was there for is being played out
 
   // ---------- layout ----------
   function layout() {
@@ -354,6 +361,7 @@
 
   // ---------- a run ----------
   function startRun(mode, resume) {
+    var back = false;
     WW.Sound.wake();
     el.app.classList.remove('intro');
     G.mode = mode; G.results = []; G.recap = []; G.score = 0; G.lives = CONFIG.LIVES; G.idx = 0;
@@ -367,11 +375,13 @@
       G.plan = D.dailyPlan(G.num, BANK);
       G.total = G.plan.enemies.length;
       var d = store.daily;
-      if (resume && d && d.num === G.num && !d.done) {
+      back = !!(resume && d && d.num === G.num && !d.done);
+      if (back) {
         G.idx = d.idx; G.results = d.results.slice(); G.recap = (d.recap || []).slice(); G.lives = d.lives; G.score = d.score;
         G.combo = d.combo || 0; G.bestCombo = d.best || 0;
       } else {
-        store.daily = { num: G.num, idx: 0, results: [], recap: [], lives: G.lives, score: 0, combo: 0, best: 0, done: false, total: G.total };
+        store.daily = { num: G.num, idx: 0, results: [], recap: [], lives: G.lives, score: 0, combo: 0, best: 0, done: false,
+          total: G.total, foe: null, at: Date.now() };
         save();
       }
     } else {
@@ -383,8 +393,9 @@
     drawHud();
     showCombo(G.combo);
     el.combo.classList.remove('pop');
-    approach();
-    focusAnswer();
+    clockAt = Date.now();
+    if (back) rejoin(store.daily); else approach();
+    if (G.phase !== 'over') focusAnswer();
   }
 
   function focusAnswer() {
@@ -414,6 +425,7 @@
     }
     setPrompt(null, G.reveal || 'Something stirs along the wall…');
     drawHud(); drawFoe();
+    keep();
   }
 
   function spawn() {
@@ -433,6 +445,98 @@
     // every foe opens with the one thing to remember; the first of a run says it large
     feedback('tip', 'Give the oldest answer you can: the older it is, the harder the blow.', 6000);
     if (!G.told) { G.told = true; banner('Name the oldest you can'); }
+    keep();
+  }
+
+  // ---------- the wall does not wait ----------
+  /**
+   * Write down where today's wall stands, and at what moment, so that it can be taken up from
+   * exactly here however the page is left: hidden, shut, or left for the gate. A foe felled
+   * or let past is behind the knight from the moment it happens.
+   */
+  function keep() {
+    var d = store.daily, e = G.enemy;
+    if (G.mode !== 'daily' || !d || d.done || G.phase === 'title' || G.phase === 'over') return;
+    var past = G.phase === 'felled' || G.phase === 'fleeing';
+    d.idx = G.idx + (past ? 1 : 0);
+    d.results = G.results.slice(); d.recap = G.recap.slice();
+    d.lives = G.lives; d.score = G.score; d.combo = G.combo; d.best = G.bestCombo;
+    d.foe = null;
+    if (G.phase === 'fight' && e) {
+      // a blow still in the air will land: the foe is kept as it will stand once it has
+      var s = G.strike, due = s && !s.landed && s.kind === 'cut' ? CONFIG.KNOCK[s.tier] : 0;
+      d.foe = { hp: e.hp, pace: Math.min(CONFIG.MAX_PACE, e.pace + due), stepT: due ? 0 : e.stepT,
+        attack: e.attack, struck: e.struck, flawless: G.flawless,
+        used: G.usedList.map(function (a) { return a.archive ? a : a.key; }) };
+    }
+    d.at = clockAt;
+    save();
+  }
+
+  /** A saved number, if it is one and within bounds; otherwise the fallback. */
+  function kept(v, lo, hi, fallback) {
+    return typeof v === 'number' && v >= lo && v <= hi ? v : fallback;
+  }
+
+  /** Stand a foe back where it was when the wall was left: its health, its ground, the names already spent on it. */
+  function face(f) {
+    var W = Scene.WALK, byKey = {};
+    G.def = G.plan.enemies[G.idx];
+    G.strike = null; G.told = true;
+    disarmSkip();
+    scene.setStage(G.def.stage, true);
+    scene.camX = Math.ceil((scene.camX + W * 0.55) / W) * W;
+    spawn();
+    engage();
+    var e = G.enemy;
+    e.hp = e.hpShown = e.hpLost = kept(f.hp, 1, e.maxHp, e.maxHp);
+    e.pace = e.shown = kept(f.pace, 0, CONFIG.MAX_PACE, CONFIG.START);
+    e.stepT = kept(f.stepT, 0, e.interval, 0);
+    e.attack = kept(f.attack, 0, 1, 0); e.struck = !!f.struck;
+    G.flawless = !!f.flawless;
+    G.def.prompt.answers.forEach(function (a) { byKey[a.key] = a; });
+    (f.used || []).forEach(function (u) {
+      var a = typeof u === 'string' ? byKey[u] : u;
+      if (a && a.key && a.name && !G.used[a.key]) { G.used[a.key] = true; G.usedList.push(a); }
+    });
+    el.feedback.textContent = '';
+    drawChips(); drawHud(); drawFoe();
+  }
+
+  /** Take up today's wall where it was left, then play out the time since. */
+  function rejoin(d) {
+    var since = d.at ? (Date.now() - d.at) / 1000 : 0;
+    if (G.lives <= 0) { finish(false); return; }
+    if (G.idx >= G.total) { finish(true); return; }
+    if (d.foe) face(d.foe); else approach();
+    catchUp(since);
+    keep();
+  }
+
+  /**
+   * Play out time that passed with no one at the wall. A long absence is played out unseen
+   * and unheard, and the foe does not wait on the archives through it; what it cost is told
+   * on coming back.
+   */
+  function catchUp(seconds) {
+    if (!(seconds > 0) || !G.mode || G.phase === 'title' || G.phase === 'over') return;
+    var quiet = seconds >= AWAY.quiet, torches = G.lives, sound = WW.Sound.enabled, left = Math.min(seconds, AWAY.most);
+    if (quiet) { absent = true; WW.Sound.enabled = false; }
+    try {
+      while (left > 0 && G.phase !== 'over') { update(Math.min(AWAY.step, left)); left -= AWAY.step; }
+    } finally {
+      absent = false; WW.Sound.enabled = sound;
+    }
+    if (!quiet) return;
+    G.bits = []; G.arcs = []; G.trail = []; G.fx = []; G.shake = 0; G.stop = 0;
+    if (G.phase === 'over') return;
+    var e = G.enemy, lost = torches - G.lives;
+    if (e && G.phase === 'fight') { e.shown = e.pace; e.hop = 0; }
+    if (lost > 0) {
+      feedback('miss', 'While you were away, ' + (lost === 1 ? 'a torch' : lost + ' torches') + ' went out. The foes do not wait.', 7000);
+    } else if (seconds >= 3 && G.phase === 'fight') {
+      feedback('tip', 'The ' + NAMES[e.kind].toLowerCase() + ' kept coming while you were away.', 5200);
+    }
   }
 
   function stepEnemy(quiet) {
@@ -656,6 +760,7 @@
       strike(blow.dmg, blow.combo, function () { impact(e, blow); });
     }
     drawChips(); drawHud(); drawFoe();
+    keep();
   }
 
   /** The moment the blade lands: the damage shows, the foe is thrown back, and the sparks fly. */
@@ -676,6 +781,7 @@
     if (blow.killed) { shatter(e); e.gone = true; sfx.fell(); }
     sfx.hit(dmg, blow.combo);
     if (!calm) { G.shake = [0, 0.16, 0.24, 0.44][dmg] + (blow.killed ? 0.1 : 0); G.stop = [0, 0.04, 0.06, 0.11][dmg]; }
+    keep();
   }
 
   /** A name that is not on the roll: the foe gains ground and the combo is lost. No torch goes out. */
@@ -686,6 +792,7 @@
     sfx.wrong();
     if (!calm) G.shake = 0.12;
     for (var i = 0; i < CONFIG.WRONG_STEP && G.enemy.attack === 0; i++) stepEnemy(true);
+    keep();
   }
 
   /** A torch goes out. Returns false if it was the last. */
@@ -698,16 +805,17 @@
     veil('hurt');
     sfx.miss();
     drawHud();
-    if (G.mode === 'daily' && store.daily) { store.daily.lives = G.lives; store.daily.combo = 0; save(); }
     if (G.lives <= 0) {
       var told = record('X');
       G.phase = 'falling'; G.phaseT = 0;
       feedback('miss', text + ' The last torch goes out.', 6000);
       closePrompt(told);
       sfx.fall();
+      keep();
       return false;
     }
     feedback('miss', text + ' A torch goes out.');
+    keep();
     return true;
   }
 
@@ -740,6 +848,7 @@
     G.reveal = name + ' slipped past. ' + told;
     closePrompt(G.reveal);
     drawFoe('Slipped past');
+    keep();
   }
 
   // ---------- sparks and such ----------
@@ -835,25 +944,20 @@
 
   function afterEnemy() {
     G.idx++;
-    if (G.mode === 'daily') {
-      var d = store.daily;
-      d.idx = G.idx; d.results = G.results.slice(); d.recap = G.recap.slice();
-      d.lives = G.lives; d.score = G.score; d.combo = G.combo; d.best = G.bestCombo;
-      save();
-    }
     if (G.mode === 'daily' && G.idx >= G.total) { finish(true); return; }
-    approach();
+    approach(); // which writes down where the wall now stands
   }
 
   function finish(held) {
     G.phase = 'over'; G.enemy = null; G.strike = null; G.hero.dx = 0; G.hero.dy = 0; G.prompt = null; G.reveal = '';
     var felled = D.felledCount(G.results);
     var s = store.stats, comboLine = G.bestCombo > 1 ? ' Best combo ×' + G.bestCombo + '.' : '';
+    var away = absent && !held; // it fell with no one there
     if (G.mode === 'daily') {
       var d = store.daily;
       if (!d.done) {
-        d.done = true; d.held = held; d.results = G.results.slice(); d.recap = G.recap.slice();
-        d.score = G.score; d.lives = G.lives; d.best = G.bestCombo;
+        d.done = true; d.held = held; d.away = away; d.results = G.results.slice(); d.recap = G.recap.slice();
+        d.score = G.score; d.lives = G.lives; d.best = G.bestCombo; d.idx = G.idx; d.foe = null;
         if (s.lastNum !== G.num) {
           s.played++;
           s.streak = s.lastNum === G.num - 1 ? s.streak + 1 : 1;
@@ -868,7 +972,7 @@
       s.bestEndless = Math.max(s.bestEndless, G.score);
       el.endKicker.textContent = 'Endless march';
       el.endTitle.textContent = 'The wall fell';
-      el.endRank.textContent = felled + (felled === 1 ? ' foe' : ' foes') + ' felled.' + comboLine +
+      el.endRank.textContent = (away ? AWAY_FELL : '') + felled + (felled === 1 ? ' foe' : ' foes') + ' felled.' + comboLine +
         (best && G.score > 0 ? ' A new best.' : ' Best ' + D.fmt(s.bestEndless) + ' glory.');
       el.endMarks.hidden = true;
       el.copyBtn.hidden = true;
@@ -893,7 +997,7 @@
     var total = d.total || 5, felled = D.felledCount(d.results), lives = d.lives == null ? 0 : d.lives;
     el.endKicker.textContent = 'Wall No. ' + num;
     el.endTitle.textContent = heldOut(d) ? (felled === total ? 'The wall stands unbroken' : 'The wall held') : 'The wall fell';
-    el.endRank.textContent = D.rankFor(d.score) + '. ' + felled + ' of ' + total + ' felled, ' +
+    el.endRank.textContent = (d.away ? AWAY_FELL : '') + D.rankFor(d.score) + '. ' + felled + ' of ' + total + ' felled, ' +
       lives + (lives === 1 ? ' torch' : ' torches') + ' still burning.' + (d.best > 1 ? ' Best combo ×' + d.best + '.' : '');
     el.endMarks.innerHTML = marksHtml(d.results, total, 36);
     el.endMarks.hidden = false;
@@ -964,7 +1068,7 @@
       el.dailyDone.setAttribute('aria-label', 'Wall No. ' + num + (heldOut(today) ? ' held' : ' fell') + ', ' + D.fmt(today.score) +
         ' glory. See today\'s result and answers.');
     } else {
-      el.dailyLabel.textContent = today && today.idx > 0 ? 'Return to the wall' : 'Hold today\'s wall';
+      el.dailyLabel.textContent = today ? 'Return to the wall' : 'Hold today\'s wall';
     }
     el.endlessBest.textContent = s.bestEndless ? 'Best ' + D.fmt(s.bestEndless) : 'No end';
     // until the switch has been used (or a few walls played), it asks to be noticed
@@ -986,6 +1090,7 @@
   function tick() {
     var left = clock(D.msToNextWall()), text = 'Next wall in ' + left;
     el.nextIn.textContent = text;
+    if (!document.hidden) keep(); // so that even a page that dies without warning loses no more than a second
     var n = D.dayNumber();
     if (n !== lastNum) { lastNum = n; if (!el.menu.hidden) { drawMenu(); return; } }
     if (el.menu.hidden) return;
@@ -995,8 +1100,9 @@
     if (today && today.done) {
       el.stats.textContent = text + '. ' + streak;
     } else {
-      el.dailySub.textContent = today && today.idx > 0
-        ? 'Foe ' + (today.idx + 1) + ' of ' + (today.total || 5) + ' is waiting'
+      // a wall once begun goes on without the player: its foe is not waiting at the gate
+      el.dailySub.textContent = today
+        ? 'Foe ' + Math.min(today.idx + 1, today.total || 5) + ' of ' + (today.total || 5) + ' is still coming'
         : 'Five foes. ' + left + ' left today.';
       el.stats.textContent = s.played
         ? streak + 'Walls held ' + s.played + '.' + (s.best ? ' Best ' + D.fmt(s.best) + ' glory.' : '')
@@ -1209,7 +1315,7 @@
           loseTorch('The ' + NAMES[e.kind].toLowerCase() + ' reaches you.');
         }
         if (e.attack > 0.55 && G.phase === 'fight') { e.attack = 0; e.pace = CONFIG.START; e.stepT = 0; }
-      } else if (!G.strike && !G.asking) {
+      } else if (!G.strike && (!G.asking || absent)) {
         e.stepT += dt;
         if (e.stepT >= e.interval) { e.stepT -= e.interval; stepEnemy(); }
       }
@@ -1452,8 +1558,11 @@
 
   var last = 0;
   function loop(now) {
-    var dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+    var dt = Math.min(0.05, Math.max(0, (now - last) / 1000)), wall = Date.now();
+    var gone = (wall - clockAt) / 1000 - dt; // time the page did not run for: hidden, asleep or stalled
     last = now;
+    clockAt = wall;
+    if (gone > AWAY.gap) catchUp(gone);
     update(dt);
     render();
     window.requestAnimationFrame(loop);
@@ -1468,12 +1577,12 @@
   });
   el.playDaily.addEventListener('click', function () {
     var d = store.daily;
-    startRun('daily', !!(d && d.num === D.dayNumber() && !d.done && d.idx > 0));
+    startRun('daily', !!(d && d.num === D.dayNumber() && !d.done));
   });
   el.playEndless.addEventListener('click', function () { startRun('endless'); });
   el.againBtn.addEventListener('click', function () { startRun('endless'); });
   el.homeBtn.addEventListener('click', toMenu);
-  el.quitBtn.addEventListener('click', toMenu);
+  el.quitBtn.addEventListener('click', function () { keep(); toMenu(); });
   el.copyBtn.addEventListener('click', function () { copyResult(el.copyBtn); });
   el.dailyDone.addEventListener('click', showResult);
   el.soundBtn.addEventListener('click', function () {
@@ -1482,7 +1591,10 @@
   });
   // browsers allow sound only after a tap or a key press: the score starts on the first one, and rests while the page is hidden
   ['pointerdown', 'touchend', 'click', 'keydown'].forEach(function (name) { window.addEventListener(name, function () { WW.Sound.wake(); }, { passive: true }); });
-  document.addEventListener('visibilitychange', function () { if (document.hidden) WW.Sound.hush(); else WW.Sound.wake(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { keep(); WW.Sound.hush(); } else WW.Sound.wake();
+  });
+  window.addEventListener('pagehide', keep);
   // the key to the marks, in the how-to
   if (el.markKey) {
     el.markKey.innerHTML = 'After a wall, each foe has its mark: ' + ['K', 'F', 'W', 'S', 'X'].map(function (c) {
@@ -1522,6 +1634,9 @@
     layout();
     scene.setStage(2, true);
     toMenu();
+    // a wall begun today has gone on without the player: straight back to it, not to the gate
+    var d = store.daily;
+    if (d && !d.done && d.at && d.num === D.dayNumber()) startRun('daily', true);
     // the arrival flourish plays once; after it the plates answer to the hand again
     window.setTimeout(function () { el.app.classList.remove('intro'); }, 1900);
     last = window.performance.now();
