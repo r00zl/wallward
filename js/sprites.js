@@ -365,9 +365,96 @@
 
   // ---------- small pictures for the interface ----------
   var FLAME = ['....k', '...kyk', '...kyok', '..kyyok', '..kyyook', '.kyyyook', '.kyyyoork', '.kyyooork', '..kooork', '...kkkk'];
+  // How each foe of a wall ended, a twelve-pixel square apiece. (Copied results say the same in emoji.)
+  var MARK = { k: K, w: '#e8e2cf', g: '#a9a394', s: '#eef3f8', t: '#8f9fb4', y: '#d9a441', n: '#7a5232',
+    r: '#c9382f', o: '#f08a2c', e: '#ffe08a', b: '#5a5468', c: '#2c2936' };
   var ICONS = {
     flame: { pal: { k: K, y: '#ffe08a', o: '#f08a2c', r: '#c9382f' }, rows: FLAME },
-    flameOut: { pal: { k: K, y: '#4a4658', o: '#3a3646', r: '#2c2936' }, rows: FLAME }
+    flameOut: { pal: { k: K, y: '#4a4658', o: '#3a3646', r: '#2c2936' }, rows: FLAME },
+    // felled outright by the oldest answer: a skull
+    markK: { pal: MARK, rows: [
+      '...kkkkkk...',
+      '..kwwwwwwk..',
+      '.kwwwwwwwwk.',
+      '.kwwwwwwwgk.',
+      '.kwkkwwkkgk.',
+      '.kwkkwwkkgk.',
+      '.kwwwkkwwgk.',
+      '..kwwwwwgk..',
+      '..kwkwkwgk..',
+      '..kwkwkwgk..',
+      '...kkkkkk...',
+      '............'] },
+    // felled without a slip: crossed swords
+    markF: { pal: MARK, rows: [
+      's..........s',
+      'ts........st',
+      '.ts......st.',
+      '..ts....st..',
+      '...ts..st...',
+      '....tsst....',
+      '.....ss.....',
+      '..y.stts.y..',
+      '...yt..ty...',
+      '..n.y..y.n..',
+      '.y........y.',
+      '............'] },
+    // felled, though not cleanly: one sword
+    markW: { pal: MARK, rows: [
+      '...........s',
+      '..........st',
+      '.........st.',
+      '........st..',
+      '.......st...',
+      '......st....',
+      '.y...st.....',
+      '..y.st......',
+      '...y........',
+      '..n.y.......',
+      '.y...y......',
+      'y...........'] },
+    // skipped: gone like the wind
+    markS: { pal: MARK, rows: [
+      '............',
+      '.....ggg....',
+      '....g...g...',
+      '........g...',
+      'wwwwwwww....',
+      '............',
+      '.wwwwwwwww..',
+      '..........g.',
+      '.........g..',
+      'wwwwwww.....',
+      '............',
+      '............'] },
+    // the wall fell here
+    markX: { pal: MARK, rows: [
+      '.....rr.....',
+      '.r...oo...r.',
+      '..ro.oo.or..',
+      '...oooooo...',
+      '..ooeeeeoo..',
+      'rroeewweeorr',
+      'rroeewweeorr',
+      '..ooeeeeoo..',
+      '...oooooo...',
+      '..ro.oo.or..',
+      '.r...oo...r.',
+      '.....rr.....'] },
+    // a foe never met
+    markNone: { pal: MARK, rows: [
+      '............',
+      '............',
+      '............',
+      '....bbbb....',
+      '...bccccb...',
+      '...bc..cb...',
+      '...bc..cb...',
+      '...bccccb...',
+      '....bbbb....',
+      '............',
+      '............',
+      '............'] }
   };
 
   function compose(bodyRows, legRows, pal, bob) {

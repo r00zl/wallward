@@ -48,7 +48,7 @@
     'playEndless', 'endlessBest', 'howBtn', 'almanacBtn', 'soundBtn', 'soundLabel', 'stats',
     'fightTop', 'health', 'foe', 'qText', 'rule', 'chips', 'fightBottom', 'answerForm', 'answer', 'skipBtn', 'strikeBtn', 'feedback',
     'end', 'endKicker', 'endTitle', 'endScore', 'endRank', 'endMarks', 'copyBtn', 'againBtn', 'homeBtn', 'nextIn', 'endRecap',
-    'copyBox', 'copyText', 'howto', 'howClose', 'book', 'bookTitle', 'bookBody', 'bookClose'].forEach(function (id) { el[id] = $(id); });
+    'copyBox', 'copyText', 'howto', 'howClose', 'markKey', 'book', 'bookTitle', 'bookBody', 'bookClose'].forEach(function (id) { el[id] = $(id); });
   // A browser can hold an old copy of the page beside this newer script. Then the page lacks
   // what the script expects: fetch it afresh, once, rather than fail.
   if (!el.dailyLabel) {
@@ -175,6 +175,24 @@
 
   var flameOn = Sp.iconURL('flame', 3), flameOff = Sp.iconURL('flameOut', 3);
 
+  // How each foe of a wall ended, as a small picture. On the page these stand where a copied
+  // result has emoji (see shareText in daily.js): the pictures belong to the game, the emoji travel.
+  var MARK_NAME = { K: 'Felled outright by the oldest answer', F: 'Felled without a slip', W: 'Felled', S: 'Skipped', X: 'The wall fell here' };
+  var markURL = {};
+  /** One mark, `px` pixels square: 24 or 36, so that each of its twelve pixels lands on whole screen pixels. */
+  function markImg(code, px) {
+    var name = MARK_NAME[code] ? 'mark' + code : 'markNone', key = name + px;
+    // (a browser holding an older set of pictures has none of these: it shows the emoji instead)
+    try { if (!markURL[key]) markURL[key] = Sp.iconURL(name, px / 12); } catch (e) { return '<span>' + D.markRow([code], 1) + ' </span>'; }
+    var says = MARK_NAME[code] || 'Not met';
+    return '<img class="mk" alt="' + says + '." title="' + says + '" width="' + px + '" height="' + px + '" src="' + markURL[key] + '">';
+  }
+  function marksHtml(results, total, px) {
+    var html = '';
+    for (var i = 0; i < total; i++) html += markImg(results[i], px);
+    return html;
+  }
+
   function drawHud() {
     var i, html = '';
     for (i = 0; i < CONFIG.LIVES; i++) html += '<img alt="" width="27" height="30" src="' + (i < G.lives ? flameOn : flameOff) + '">';
@@ -277,7 +295,7 @@
   function recapHtml(results, recap) {
     return (recap || []).map(function (r, i) {
       var tip = r.tip || r.oldest; // walls saved before the tip was kept hold the oldest answer in its place
-      return '<li><p class="asked">' + D.markRow([results[i]], 1) + ' ' + esc(r.q) + '</p>' +
+      return '<li><p class="asked">' + markImg(results[i], 24) + esc(r.q) + '</p>' +
         '<p>You: ' + (r.given.length ? esc(r.given.join(' · ')) : 'no answer') + '</p>' +
         (r.found ? '<p class="found">You found the oldest answer.</p>' : '<p class="tip">A 3-damage answer: ' + esc(tip) + '</p>') + '</li>';
     }).join('');
@@ -877,7 +895,7 @@
     el.endTitle.textContent = heldOut(d) ? (felled === total ? 'The wall stands unbroken' : 'The wall held') : 'The wall fell';
     el.endRank.textContent = D.rankFor(d.score) + '. ' + felled + ' of ' + total + ' felled, ' +
       lives + (lives === 1 ? ' torch' : ' torches') + ' still burning.' + (d.best > 1 ? ' Best combo ×' + d.best + '.' : '');
-    el.endMarks.textContent = D.markRow(d.results, total);
+    el.endMarks.innerHTML = marksHtml(d.results, total, 36);
     el.endMarks.hidden = false;
     el.copyBtn.hidden = false;
     el.againBtn.textContent = 'Endless march';
@@ -941,7 +959,7 @@
     el.dailyDone.hidden = !done;
     if (done) {
       el.doneLine.textContent = 'Wall No. ' + num + (heldOut(today) ? ' held' : ' fell');
-      el.doneMarks.textContent = D.markRow(today.results, today.total || 5);
+      el.doneMarks.innerHTML = marksHtml(today.results, today.total || 5, 24);
       el.doneScore.textContent = D.fmt(today.score);
       el.dailyDone.setAttribute('aria-label', 'Wall No. ' + num + (heldOut(today) ? ' held' : ' fell') + ', ' + D.fmt(today.score) +
         ' glory. See today\'s result and answers.');
@@ -1465,6 +1483,12 @@
   // browsers allow sound only after a tap or a key press: the score starts on the first one, and rests while the page is hidden
   ['pointerdown', 'touchend', 'click', 'keydown'].forEach(function (name) { window.addEventListener(name, function () { WW.Sound.wake(); }, { passive: true }); });
   document.addEventListener('visibilitychange', function () { if (document.hidden) WW.Sound.hush(); else WW.Sound.wake(); });
+  // the key to the marks, in the how-to
+  if (el.markKey) {
+    el.markKey.innerHTML = 'After a wall, each foe has its mark: ' + ['K', 'F', 'W', 'S', 'X'].map(function (c) {
+      return '<span>' + markImg(c, 24) + MARK_NAME[c].toLowerCase() + '</span>';
+    }).join(' ');
+  }
   el.howBtn.addEventListener('click', function () { openDialog(el.howto); });
   el.howClose.addEventListener('click', function () { closeDialog(el.howto); });
   el.almanacBtn.addEventListener('click', function () { openBook('Almanac', almanacHtml()); });
