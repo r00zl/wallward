@@ -90,7 +90,9 @@ Predate No. 1 · 8,765 glory
 ```
 
 💀 felled outright by the oldest answer, ⚔️ felled without a slip, 🗡️ felled,
-💨 skipped, 💥 the wall fell there.
+💨 skipped, 💥 the wall fell there. The emoji are for copying only: inside the
+game the same five marks are small pixel pictures (a skull, crossed swords, a
+sword, a gust, a burst), drawn in `js/sprites.js` like everything else.
 
 **After the wall** the end screen lists every question with the answers you
 gave and a three-damage answer to each; at the gate, the plate for a wall
