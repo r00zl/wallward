@@ -93,8 +93,8 @@ Predate No. 1 · 8,765 glory
 💨 skipped, 💥 the wall fell there.
 
 **After the wall** the end screen lists every question with the answers you
-gave and a three-damage answer to each; "Today's answers" at the gate shows it
-again. The **Almanac** at the gate keeps every oldest answer you have ever
+gave and a three-damage answer to each; at the gate, the plate for a wall
+already held opens the whole result again. The **Almanac** at the gate keeps every oldest answer you have ever
 given, out of all the questions in the bank.
 
 **Endless march** has no end: foes gain health and speed, and the questions get
