@@ -18,7 +18,7 @@
   var NOISE = {}, TITLE = {};
   ('the of a an and battle siege fall treaty peace empire dynasty dynasties kingdom house war wars revolution revolutions ' +
    'crusade crusades period era age ages shogunate civilisation civilization culture operation project ' +
-   'programme program hms rms uss ss rrs hmhs hmy').split(' ').forEach(function (w) { NOISE[w] = true; });
+   'programme program hms rms uss ss rrs hmhs hmy university').split(' ').forEach(function (w) { NOISE[w] = true; });
   // Titles only count as filler in front of a name ("King Harold"), never inside one ("Martin Luther King").
   ('king queen emperor empress tsar czar kaiser president sir lord lady general captain admiral commodore duke ' +
    'earl viscount marquess count pharaoh sultan pope prince princess dr chairman shah chancellor ' +

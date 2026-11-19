@@ -31,9 +31,10 @@
   var WITHIN = 4;      // and the larger event a thing is part of (a battle, in a campaign, on a front, of a war)
   var ACTIVE = 30;     // years after birth at which a person's deeds are taken to begin
 
-  // P17 country, P31 instance of, P106 occupation, P279 subclass of, P361 part of, P710 participant;
-  // P569 birth, P571 inception, P577 publication, P580 start, P585 point in time,
-  // P606 first flight, P619 launch, P729 entry into service, P6949 announcement
+  // P17 country, P31 instance of, P50 author, P106 occupation, P136 genre, P279 subclass of, P361 part of,
+  // P710 participant, P7937 form of creative work; P569 birth, P571 inception, P577 publication, P580 start, P585 point in time,
+  // P606 first flight, P619 launch, P729 entry into service, P1191 first performance, P1619 opening,
+  // P6949 announcement
   /**
    * People of a calling, or of any calling beneath it (a poet is a writer). Dated by
    * birth, or `shift` years after it for a roll dated by what a person did.
@@ -84,7 +85,16 @@
     // everyday knowledge
     'video-games': things(['Q7889'], ['P577']),
     phones: things(['Q19723444'], ['P577', 'P571', 'P6949']),             // cell phone model (a smartphone model is one)
-    'football-clubs': things(['Q476028'], ['P571'], null, ['P17', 'Q145']) // association football club, in the United Kingdom
+    'football-clubs': things(['Q476028'], ['P571'], null, ['P17', 'Q145']), // association football club, in the United Kingdom
+    airlines: things(['Q46970'], ['P571']),
+    'car-makers': things(['Q786820'], ['P571']),
+    'fast-food': things(['Q18534542', 'Q18509232'], ['P571']),             // restaurant chain, fast-food restaurant chain
+    'social-media': things(['Q3220391'], ['P571', 'P577', 'P1619']),       // social networking service
+    sitcoms: things(['Q5398426'], ['P580', 'P577'], null, ['P136', 'Q170238']), // television series whose genre is sitcom
+    musicals: things(['Q58483083'], ['P1191', 'P577', 'P571'], null, ['P7937', 'Q2743']), // a work for the musical stage, in the form of a musical
+    'stephen-king-novels': things(['Q7725634'], ['P577'], null, ['P50', 'Q39829']), // literary work, by Stephen King
+    'roald-dahl-books': things(['Q7725634'], ['P577'], null, ['P50', 'Q25161']),    // ...or by Roald Dahl
+    universities: things(['Q3918'], ['P571'])
   };
 
   // ---------- reading what the archives say ----------

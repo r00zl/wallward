@@ -5,8 +5,8 @@
  * The puzzle changes at 00:00 UTC.
  *
  * Questions drawn from the same roll of names (a "family") never share a day,
- * and no question returns for at least a week. A bigger bank means longer gaps,
- * automatically.
+ * and no question returns until more than a month has gone by. That takes a
+ * bank big enough to fill each foe's place for a month: see the tests.
  */
 (function (root) {
   'use strict';
@@ -65,7 +65,7 @@
   // question is never brought back before MIN_GAP days have passed, two questions
   // from one roll never share a day, and a roll used yesterday is avoided today.
   var SEASON = 30;
-  var MIN_GAP = { 1: 12, 2: 20, 3: 10 };
+  var MIN_GAP = { 1: 32, 2: 32, 3: 32 }; // more than a month, so the same question never turns up twice in one
   var calendar = { bank: null, days: [], lastUse: {}, lastFam: {} };
 
   function buildSeason(cal, bank, s) {

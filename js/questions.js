@@ -28,6 +28,13 @@
  *   V(id, base, tier, question, [cut3, cut2], from, to, pattern?)
  *     a narrower question drawn from a roll above (a "variant"). Names outside
  *     from..to are recognised but refused.
+ *
+ *   R(id, datedBy, roll, 'P'?) is a roll that is never asked whole and only
+ *   feeds variants.
+ *
+ *   No question may be answerable from its own wording. "Name a Star Wars
+ *   film" fails: the oldest is Star Wars, so typing the question back fells
+ *   the foe outright. The tests type every question back at itself.
  */
 (function (root) {
   'use strict';
@@ -35,6 +42,8 @@
   var LISTS = [], VARIANTS = [];
   var TOPIC = 'history'; // what the rolls being declared are about: 'history' or 'everyday'
   function L(id, tier, q, by, cut, roll, flag) { LISTS.push({ id: id, tier: tier, q: q, by: by, cut: cut, roll: roll, people: flag === 'P', topic: TOPIC }); }
+  // a roll that is not asked whole, kept to feed narrower questions (its oldest name gives the game away, say)
+  function R(id, by, roll, flag) { LISTS.push({ id: id, by: by, roll: roll, people: flag === 'P', topic: TOPIC, unasked: true }); }
   function V(id, base, tier, q, cut, from, to, pattern) { VARIANTS.push({ id: id, base: base, tier: tier, q: q, cut: cut, from: from, to: to, pattern: pattern || null }); }
 
   // ======================= tier 1 =======================
@@ -1170,7 +1179,7 @@ Võ Nguyên Giáp|1954|Giap;General Giap
 Che Guevara|1956
 Norman Schwarzkopf|1991`, 'P');
 
-  L('eras', 1, 'Name an age or era of history.', 'when it began', [-1000, 1499], `
+  L('eras', 1, 'Name an age or era of the past.', 'when it began', [-1000, 1499], `
 Ice Age|~-2600000|Pleistocene;Last Ice Age
 Stone Age|~-3300000|Paleolithic;Palaeolithic;Old Stone Age
 Mesolithic|~-10000|Middle Stone Age
@@ -1987,20 +1996,208 @@ Ligny|1815.45
 Quatre Bras|1815.46
 Waterloo|1815.47`);
 
-  L('crusades', 3, 'Name a crusade.', 'when it set out', [1101, 1204], `
-People's Crusade|1096|Peasants' Crusade
-First Crusade|1096.5
-Second Crusade|1147
-Northern Crusades|1147.5|Baltic Crusades;Northern Crusade;Baltic Crusade
-Third Crusade|1189
-Fourth Crusade|1202
-Albigensian Crusade|1209|Cathar Crusade
-Children's Crusade|1212
-Fifth Crusade|1217
-Sixth Crusade|1228
-Seventh Crusade|1248
-Eighth Crusade|1270
-Ninth Crusade|1271|Lord Edward's Crusade`);
+  L('popes', 3, 'Name a pope elected since 1500.', 'election', [1599.99, 1799.99], `
+Pius III|1503
+Julius II|1503.8
+Leo X|1513
+Adrian VI|1522|Hadrian VI
+Clement VII|1523
+Paul III|1534
+Julius III|1550
+Marcellus II|1555
+Paul IV|1555.4
+Pius IV|1559
+Pius V|1566
+Gregory XIII|1572
+Sixtus V|1585
+Urban VII|1590
+Gregory XIV|1590.9
+Innocent IX|1591
+Clement VIII|1592
+Leo XI|1605
+Paul V|1605.4
+Gregory XV|1621
+Urban VIII|1623
+Innocent X|1644
+Alexander VII|1655
+Clement IX|1667
+Clement X|1670
+Innocent XI|1676
+Alexander VIII|1689
+Innocent XII|1691
+Clement XI|1700
+Innocent XIII|1721
+Benedict XIII|1724
+Clement XII|1730
+Benedict XIV|1740
+Clement XIII|1758
+Clement XIV|1769
+Pius VI|1775
+Pius VII|1800
+Leo XII|1823
+Pius VIII|1829
+Gregory XVI|1831
+Pius IX|1846|Pio Nono
+Leo XIII|1878
+Pius X|1903
+Benedict XV|1914
+Pius XI|1922
+Pius XII|1939
+John XXIII|1958
+Paul VI|1963
+John Paul I|1978
+John Paul II|1978.8
+Benedict XVI|2005|Joseph Ratzinger;Ratzinger
+Francis|2013|Jorge Bergoglio;Bergoglio
+Leo XIV|2025|Robert Prevost;Prevost`);
+
+  L('universities', 2, 'Name a university.', 'founding', [1299.99, 1599.99], `
+Nalanda|~427|Nalanda University
+University of al-Qarawiyyin|859|al-Qarawiyyin;Al Qarawiyyin;Qarawiyyin;Al Quaraouiyine;Karaouine
+Al-Azhar University|970|Al-Azhar;Al Azhar
+University of Bologna|1088|Bologna
+University of Oxford|~1096|Oxford
+University of Paris|~1150|Sorbonne;The Sorbonne;Paris
+University of Cambridge|1209|Cambridge
+University of Salamanca|1218|Salamanca
+University of Montpellier|1220|Montpellier
+University of Padua|1222|Padua;Padova
+University of Naples Federico II|1224|University of Naples;Naples
+University of Toulouse|1229|Toulouse
+University of Siena|1240|Siena
+University of Valladolid|1241|Valladolid
+University of Coimbra|1290|Coimbra
+Complutense University of Madrid|1293|Complutense;University of Madrid;Madrid
+Sapienza University of Rome|1303|Sapienza;La Sapienza;University of Rome;Rome
+University of Perugia|1308|Perugia
+University of Florence|1321|Florence
+University of Pisa|1343|Pisa
+Charles University|1348|Charles University in Prague;University of Prague;Prague
+University of Pavia|1361|Pavia
+Jagiellonian University|1364|University of Kraków;University of Krakow;Kraków;Krakow
+University of Vienna|1365|Vienna
+Heidelberg University|1386|Heidelberg
+University of Cologne|1388|Cologne
+Leipzig University|1409|Leipzig
+University of St Andrews|1413|St Andrews
+University of Rostock|1419|Rostock
+KU Leuven|1425|Leuven;University of Leuven;Louvain;University of Louvain
+University of Barcelona|1450|Barcelona
+University of Glasgow|1451|Glasgow
+University of Freiburg|1457|Freiburg
+University of Basel|1460|Basel
+Ludwig Maximilian University of Munich|1472|LMU Munich;University of Munich;LMU;Munich
+Uppsala University|1477|Uppsala
+University of Tübingen|1477.5|Tübingen;Tubingen;University of Tubingen
+University of Copenhagen|1479|Copenhagen
+University of Aberdeen|1495|Aberdeen
+University of Wittenberg|1502|Wittenberg
+University of Marburg|1527|Marburg
+University of Königsberg|1544|Königsberg;Konigsberg;University of Konigsberg
+National University of San Marcos|1551|San Marcos
+National Autonomous University of Mexico|1551.7|UNAM;University of Mexico
+University of Jena|1558|Jena
+University of Geneva|1559|Geneva
+Leiden University|1575|Leiden
+University of Edinburgh|1583|Edinburgh
+Trinity College Dublin|1592|Trinity College, Dublin;TCD;University of Dublin;Trinity Dublin
+University of Groningen|1614|Groningen
+University of Amsterdam|1632|Amsterdam
+University of Tartu|1632.5|Tartu
+Harvard University|1636|Harvard
+Utrecht University|1636.3|Utrecht
+University of Helsinki|1640|Helsinki
+Lund University|1666|Lund
+College of William & Mary|1693|William and Mary;William & Mary
+Yale University|1701|Yale
+University of Göttingen|1737|Göttingen;Gottingen;University of Gottingen
+University of Pennsylvania|1740|Penn;UPenn;Pennsylvania
+Princeton University|1746|Princeton
+Columbia University|1754|Columbia
+Moscow State University|1755|Moscow University;MSU;Lomonosov;Moscow
+Brown University|1764|Brown
+Rutgers University|1766|Rutgers
+Dartmouth College|1769|Dartmouth
+Georgetown University|1789|Georgetown
+University of North Carolina|1789.9|UNC;North Carolina
+Humboldt University of Berlin|1810|Humboldt University;University of Berlin;Humboldt;Berlin
+University of Oslo|1811|Oslo
+University of Michigan|1817|Michigan
+University of Virginia|1819|UVA;Virginia
+McGill University|1821|McGill
+University of Buenos Aires|1821.5|Buenos Aires
+University of Manchester|1824|Manchester
+University College London|1826|UCL
+University of Toronto|1827|Toronto
+King's College London|1829|KCL;King's College;Kings College London
+University of Cape Town|1829.5|UCT;Cape Town
+New York University|1831|NYU
+Durham University|1832|Durham
+University of Zurich|1833|Zurich
+University of London|1836|London
+Duke University|1838|Duke
+Boston University|1839|BU;Boston
+University of Notre Dame|1842|Notre Dame
+Queen's University Belfast|1845|Queen's Belfast;Queens University Belfast;QUB;Queen's University
+University of Sydney|1850|Sydney
+Northwestern University|1851|Northwestern
+University of Melbourne|1853|Melbourne
+ETH Zurich|1855|ETH;ETH Zürich
+Massachusetts Institute of Technology|1861|MIT
+Cornell University|1865|Cornell
+University of California, Berkeley|1868|Berkeley;UC Berkeley;University of California
+Ohio State University|1870|Ohio State
+Vanderbilt University|1873|Vanderbilt
+Johns Hopkins University|1876|Johns Hopkins
+University of Tokyo|1877|Tokyo
+University of Liverpool|1881|Liverpool
+University of Nottingham|1881.5|Nottingham
+Cardiff University|1883|Cardiff
+University of Texas at Austin|1883.5|University of Texas;UT Austin;Texas
+Stanford University|1885|Stanford
+University of Chicago|1890|Chicago
+California Institute of Technology|1891|Caltech
+London School of Economics|1895|LSE
+Peking University|1898|Beijing University;PKU;Peking
+University of Birmingham|1900|Birmingham
+Carnegie Mellon University|1900.5|Carnegie Mellon;CMU
+University of Leeds|1904|Leeds
+University of Sheffield|1905|Sheffield
+National University of Singapore|1905.5|NUS;Singapore
+Imperial College London|1907|Imperial;Imperial College
+University of Bristol|1909|Bristol
+Tsinghua University|1911|Tsinghua
+University of Hong Kong|1911.2|HKU;Hong Kong
+UCLA|1919|University of California, Los Angeles
+University of São Paulo|1934|University of Sao Paulo;USP;São Paulo;Sao Paulo
+Australian National University|1946|ANU
+Free University of Berlin|1948|Freie Universität Berlin;Free University
+University of Exeter|1955|Exeter
+University of Sussex|1961|Sussex
+University of York|1963|York
+University of Warwick|1965|Warwick
+University of Bath|1966|Bath
+Open University|1969|The Open University`);
+
+  L('dickens-novels', 2, 'Name a novel or Christmas book by Charles Dickens.', 'publication', [1838.5, 1849.5], `
+The Pickwick Papers|1836.2|Pickwick Papers;Pickwick
+Oliver Twist|1837.1
+Nicholas Nickleby|1838.2
+The Old Curiosity Shop|1840|Old Curiosity Shop
+Barnaby Rudge|1841
+Martin Chuzzlewit|1843
+A Christmas Carol|1843.95|Christmas Carol
+The Chimes|1844|Chimes
+The Cricket on the Hearth|1845|Cricket on the Hearth
+Dombey and Son|1846
+David Copperfield|1849.3
+Bleak House|1852
+Hard Times|1854
+Little Dorrit|1855
+A Tale of Two Cities|1859|Tale of Two Cities
+Great Expectations|1860
+Our Mutual Friend|1864
+The Mystery of Edwin Drood|1870|Edwin Drood;Mystery of Edwin Drood`);
 
   L('thirteen-colonies', 3, 'Name one of the Thirteen Colonies.', 'founding', [1630, 1664], `
 Virginia|1607
@@ -3245,28 +3442,6 @@ Milan|2026|Milano;Milan Cortina;Milano Cortina`);
   // can name one, but who can name the oldest?
   TOPIC = 'everyday';
 
-  L('gta-games', 1, 'Name a Grand Theft Auto game.', 'release', [2000, 2005], `
-Grand Theft Auto|1997|GTA;GTA 1;Grand Theft Auto 1
-Grand Theft Auto: London 1969|1999|GTA London;GTA London 1969;London 1969
-Grand Theft Auto: London 1961|1999|GTA London 1961;London 1961
-Grand Theft Auto 2|1999|GTA 2;GTA2
-Grand Theft Auto III|2001|GTA 3;GTA III;GTA3
-Grand Theft Auto: Vice City|2002|GTA Vice City;Vice City;GTA VC
-Grand Theft Auto Advance|2004|GTA Advance
-Grand Theft Auto: San Andreas|2004|GTA San Andreas;San Andreas;GTA SA
-Grand Theft Auto: Liberty City Stories|2005|GTA Liberty City Stories;Liberty City Stories
-Grand Theft Auto: Vice City Stories|2006|GTA Vice City Stories;Vice City Stories
-Grand Theft Auto IV|2008|GTA 4;GTA IV;GTA4
-Grand Theft Auto: The Lost and Damned|2009|The Lost and Damned;Lost and Damned;GTA The Lost and Damned
-Grand Theft Auto: Chinatown Wars|2009|GTA Chinatown Wars;Chinatown Wars
-Grand Theft Auto: The Ballad of Gay Tony|2009|The Ballad of Gay Tony;Ballad of Gay Tony;GTA The Ballad of Gay Tony
-Grand Theft Auto: Episodes from Liberty City|2009|Episodes from Liberty City
-Grand Theft Auto V|2013|GTA 5;GTA V;GTA5
-Grand Theft Auto Online|2013|GTA Online
-Grand Theft Auto: The Trilogy|2021|GTA Trilogy;The Trilogy;The Definitive Edition;GTA The Trilogy;Grand Theft Auto: The Trilogy – The Definitive Edition
-Grand Theft Auto VI|2026|GTA 6;GTA VI;GTA6
-`);
-
   L('consoles', 1, 'Name a video game console.', 'release', [1979, 1994], `
 Magnavox Odyssey|1972|Odyssey
 Home Pong|1975|Pong;Atari Pong;Pong console
@@ -3813,25 +3988,6 @@ Spectre|2015
 No Time to Die|2021
 `);
 
-  L('star-wars-films', 1, 'Name a Star Wars film.', 'release', [1977, 1985], `
-Star Wars|1977|A New Hope;Episode IV;Star Wars: A New Hope;Episode 4
-The Star Wars Holiday Special|1978|Star Wars Holiday Special;Holiday Special
-The Empire Strikes Back|1980|Empire Strikes Back;Episode V;Episode 5
-Return of the Jedi|1983|Episode VI;Episode 6
-Caravan of Courage: An Ewok Adventure|1984|Caravan of Courage;The Ewok Adventure;Ewok Adventure
-Ewoks: The Battle for Endor|1985|The Battle for Endor;Battle for Endor
-The Phantom Menace|1999|Phantom Menace;Episode I;Episode 1
-Attack of the Clones|2002|Episode II;Episode 2
-Revenge of the Sith|2005|Episode III;Episode 3
-Star Wars: The Clone Wars|2008|The Clone Wars;Clone Wars
-The Force Awakens|2015|Force Awakens;Episode VII;Episode 7
-Rogue One|2016|Rogue One: A Star Wars Story
-The Last Jedi|2017|Last Jedi;Episode VIII;Episode 8
-Solo: A Star Wars Story|2018|Solo
-The Rise of Skywalker|2019|Rise of Skywalker;Episode IX;Episode 9
-The Mandalorian and Grogu|2026|Mandalorian and Grogu;The Mandalorian & Grogu
-`);
-
   L('marvel-films', 1, 'Name a Marvel Cinematic Universe film.', 'release', [2009, 2013], `
 Iron Man|2008.33
 The Incredible Hulk|2008.45|Incredible Hulk
@@ -3887,21 +4043,6 @@ The Tales of Beedle the Bard|2008|Tales of Beedle the Bard;Beedle the Bard
 Harry Potter and the Cursed Child|2016|Cursed Child;The Cursed Child
 `);
 
-  L('taylor-swift-albums', 1, 'Name a Taylor Swift album.', 'release', [2008, 2014], `
-Taylor Swift|2006|Debut;Self-titled
-Fearless|2008|Fearless (Taylor's Version)
-Speak Now|2010|Speak Now (Taylor's Version)
-Red|2012|Red (Taylor's Version)
-1989|2014|1989 (Taylor's Version)
-Reputation|2017
-Lover|2019
-Folklore|2020
-Evermore|2020
-Midnights|2022
-The Tortured Poets Department|2024|Tortured Poets Department;TTPD
-The Life of a Showgirl|2025|Life of a Showgirl;The Life of a Showgirl: The Encore;Showgirl
-`);
-
   L('disney-princesses', 1, 'Name a Disney princess.', 'first film', [1950, 1992], `
 Snow White|1937
 Cinderella|1950
@@ -3933,7 +4074,7 @@ France|1998
 Spain|2010
 `);
 
-  L('apple-products', 1, 'Name an Apple product line.', 'release', [1984, 2001], `
+  R('apple-products', 'release', `
 Apple I|1976|Apple 1;Apple-1
 Apple II|1977|Apple 2
 Apple III|1980|Apple 3
@@ -4261,68 +4402,6 @@ Miles Morales|2011
 
   // ----- tier 2 -----
 
-  L('zelda-games', 2, 'Name a Legend of Zelda game.', 'release', [1987, 1998], `
-The Legend of Zelda|1986|Legend of Zelda;Zelda;Zelda 1
-Zelda II: The Adventure of Link|1987|Zelda 2;Zelda II;The Adventure of Link;Adventure of Link
-A Link to the Past|1991|Link to the Past;The Legend of Zelda: A Link to the Past
-Link's Awakening|1993|Links Awakening
-Link: The Faces of Evil|1993|The Faces of Evil;Faces of Evil
-Zelda: The Wand of Gamelon|1993|The Wand of Gamelon;Wand of Gamelon
-Zelda's Adventure|1994|Zeldas Adventure
-Ocarina of Time|1998|OOT;Ocarina
-Majora's Mask|2000|Majoras Mask
-Oracle of Seasons|2001|Oracle of Ages;Oracle of Seasons and Oracle of Ages
-Four Swords|2002
-The Wind Waker|2002|Wind Waker;Windwaker
-Four Swords Adventures|2004
-The Minish Cap|2004|Minish Cap
-Twilight Princess|2006
-Phantom Hourglass|2007
-Link's Crossbow Training|2007|Links Crossbow Training;Crossbow Training
-Spirit Tracks|2009
-Skyward Sword|2011
-A Link Between Worlds|2013|Link Between Worlds
-Hyrule Warriors|2014
-Tri Force Heroes|2015|Triforce Heroes
-Breath of the Wild|2017|BOTW
-Cadence of Hyrule|2019
-Hyrule Warriors: Age of Calamity|2020|Age of Calamity
-Tears of the Kingdom|2023|TOTK
-Echoes of Wisdom|2024
-Hyrule Warriors: Age of Imprisonment|2025|Age of Imprisonment
-`);
-
-  L('final-fantasy-games', 2, 'Name a Final Fantasy game.', 'release', [1990, 1997], `
-Final Fantasy|1987|Final Fantasy I;Final Fantasy 1;FF1
-Final Fantasy II|1988|FF2
-Final Fantasy III|1990|FF3
-Final Fantasy IV|1991|FF4
-Final Fantasy Adventure|1991
-Final Fantasy V|1992|FF5
-Final Fantasy Mystic Quest|1992|Mystic Quest
-Final Fantasy VI|1994|FF6
-Final Fantasy VII|1997|FF7
-Final Fantasy Tactics|1997|FF Tactics
-Final Fantasy VIII|1999|FF8
-Final Fantasy IX|2000|FF9
-Final Fantasy X|2001|FF10;FFX
-Final Fantasy XI|2002|FF11
-Final Fantasy X-2|2003|FFX-2
-Final Fantasy Crystal Chronicles|2003|Crystal Chronicles
-Final Fantasy XII|2006|FF12
-Crisis Core: Final Fantasy VII|2007|Crisis Core
-Dissidia Final Fantasy|2008|Dissidia
-Final Fantasy XIII|2009|FF13
-Final Fantasy XIV|2010|FF14;A Realm Reborn
-Final Fantasy Type-0|2011|Type-0
-Final Fantasy XV|2016|FF15
-World of Final Fantasy|2016
-Final Fantasy VII Remake|2020|FF7 Remake
-Stranger of Paradise: Final Fantasy Origin|2022|Stranger of Paradise
-Final Fantasy XVI|2023|FF16
-Final Fantasy VII Rebirth|2024|FF7 Rebirth
-`);
-
   L('beatles-albums', 2, 'Name a Beatles studio album.', 'release', [1964, 1966], `
 Please Please Me|1963.2
 With the Beatles|1963.9
@@ -4418,6 +4497,2107 @@ Manchester City|2023|Man City
 Paris Saint-Germain|2025|PSG;Paris St Germain
 `);
 
+  L('fast-food', 1, 'Name a fast-food or restaurant chain.', 'founding', [1941, 1965.99], `
+Yoshinoya|1899
+Nathan's Famous|1916|Nathans;Nathan's
+A&W|1919|A and W;AW;A&W Restaurants
+White Castle|1921
+Harry Ramsden's|1928|Harry Ramsdens
+KFC|1930|Kentucky Fried Chicken
+Krystal|1932
+Wimpy|1934
+Steak 'n Shake|1934.5|Steak n Shake;Steak and Shake
+Krispy Kreme|1937
+Greggs|1939
+Dairy Queen|1940|DQ
+McDonald's|1940.4|McDonalds;Maccies;Maccy D's;Mcdonald
+Carl's Jr.|1941|Carls Jr;Carl's Junior
+Baskin-Robbins|1945|Baskin Robbins
+Chick-fil-A|1946|Chick fil A;Chickfila
+In-N-Out Burger|1948|In-N-Out;In and Out;In N Out
+Dunkin'|1950|Dunkin Donuts;Dunkin' Donuts
+Whataburger|1950.5
+Jack in the Box|1951
+Church's Chicken|1952|Church's;Churchs Chicken;Texas Chicken
+Denny's|1953|Dennys
+Sonic Drive-In|1953.5|Sonic
+Burger King|1954
+Swiss Chalet|1954.5
+Waffle House|1955
+Jersey Mike's|1956|Jersey Mikes
+Pizza Hut|1958
+IHOP|1958.5|International House of Pancakes
+Little Chef|1958.7
+Little Caesars|1959|Little Caesar's
+Harvey's|1959.5|Harveys
+Domino's|1960|Dominos;Domino's Pizza
+Hardee's|1960.5|Hardees
+Taco Bell|1962
+Arby's|1964|Arbys
+Tim Hortons|1964.4|Tim Horton's;Timmies
+Del Taco|1964.7
+Subway|1965
+PizzaExpress|1965.3|Pizza Express
+TGI Fridays|1965.5|TGI Friday's;T.G.I. Friday's;Fridays
+Pizza Pizza|1967
+Red Lobster|1968
+Max Burgers|1968.5|Max Hamburgers;Max
+Wendy's|1969|Wendys
+Cracker Barrel|1969.5
+Long John Silver's|1969.7|Long John Silvers
+Starbucks|1971
+Costa Coffee|1971.3|Costa
+Hard Rock Cafe|1971.5|Hard Rock
+Hungry Jack's|1971.7|Hungry Jacks
+Quick|1971.8
+Popeyes|1972|Popeye's;Popeyes Louisiana Kitchen
+Mos Burger|1972.3
+Chili's|1975|Chilis
+Chuck E. Cheese|1977
+Bojangles|1977.5
+Jollibee|1978
+The Cheesecake Factory|1978.3|Cheesecake Factory
+Supermac's|1978.6|Supermacs
+Wetherspoons|1979|J D Wetherspoon;Wetherspoon;Spoons
+Applebee's|1980|Applebees
+Quiznos|1981
+Olive Garden|1982
+Buffalo Wild Wings|1982.5
+Panda Express|1983
+Hooters|1983.2
+Jimmy John's|1983.4|Jimmy Johns
+Harvester|1983.6
+Pret a Manger|1983.8|Pret
+Papa John's|1984|Papa Johns
+Culver's|1984.5|Culvers
+Cinnabon|1985
+Five Guys|1986
+Nando's|1987|Nandos
+Panera Bread|1987.5|Panera
+Telepizza|1987.8
+Auntie Anne's|1988|Auntie Annes
+Outback Steakhouse|1988.5|Outback
+German Doner Kebab|1989|GDK
+Zaxby's|1990|Zaxbys
+Wagamama|1992|Wagamamas
+Chipotle|1993|Chipotle Mexican Grill
+Wingstop|1994
+Rainforest Cafe|1994.5
+Frankie & Benny's|1995|Frankie and Bennys
+Raising Cane's|1996|Raising Canes;Canes
+YO! Sushi|1997|Yo Sushi
+Caffè Nero|1997.3|Caffe Nero;Nero
+Itsu|1997.6
+Zizzi|1999
+Gourmet Burger Kitchen|2001|GBK
+Shake Shack|2004
+Leon|2004.5
+Byron|2007
+Sweetgreen|2007.2
+Tortilla|2007.5
+Honest Burgers|2011
+Blaze Pizza|2011.5
+Dave's Hot Chicken|2017|Daves Hot Chicken`);
+
+  L('car-makers', 1, 'Name a car maker.', 'founding of the company', [1899.99, 1929.99], `
+Peugeot|1810
+Tatra|1850
+Studebaker|1852
+Holden|1856
+Vauxhall|1857
+Opel|1862
+Mitsubishi|1870
+Rover|1878
+Triumph|1885
+Škoda|1895|Skoda
+Oldsmobile|1897
+Renault|1899
+Buick|1899.4
+Fiat|1899.5
+Packard|1899.8
+Dodge|1900
+Cadillac|1902
+Ford|1903|Ford Motor Company
+Hispano-Suiza|1904|Hispano Suiza
+Austin|1905
+Rolls-Royce|1906|Rolls Royce;Rolls
+Lancia|1906.8
+Daihatsu|1907
+Hillman|1907.5
+Audi|1909
+Bugatti|1909.3
+Suzuki|1909.6
+Maybach|1909.8
+Alfa Romeo|1910|Alfa
+Morgan|1910.3
+Chevrolet|1911|Chevy
+GMC|1911.5
+Morris|1912
+Aston Martin|1913|Aston
+Maserati|1914
+BMW|1916
+Isuzu|1916.5
+Lincoln|1917
+Citroën|1919|Citroen
+Bentley|1919.5
+Mazda|1920
+Jaguar|1922|Jag
+MG|1924
+Chrysler|1925
+Mercedes-Benz|1926|Mercedes;Merc;Benz
+Pontiac|1926.5
+Volvo|1927
+Plymouth|1928
+Datsun|1931
+Porsche|1931.3
+Nissan|1933
+Reliant|1935
+Toyota|1937
+Volkswagen|1937.4|VW
+Ferrari|1939
+Jeep|1941
+Kia|1944
+Saab|1945
+Tata Motors|1945.3|Tata
+Mahindra|1945.6
+TVR|1946
+Honda|1948
+Land Rover|1948.3
+Lotus|1948.6
+Abarth|1949
+SEAT|1950
+Subaru|1953
+Alpine|1955
+Trabant|1957
+De Tomaso|1959
+Lamborghini|1963|Lambo
+McLaren|1963.5
+Dacia|1966
+Lada|1966.4|AvtoVAZ
+Hyundai|1967
+Mini|1969
+Caterham|1973
+DeLorean|1975|DMC;De Lorean
+Maruti Suzuki|1981|Maruti
+Proton|1983
+Great Wall|1984|Great Wall Motor
+Saturn|1985
+Acura|1986
+Geely|1986.5
+Lexus|1989
+Infiniti|1989.5
+Hummer|1992
+Pagani|1992.5
+Koenigsegg|1994
+Smart|1994.5
+Chery|1997
+BYD|2003|BYD Auto
+Tesla|2003.5
+Lucid|2007|Lucid Motors
+Rivian|2009
+Ram|2010|Ram Trucks
+NIO|2014|Nio
+DS|2014.5|DS Automobiles
+Genesis|2015
+Polestar|2017
+VinFast|2017.5|Vinfast
+Cupra|2018`);
+
+  L('car-models', 1, 'Name a model of car.', 'launch', [1949.99, 1979.99], `
+Benz Patent-Motorwagen|1886|Benz Patent Motorwagen;Patent-Motorwagen;Benz Motorwagen;Motorwagen
+Oldsmobile Curved Dash|1901|Curved Dash;Curved Dash Oldsmobile
+Rolls-Royce Silver Ghost|1906|Silver Ghost
+Ford Model T|1908|Model T
+Stutz Bearcat|1912|Bearcat
+Austin 7|1922|Austin Seven
+Bugatti Type 35|1924|Type 35
+Rolls-Royce Phantom|1925|Phantom
+Ford Model A|1927|Model A
+Duesenberg Model J|1928|Duesenberg
+Chrysler Airflow|1934|Airflow
+Citroën Traction Avant|1934.3|Traction Avant;Citroen Traction Avant
+Chevrolet Suburban|1935|Suburban;Chevy Suburban
+Fiat 500 Topolino|1936|Topolino;Fiat Topolino
+Volkswagen Beetle|1938|VW Beetle;Beetle;Volkswagen Type 1
+Lincoln Continental|1939|Continental
+Willys Jeep|1941|Jeep;Willys MB;Willys
+Citroën 2CV|1948|2CV;Citroen 2CV;Deux Chevaux
+Morris Minor|1948.1|Minor
+Land Rover Series I|1948.2|Land Rover;Land Rover Series 1;Series I Land Rover
+Porsche 356|1948.3|356
+Jaguar XK120|1948.4|XK120
+Ford F-Series|1948.5|F-Series;Ford F-150;F-150;F150
+Tucker 48|1948.6|Tucker;Tucker Torpedo
+Volkswagen Type 2|1950|VW Camper;VW Campervan;Volkswagen Camper;VW Bus;Kombi;VW Transporter
+Chevrolet Bel Air|1950.2|Bel Air;Chevy Bel Air
+Toyota Land Cruiser|1951|Land Cruiser
+Chevrolet Corvette|1953|Corvette;Chevy Corvette
+Mercedes-Benz 300 SL|1954|300 SL;300SL;Mercedes 300SL;Gullwing
+Ford Thunderbird|1954.8|Thunderbird;T-Bird
+Citroën DS|1955|Citroen DS
+BMW Isetta|1955.3|Isetta
+Fiat 500|1957|Cinquecento;Fiat Cinquecento;Fiat Nuova 500
+Lotus Seven|1957.2|Lotus 7
+Trabant|1957.4|Trabant 601;Trabi
+Nissan Skyline|1957.5|Skyline;Prince Skyline
+Chevrolet Impala|1958|Impala;Chevy Impala
+Mini|1959|Morris Mini;Austin Mini;Mini Cooper;Morris Mini-Minor
+Austin-Healey 3000|1959.3|Austin Healey 3000
+Jaguar E-Type|1961|E-Type;E Type;Jaguar XK-E
+Renault 4|1961.4|Renault Quatre;4L
+Ford Cortina|1962|Cortina
+AC Cobra|1962.2|Shelby Cobra;Cobra
+MGB|1962.4|MG B
+Triumph Spitfire|1962.6|Spitfire
+Ferrari 250 GTO|1962.8|250 GTO
+Aston Martin DB5|1963|DB5
+Hillman Imp|1963.3|Imp
+Porsche 911|1964|911
+Ford Mustang|1964.3|Mustang
+Ford GT40|1964.4|GT40
+Plymouth Barracuda|1964.25|Barracuda
+Ford Transit|1965|Transit
+Ford Bronco|1965.6|Bronco
+Toyota Corolla|1966|Corolla
+Lamborghini Miura|1966.2|Miura
+Dodge Charger|1966.3|Charger
+Chevrolet Camaro|1966.7|Camaro;Chevy Camaro
+Pontiac Firebird|1967|Firebird
+Ford Escort|1968|Escort
+Toyota Hilux|1968.2|Hilux
+Jaguar XJ|1968.7|XJ6;Jaguar XJ6
+Ford Capri|1969|Capri
+Datsun 240Z|1969.8|240Z;Nissan Fairlady Z;Datsun Z
+Dodge Challenger|1969.85|Challenger
+Range Rover|1970
+Toyota Celica|1970.9|Celica
+Morris Marina|1971|Marina
+Honda Civic|1972|Civic
+Renault 5|1972.1|R5
+BMW 5 Series|1972.6|5 Series
+Ford Granada|1972.2|Granada
+Reliant Robin|1973|Robin Reliant
+Volkswagen Passat|1973.4|Passat;VW Passat
+Austin Allegro|1973.5|Allegro
+Mitsubishi Lancer|1973.1|Lancer
+Volkswagen Golf|1974|Golf;VW Golf
+Lamborghini Countach|1974.2|Countach
+Volvo 240|1974.6|Volvo 244
+Jeep Cherokee|1974.7|Cherokee
+BMW 3 Series|1975|3 Series
+Volkswagen Polo|1975.2|Polo;VW Polo
+Vauxhall Cavalier|1975.8|Cavalier
+Hyundai Pony|1975.9|Pony
+Ford Fiesta|1976|Fiesta
+Honda Accord|1976.4|Accord
+Lotus Esprit|1976.5|Esprit
+Porsche 928|1977|928
+Toyota Supra|1978|Supra
+Mercedes-Benz G-Class|1979|G-Class;G Wagon;G-Wagen;Mercedes G-Wagon
+Vauxhall Astra|1980|Astra;Opel Astra
+Audi Quattro|1980.2|Quattro
+Fiat Panda|1980.3|Panda
+Austin Metro|1980.8|Metro;Mini Metro
+Lada Riva|1980.5|Riva
+DeLorean DMC-12|1981|DeLorean;DMC-12;De Lorean
+Toyota Camry|1982|Camry
+Nissan Micra|1982.8|Micra
+Vauxhall Corsa|1982.7|Corsa;Opel Corsa;Vauxhall Nova
+Ford Sierra|1982.75|Sierra
+Mitsubishi Pajero|1982.4|Pajero;Mitsubishi Shogun;Shogun
+Porsche 944|1982.1|944
+Peugeot 205|1983|205
+Fiat Uno|1983.1|Uno
+Ferrari Testarossa|1984|Testarossa
+Renault Espace|1984.5|Espace
+Toyota MR2|1984.4|MR2
+SEAT Ibiza|1984.3|Ibiza
+Jeep Wrangler|1986|Wrangler
+Porsche 959|1986.3|959
+BMW M3|1986.2|M3
+Ferrari F40|1987|F40
+Mazda MX-5|1989|MX-5;MX5;Miata;Mazda Miata
+Land Rover Discovery|1989.7|Discovery
+Lexus LS|1989.1|Lexus LS 400;LS 400
+Renault Clio|1990|Clio
+Honda NSX|1990.2|NSX;Acura NSX
+Lamborghini Diablo|1990.1|Diablo
+Ford Explorer|1990.3|Explorer
+McLaren F1|1992
+Subaru Impreza|1992.8|Impreza
+Hummer H1|1992.2|H1
+Jeep Grand Cherokee|1992.3|Grand Cherokee
+Dodge Viper|1992.05|Viper
+Ford Mondeo|1993|Mondeo
+Renault Twingo|1993.3|Twingo
+Fiat Punto|1993.7|Punto
+Kia Sportage|1993.5|Sportage
+Toyota RAV4|1994|RAV4;Rav 4
+Audi A4|1994.8|A4
+Honda CR-V|1995|CR-V;CRV
+Renault Mégane|1995.8|Megane;Renault Megane
+BMW Z3|1995.9|Z3
+Ford Ka|1996|Ka
+Lotus Elise|1996.7|Elise
+Porsche Boxster|1996.6|Boxster
+Toyota Prius|1997|Prius
+Mercedes-Benz A-Class|1997.7|A-Class;Mercedes A-Class
+Ford Focus|1998|Focus
+Audi TT|1998.6|TT
+Smart Fortwo|1998.8|Smart Car;Smart ForTwo;Smart City-Coupé
+Peugeot 206|1998.7|206
+Toyota Yaris|1999|Yaris
+BMW X5|1999.4|X5
+Honda Insight|1999.8|Insight
+Škoda Fabia|1999.9|Fabia;Skoda Fabia
+Lamborghini Murciélago|2001|Murcielago;Lamborghini Murcielago
+Honda Jazz|2001.5|Jazz;Honda Fit
+Volvo XC90|2002|XC90
+Ferrari Enzo|2002.4|Enzo;Enzo Ferrari
+Porsche Cayenne|2002.6|Cayenne
+Bentley Continental GT|2003|Continental GT
+Lamborghini Gallardo|2003.2|Gallardo
+Bugatti Veyron|2005|Veyron
+Audi R8|2006|R8
+Nissan Qashqai|2006.9|Qashqai
+Nissan GT-R|2007|GT-R;GTR
+Tesla Roadster|2008|Roadster
+Tata Nano|2008.1|Nano
+Ferrari 458|2009|458;Ferrari 458 Italia
+Nissan Leaf|2010|Leaf
+Chevrolet Volt|2010.9|Volt;Chevy Volt
+Nissan Juke|2010.5|Juke
+Dacia Duster|2010.3|Duster
+Lamborghini Aventador|2011|Aventador
+Tesla Model S|2012|Model S
+Renault Zoe|2012.9|Zoe
+BMW i3|2013|i3
+LaFerrari|2013.2|Ferrari LaFerrari
+Lamborghini Huracán|2014|Huracan;Lamborghini Huracan
+Tesla Model X|2015|Model X
+Bugatti Chiron|2016|Chiron
+Tesla Model 3|2017|Model 3
+Porsche Taycan|2019|Taycan
+Volkswagen ID.3|2019.9|ID.3;ID3;VW ID.3
+Tesla Model Y|2020|Model Y
+Ford Mustang Mach-E|2020.9|Mach-E;Mustang Mach-E
+Hyundai Ioniq 5|2021|Ioniq 5
+Rivian R1T|2021.7|R1T
+Tesla Cybertruck|2023|Cybertruck`);
+
+  L('social-media', 1, 'Name a social network or messaging app.', 'launch', [1999.99, 2006.99], `
+Usenet|1980
+The WELL|1985|WELL
+IRC|1988|Internet Relay Chat
+Classmates.com|1995|Classmates
+ICQ|1996
+AIM|1997|AOL Instant Messenger
+SixDegrees|1997.3|Six Degrees;SixDegrees.com
+Yahoo! Messenger|1998|Yahoo Messenger
+QQ|1999
+LiveJournal|1999.3|Live Journal
+MSN Messenger|1999.5|MSN;Windows Live Messenger
+Blogger|1999.6
+Xanga|1999.8
+Friends Reunited|2000
+Habbo|2000.5|Habbo Hotel
+Friendster|2003
+LinkedIn|2003.35|Linked In
+Second Life|2003.45
+Myspace|2003.6|My Space
+Skype|2003.65
+Orkut|2004.07
+Facebook|2004.1|FB
+Flickr|2004.12
+Digg|2004.9
+Bebo|2005
+YouTube|2005.2|You Tube
+Reddit|2005.5
+BBM|2005.6|BlackBerry Messenger
+Twitter|2006.5|X
+VK|2006.8|VKontakte
+Tumblr|2007.1
+WhatsApp|2009.1|Whats App
+Foursquare|2009.2
+Grindr|2009.25
+Weibo|2009.6|Sina Weibo
+Pinterest|2010.2
+Ask.fm|2010.45|Ask FM;Askfm
+Quora|2010.5
+Instagram|2010.76|Insta;IG
+Kik|2010.8
+Viber|2010.9
+WeChat|2011.05|We Chat
+Twitch|2011.45
+Line|2011.47
+Google+|2011.49|Google Plus
+Facebook Messenger|2011.6|Messenger
+Snapchat|2011.7|Snap
+iMessage|2011.78
+Nextdoor|2011.8
+Tinder|2012.7
+Vine|2013.07
+Google Hangouts|2013.37|Hangouts
+Slack|2013.6
+Telegram|2013.62
+Yik Yak|2013.85|YikYak
+Signal|2014.57
+Musical.ly|2014.6|Musically
+Periscope|2015.24
+Discord|2015.37
+Mastodon|2016.2
+Gab|2016.6
+TikTok|2016.7|Tik Tok;Douyin
+Microsoft Teams|2017.2|Teams
+Parler|2018.6
+BeReal|2020|Be Real
+Clubhouse|2020.25
+Truth Social|2022.14
+Bluesky|2023.13|Blue Sky
+Threads|2023.51`);
+
+  L('sitcoms', 1, 'Name a TV sitcom.', 'first shown on TV', [1969.99, 1989.99], `
+Pinwright's Progress|1946|Pinwrights Progress
+Mary Kay and Johnny|1947
+The Goldbergs|1949|Goldbergs
+I Love Lucy|1951
+The Adventures of Ozzie and Harriet|1952|Ozzie and Harriet
+The Honeymooners|1955|Honeymooners
+The Phil Silvers Show|1955.7|Sergeant Bilko;Sgt Bilko;Bilko;Phil Silvers Show
+Hancock's Half Hour|1956|Hancocks Half Hour;Hancock
+Leave It to Beaver|1957
+The Army Game|1957.5|Army Game
+The Andy Griffith Show|1960|Andy Griffith Show
+The Dick Van Dyke Show|1961|Dick Van Dyke Show
+Steptoe and Son|1962
+The Beverly Hillbillies|1962.7|Beverly Hillbillies
+Bewitched|1964.7
+The Addams Family|1964.71|Addams Family
+The Munsters|1964.72|Munsters
+Gilligan's Island|1964.73|Gilligans Island
+The Likely Lads|1964.9|Likely Lads
+Till Death Us Do Part|1965
+Get Smart|1965.7
+I Dream of Jeannie|1965.71
+Hogan's Heroes|1965.72|Hogans Heroes
+The Monkees|1966|Monkees
+Dad's Army|1968|Dads Army
+The Brady Bunch|1969|Brady Bunch
+On the Buses|1969.2
+The Mary Tyler Moore Show|1970|Mary Tyler Moore Show;Mary Tyler Moore
+The Odd Couple|1970.7|Odd Couple
+All in the Family|1971
+M*A*S*H|1972|MASH
+Are You Being Served?|1972.7
+Sanford and Son|1972.1
+Last of the Summer Wine|1973
+Some Mothers Do 'Ave 'Em|1973.2|Some Mothers Do Have Em;Some Mothers Do Ave Em
+Porridge|1974
+Happy Days|1974.1
+It Ain't Half Hot Mum|1974.2|It Aint Half Hot Mum
+Rising Damp|1974.7
+Fawlty Towers|1975
+The Good Life|1975.3|Good Life;Good Neighbors
+The Jeffersons|1975.1|Jeffersons
+Open All Hours|1976
+Laverne & Shirley|1976.1|Laverne and Shirley
+George and Mildred|1976.7
+The Fall and Rise of Reginald Perrin|1976.71|Reginald Perrin;Reggie Perrin
+Three's Company|1977|Threes Company
+Citizen Smith|1977.3
+Taxi|1978
+Mork & Mindy|1978.7|Mork and Mindy
+Diff'rent Strokes|1978.8|Different Strokes;Diffrent Strokes
+Butterflies|1978.85
+To the Manor Born|1979
+Terry and June|1979.8
+Yes Minister|1980|Yes, Minister
+Only Fools and Horses|1981|Only Fools
+Cheers|1982
+The Young Ones|1982.85|Young Ones
+'Allo 'Allo!|1982.99|Allo Allo
+Family Ties|1982.7
+Blackadder|1983|The Black Adder;Black Adder
+Just Good Friends|1983.7
+The Cosby Show|1984|Cosby Show
+Who's the Boss?|1984.7|Whos the Boss
+The Golden Girls|1985|Golden Girls
+Yes, Prime Minister|1986|Yes Prime Minister
+ALF|1986.7
+Bread|1986.3
+Married... with Children|1987|Married with Children
+Full House|1987.7
+Red Dwarf|1988
+Roseanne|1988.8
+The Wonder Years|1988.1|Wonder Years
+Seinfeld|1989
+The Simpsons|1989.95|Simpsons
+Saved by the Bell|1989.6
+Birds of a Feather|1989.8
+Family Matters|1989.7
+The Fresh Prince of Bel-Air|1990|Fresh Prince of Bel Air;Fresh Prince;The Fresh Prince
+Mr. Bean|1990.01|Mr Bean
+Keeping Up Appearances|1990.8
+One Foot in the Grave|1990.02
+Home Improvement|1991
+Bottom|1991.7
+Absolutely Fabulous|1992|Ab Fab;AbFab
+Men Behaving Badly|1992.1
+Mad About You|1992.7
+Frasier|1993
+The Nanny|1993.8|Nanny
+Goodnight Sweetheart|1993.85
+Boy Meets World|1993.7
+Friends|1994
+The Vicar of Dibley|1994.85|Vicar of Dibley
+Father Ted|1995
+The Thin Blue Line|1995.85|Thin Blue Line
+3rd Rock from the Sun|1996|Third Rock from the Sun;3rd Rock
+Everybody Loves Raymond|1996.7
+Sabrina the Teenage Witch|1996.71|Sabrina
+Spin City|1996.72
+King of the Hill|1997
+South Park|1997.6
+I'm Alan Partridge|1997.85|Im Alan Partridge;Alan Partridge
+Dharma & Greg|1997.7|Dharma and Greg
+Will & Grace|1998|Will and Grace
+That '70s Show|1998.6|That 70s Show
+The Royle Family|1998.7|Royle Family
+The King of Queens|1998.71|King of Queens
+Sex and the City|1998.4
+Family Guy|1999
+Futurama|1999.2
+Spaced|1999.7
+Malcolm in the Middle|2000
+Curb Your Enthusiasm|2000.8|Curb
+Black Books|2000.7
+My Family|2000.71
+The Office|2001|The Office UK
+Scrubs|2001.75
+Phoenix Nights|2001.05
+Peep Show|2003
+Arrested Development|2003.8
+Two and a Half Men|2003.7
+Green Wing|2004
+The Thick of It|2005|Thick of It
+The Office (US)|2005.2|The Office US;The American Office;The Office USA
+Extras|2005.5
+How I Met Your Mother|2005.7|HIMYM
+It's Always Sunny in Philadelphia|2005.6|Its Always Sunny in Philadelphia;Always Sunny;It's Always Sunny
+American Dad!|2005.1|American Dad
+Everybody Hates Chris|2005.72
+My Name Is Earl|2005.71
+The IT Crowd|2006|IT Crowd
+30 Rock|2006.8
+Not Going Out|2006.75
+The Big Bang Theory|2007.7|Big Bang Theory
+Gavin & Stacey|2007.3|Gavin and Stacey
+Outnumbered|2007.6
+Benidorm|2007.1
+Flight of the Conchords|2007.4
+The Inbetweeners|2008|Inbetweeners
+Parks and Recreation|2009|Parks and Rec
+Modern Family|2009.7
+Community|2009.71
+Miranda|2009.85
+The Middle|2009.72
+Mrs. Brown's Boys|2011|Mrs Browns Boys
+Friday Night Dinner|2011.1
+New Girl|2011.7
+Bob's Burgers|2011.02|Bobs Burgers
+2 Broke Girls|2011.71|Two Broke Girls
+Veep|2012
+Brooklyn Nine-Nine|2013|Brooklyn 99;B99;Brooklyn Nine Nine
+Mom|2013.7
+Silicon Valley|2014
+Black-ish|2014.7|Blackish
+Schitt's Creek|2015|Schitts Creek
+Unbreakable Kimmy Schmidt|2015.2|Kimmy Schmidt
+Catastrophe|2015.05
+Fleabag|2016
+The Good Place|2016.7|Good Place
+Young Sheldon|2017
+Derry Girls|2018
+Ghosts|2019
+What We Do in the Shadows|2019.2
+Ted Lasso|2020
+Abbott Elementary|2021`);
+
+  L('toys', 1, 'Name a famous toy.', 'first sold', [1949.99, 1979.99], `
+Märklin|1859|Marklin;Marklin trains
+Steiff|1880|Steiff bear;Steiff bears
+Plasticine|1897
+Meccano|1901
+Teddy bear|1902|Teddy;Teddy bears
+Crayola crayons|1903|Crayola
+Kewpie doll|1912|Kewpie
+Erector Set|1913|Erector
+Tinkertoy|1914|Tinker Toys;Tinkertoys
+Raggedy Ann|1915
+Lincoln Logs|1916
+Radio Flyer|1917|Radio Flyer wagon
+Hornby trains|1920|Hornby;Hornby Railways
+Duncan Yo-Yo|1929|Yo-yo;Yoyo;Duncan
+Dinky Toys|1934|Dinky;Dinky cars
+View-Master|1939|View Master;Viewmaster
+Slinky|1945
+Tonka trucks|1947|Tonka
+Subbuteo|1947.5
+Lego|1949|Lego bricks;Legos
+Airfix kits|1949.5|Airfix
+Silly Putty|1950
+Fuzzy-Felt|1950.2|Fuzzy Felt
+Magic 8 Ball|1950.5|Magic 8-Ball;Magic Eight Ball;8 Ball
+Mr. Potato Head|1952|Mr Potato Head;Potato Head
+Matchbox cars|1953|Matchbox
+Play-Doh|1956|Play Doh;Playdough;Playdoh
+Corgi Toys|1956.5|Corgi;Corgi cars
+Scalextric|1957
+Frisbee|1957.3
+Hula hoop|1958|Hula hoops
+Barbie|1959|Barbie doll
+Troll dolls|1959.5|Trolls;Troll doll
+Etch A Sketch|1960|Etch-a-Sketch
+Sindy|1963
+Easy-Bake Oven|1963.5|Easy Bake Oven
+G.I. Joe|1964|GI Joe
+Spirograph|1965
+Action Man|1966
+Lite-Brite|1967|Lite Brite
+Hot Wheels|1968
+Stylophone|1968.2
+Space Hopper|1968.5|Space Hoppers;Hoppity Hop
+Nerf|1969|Nerf ball;Nerf guns
+Duplo|1969.5|Lego Duplo
+Weebles|1971
+Playmobil|1974
+Stretch Armstrong|1976
+Rubik's Cube|1977|Rubiks Cube;Rubik Cube;Magic Cube
+Star Wars action figures|1978|Star Wars figures;Star Wars toys
+Simon|1978.3
+Speak & Spell|1978.6|Speak and Spell
+Cabbage Patch Kids|1982|Cabbage Patch dolls;Cabbage Patch
+My Little Pony|1982.5
+Care Bears|1983
+Transformers|1984
+Pound Puppies|1984.5
+Sylvanian Families|1985|Sylvanians;Calico Critters
+Teddy Ruxpin|1985.5
+Koosh ball|1987|Koosh
+Micro Machines|1987.5
+Polly Pocket|1989
+Super Soaker|1990
+Beanie Babies|1993|Beanie Baby
+Bop It|1996.5
+Tickle Me Elmo|1996.6
+Pokémon cards|1996.8|Pokemon cards;Pokémon Trading Card Game;Pokemon Trading Card Game
+Tamagotchi|1996.9
+Furby|1998
+Beyblade|1999|Beyblades
+Bratz|2001|Bratz dolls
+Bakugan|2007
+Zhu Zhu Pets|2009|ZhuZhu Pets
+Funko Pop|2010|Funko Pops;Funko;Pop Vinyl
+Loom bands|2011|Rainbow Loom
+Shopkins|2014
+Hatchimals|2016
+LOL Surprise|2016.9|L.O.L. Surprise;LOL dolls;LOL Surprise dolls
+Fidget spinner|~2017|Fidget spinners
+Squishmallows|2017.5|Squishmallow
+Labubu|2019`);
+
+  L('tech-companies', 1, 'Name a technology company.', 'founding', [1939.99, 1979.99], `
+Siemens|1847
+Nokia|1865
+Toshiba|1875
+Ericsson|1876
+AT&T|1885|AT and T;ATT
+Bosch|1886
+Nintendo|1889
+Philips|1891
+Kodak|1892|Eastman Kodak
+General Electric|1892.3|GE
+NEC|1899
+Xerox|1906
+Olivetti|1908
+Hitachi|1910
+IBM|1911
+Sharp|1912
+Nikon|1917
+Panasonic|1918|Matsushita
+Olympus|1919
+Motorola|1928
+Texas Instruments|1930|TI
+Fujitsu|1935
+Canon|1937
+Samsung|1938
+Hewlett-Packard|1939|HP;Hewlett Packard
+Epson|1942|Seiko Epson
+Sony|1946
+Casio|1946.5
+LG|1947|LG Electronics;Lucky Goldstar;Goldstar
+Commodore|1954
+Namco|1955
+Sega|1960
+Sinclair|1961|Sinclair Research;Sinclair Radionics
+Bose|1964
+Intel|1968
+Amstrad|1968.5
+AMD|1969|Advanced Micro Devices
+Konami|1969.3
+Western Digital|1970
+Atari|1972
+SAP|1972.3
+Microsoft|1975
+Apple|1976
+Acer|1976.5
+Oracle|1977
+Micron|1978
+Activision|1979
+Capcom|1979.4
+Seagate|1979.8
+Logitech|1981
+Infosys|1981.5
+SoftBank|1981.7|Softbank
+Adobe|1982
+Electronic Arts|1982.3|EA
+Compaq|1982.5
+Sun Microsystems|1982.6|Sun
+Lenovo|1984
+ASML|1984.2
+Dell|1984.3
+Cisco|1984.6
+BlackBerry|1984.8|Research In Motion;RIM;Blackberry
+Qualcomm|1985
+AOL|1985.3|America Online
+Ubisoft|1986
+Bethesda|1986.5|Bethesda Softworks
+Huawei|1987
+TSMC|1987.3
+Asus|1989
+Garmin|1989.4
+ARM|1990|Arm Holdings
+Dyson|1991
+Blizzard|1991.2|Blizzard Entertainment
+Epic Games|1991.5|Epic
+Nvidia|1993
+Red Hat|1993.2
+Amazon|1994
+Yahoo|1994.1|Yahoo!
+Netscape|1994.3
+eBay|1995
+Valve|1996
+Netflix|1997
+HTC|1997.4
+Google|1998|Alphabet
+Tencent|1998.85
+PayPal|1998.9
+Rockstar Games|1998.95|Rockstar
+Alibaba|1999
+Salesforce|1999.2
+Baidu|2000
+GoPro|2002.2
+SpaceX|2002.4
+Sonos|2002.6
+Roku|2002.8
+LinkedIn|2002.9
+Palantir|2003.4
+Tesla|2003.5
+Skype|2003.6
+Facebook|2004|Meta
+YouTube|2005
+Reddit|2005.5
+Twitter|2006.2|X
+Spotify|2006.3
+Shopify|2006.4
+Dropbox|2007
+Fitbit|2007.2
+Airbnb|2008
+GitHub|2008.2
+Uber|2009
+WhatsApp|2009.1
+Square|2009.2|Block
+Xiaomi|2010
+Stripe|2010.1
+DeepMind|2010.7|Google DeepMind
+Instagram|2010.8
+Zoom|2011.3
+Twitch|2011.45
+Snapchat|2011.7|Snap
+ByteDance|2012|TikTok;Bytedance
+Oculus|2012.5
+OpenAI|2015|Open AI
+Discord|2015.4
+Anthropic|2021`);
+
+  L('airlines', 1, 'Name an airline.', 'founding', [1929.99, 1949.99], `
+DELAG|1909
+Aircraft Transport and Travel|1916
+KLM|1919
+Avianca|1919.9
+Qantas|1920
+Mexicana|1921|Mexicana de Aviación
+Aeroflot|1923.2
+Sabena|1923.4
+Czech Airlines|1923.76|CSA
+Finnair|1923.83
+Imperial Airways|1924
+Delta Air Lines|1925|Delta;Delta Airlines
+United Airlines|1926.27|United
+American Airlines|1926.29|American
+Northwest Airlines|1926.6|Northwest
+Iberia|1927
+Pan Am|1927.2|Pan American;Pan American World Airways;PanAm
+Braniff|1928|Braniff International
+LOT Polish Airlines|1928.99|LOT
+Hawaiian Airlines|1929|Hawaiian
+LATAM|1929.2|LAN;LAN Chile;LATAM Airlines
+Cubana|1929.8|Cubana de Aviación
+TWA|1930|Trans World Airlines
+Swissair|1931
+Air India|1932
+Alaska Airlines|1932.3|Alaska
+Egyptair|1932.5|EgyptAir;Egypt Air
+Turkish Airlines|1933|Turkish
+Air France|1933.8
+South African Airways|1934|SAA
+Continental Airlines|1934.5|Continental
+Aeroméxico|1934.7|Aeromexico
+Aer Lingus|1936
+Air Canada|1937|Trans-Canada Air Lines
+Icelandair|1937.4
+BOAC|1939.9|British Overseas Airways Corporation
+Air New Zealand|1940
+Philippine Airlines|1941|PAL
+TAP Air Portugal|1945|TAP;TAP Portugal
+Saudia|1945.4|Saudi Arabian Airlines
+Ethiopian Airlines|1945.9|Ethiopian
+Cathay Pacific|1946|Cathay
+British European Airways|1946.1|BEA
+SAS|1946.6|Scandinavian Airlines
+Alitalia|1946.7
+Pakistan International Airlines|1946.75|PIA
+Singapore Airlines|1947|Singapore
+Malaysia Airlines|1947.01|Malaysian Airlines;Malaysia
+El Al|1948
+Garuda Indonesia|1949|Garuda
+Gulf Air|1950
+Aerolíneas Argentinas|1950.4|Aerolineas Argentinas
+Japan Airlines|1951|JAL
+All Nippon Airways|1952|ANA
+Lufthansa|1953
+Vietnam Airlines|1956
+Austrian Airlines|1957|Austrian
+Thai Airways|1960|Thai
+Korean Air|1962|Korean Air Lines
+Loganair|1962.1
+Laker Airways|1966|Laker
+Southwest Airlines|1967|Southwest
+Monarch Airlines|1967.4|Monarch
+Aurigny|1968
+British Airways|1974|BA
+Kenya Airways|1977
+Air Berlin|1978
+Flybe|1979|Jersey European
+Virgin Atlantic|1984|Virgin
+Ryanair|1984.9|Ryan Air
+Emirates|1985
+Air China|1988
+China Eastern|1988.4|China Eastern Airlines
+China Southern|1988.5|China Southern Airlines
+EVA Air|1989
+Norwegian|1993.1|Norwegian Air;Norwegian Air Shuttle
+Qatar Airways|1993.9|Qatar
+AirAsia|1993.97|Air Asia
+easyJet|1995|Easy Jet
+JetBlue|1998.6|Jet Blue
+Virgin Australia|2000|Virgin Blue
+Jet2|2002|Jet2.com
+Swiss|2002.25|Swiss International Air Lines
+Etihad|2003.5|Etihad Airways
+Wizz Air|2003.7|Wizz
+Vueling|2004`);
+
+  L('pokemon-games', 1, 'Name a Pokémon video game.', 'first release', [1999.99, 2009.99], `
+Pokémon Red and Green|1996.15|Pokémon Red;Pokémon Green;Red and Green;Pokémon Red and Blue;Red and Blue;Red;Green;Pocket Monsters Red and Green
+Pokémon Blue|1996.8|Blue
+Pokémon Yellow|1998.7|Yellow;Pokémon Yellow Version
+Pokémon Stadium|1998.6|Stadium
+Hey You, Pikachu!|1998.95|Hey You Pikachu
+Pokémon Trading Card Game|1998.96|Pokémon TCG
+Pokémon Snap|1999.2|Snap
+Pokémon Pinball|1999.3|Pinball
+Pokémon Gold and Silver|1999.9|Pokémon Gold;Pokémon Silver;Gold and Silver;Gold;Silver
+Pokémon Puzzle League|2000.7|Puzzle League
+Pokémon Crystal|2000.95|Crystal
+Pokémon Ruby and Sapphire|2002.9|Pokémon Ruby;Pokémon Sapphire;Ruby and Sapphire;Ruby;Sapphire
+Pokémon Channel|2003.5|Channel
+Pokémon Colosseum|2003.9|Colosseum
+Pokémon FireRed and LeafGreen|2004.1|Pokémon FireRed;Pokémon LeafGreen;FireRed and LeafGreen;FireRed;LeafGreen;Fire Red;Leaf Green;Pokémon Fire Red;Pokémon Leaf Green
+Pokémon Emerald|2004.7|Emerald
+Pokémon Dash|2004.9|Dash
+Pokémon XD: Gale of Darkness|2005.6|Pokémon XD;Gale of Darkness
+Pokémon Mystery Dungeon|2005.9|Mystery Dungeon
+Pokémon Ranger|2006.2|Ranger
+Pokémon Diamond and Pearl|2006.7|Pokémon Diamond;Pokémon Pearl;Diamond and Pearl;Diamond;Pearl
+Pokémon Battle Revolution|2006.95|Battle Revolution
+Pokémon Platinum|2008.7|Platinum
+Pokémon Rumble|2009.4|Rumble
+Pokémon HeartGold and SoulSilver|2009.7|Pokémon HeartGold;Pokémon SoulSilver;HeartGold and SoulSilver;HeartGold;SoulSilver;Heart Gold;Soul Silver
+PokéPark Wii|2009.9|PokePark;PokéPark;PokePark Wii
+Pokémon Black and White|2010.7|Pokémon Black;Pokémon White;Black and White;Black;White
+Pokémon Conquest|2012.2|Conquest
+Pokémon Black 2 and White 2|2012.5|Pokémon Black 2;Pokémon White 2;Black 2 and White 2;Black 2;White 2
+Pokémon X and Y|2013.8|Pokémon X;Pokémon Y;X and Y
+Pokémon Omega Ruby and Alpha Sapphire|2014.9|Pokémon Omega Ruby;Pokémon Alpha Sapphire;Omega Ruby and Alpha Sapphire;Omega Ruby;Alpha Sapphire;ORAS
+Pokémon Shuffle|2015.1|Shuffle
+Pokkén Tournament|2015.5|Pokken Tournament;Pokken
+Detective Pikachu|2016.1|Pokémon Detective Pikachu
+Pokémon Go|2016.5|Pokemon GO
+Pokémon Sun and Moon|2016.9|Pokémon Sun;Pokémon Moon;Sun and Moon;Sun;Moon
+Pokémon Ultra Sun and Ultra Moon|2017.9|Pokémon Ultra Sun;Pokémon Ultra Moon;Ultra Sun and Ultra Moon;Ultra Sun;Ultra Moon
+Pokémon Quest|2018.4|Quest
+Pokémon: Let's Go, Pikachu! and Let's Go, Eevee!|2018.9|Let's Go Pikachu;Let's Go Eevee;Pokémon Let's Go;Let's Go;Let's Go Pikachu and Let's Go Eevee;Pokémon Let's Go Pikachu;Pokémon Let's Go Eevee
+Pokémon Masters|2019.6|Pokémon Masters EX;Masters
+Pokémon Sword and Shield|2019.9|Pokémon Sword;Pokémon Shield;Sword and Shield;Sword;Shield
+New Pokémon Snap|2021.3|New Snap
+Pokémon Unite|2021.55|Unite
+Pokémon Brilliant Diamond and Shining Pearl|2021.9|Pokémon Brilliant Diamond;Pokémon Shining Pearl;Brilliant Diamond and Shining Pearl;Brilliant Diamond;Shining Pearl;BDSP
+Pokémon Legends: Arceus|2022.1|Legends Arceus;Arceus
+Pokémon Scarlet and Violet|2022.9|Pokémon Scarlet;Pokémon Violet;Scarlet and Violet;Scarlet;Violet
+Pokémon Sleep|2023.5|Sleep
+Pokémon Trading Card Game Pocket|2024.8|Pokémon TCG Pocket;TCG Pocket
+Pokémon Legends: Z-A|2025.8|Legends Z-A;Legends ZA;Pokémon Legends ZA;Z-A
+Pokémon Pokopia|2026.2|Pokopia
+Pokémon Champions|2026.3|Champions`);
+
+  L('dreamworks-films', 1, 'Name a DreamWorks animated film.', 'release', [2001.99, 2010.99], `
+Antz|1998.75
+The Prince of Egypt|1998.95|Prince of Egypt
+The Road to El Dorado|2000|Road to El Dorado;El Dorado
+Chicken Run|2000.5
+Shrek|2001
+Spirit: Stallion of the Cimarron|2002|Spirit;Stallion of the Cimarron
+Sinbad: Legend of the Seven Seas|2003|Sinbad
+Shrek 2|2004
+Shark Tale|2004.8
+Madagascar|2005
+Wallace & Gromit: The Curse of the Were-Rabbit|2005.8|The Curse of the Were-Rabbit;Curse of the Were-Rabbit;Wallace and Gromit
+Over the Hedge|2006
+Flushed Away|2006.8
+Shrek the Third|2007|Shrek 3
+Bee Movie|2007.8
+Kung Fu Panda|2008
+Madagascar: Escape 2 Africa|2008.8|Madagascar 2;Escape 2 Africa
+Monsters vs. Aliens|2009|Monsters vs Aliens;Monsters versus Aliens
+How to Train Your Dragon|2010
+Shrek Forever After|2010.4|Shrek 4;Shrek Forever
+Megamind|2010.8
+Kung Fu Panda 2|2011
+Puss in Boots|2011.8
+Madagascar 3: Europe's Most Wanted|2012|Madagascar 3;Europe's Most Wanted
+Rise of the Guardians|2012.9
+The Croods|2013|Croods
+Turbo|2013.5
+Mr. Peabody & Sherman|2014|Mr Peabody and Sherman;Peabody and Sherman
+How to Train Your Dragon 2|2014.5
+Penguins of Madagascar|2014.9|The Penguins of Madagascar
+Home|2015
+Kung Fu Panda 3|2016
+Trolls|2016.8
+The Boss Baby|2017|Boss Baby
+Captain Underpants: The First Epic Movie|2017.4|Captain Underpants
+How to Train Your Dragon: The Hidden World|2019|How to Train Your Dragon 3;The Hidden World
+Abominable|2019.7
+Trolls World Tour|2020|Trolls 2
+The Croods: A New Age|2020.9|Croods 2;The Croods 2
+Spirit Untamed|2021.4
+The Boss Baby: Family Business|2021.5|Boss Baby 2;The Boss Baby 2
+The Bad Guys|2022|Bad Guys
+Puss in Boots: The Last Wish|2022.9|Puss in Boots 2;The Last Wish
+Ruby Gillman, Teenage Kraken|2023.5|Ruby Gillman;Teenage Kraken
+Trolls Band Together|2023.9|Trolls 3
+Kung Fu Panda 4|2024.2
+The Wild Robot|2024.7|Wild Robot
+Dog Man|2025.1
+The Bad Guys 2|2025.6|Bad Guys 2
+Gabby's Dollhouse: The Movie|2025.7|Gabby's Dollhouse;Gabbys Dollhouse
+Forgotten Island|2026.7`);
+
+  L('spielberg-films', 1, 'Name a film directed by Steven Spielberg.', 'release', [1982.5, 1998.5], `
+Duel|1971
+The Sugarland Express|1974|Sugarland Express
+Jaws|1975
+Close Encounters of the Third Kind|1977|Close Encounters
+1941|1979
+Raiders of the Lost Ark|1981|Indiana Jones and the Raiders of the Lost Ark;Raiders;Indiana Jones
+E.T. the Extra-Terrestrial|1982|E.T.;ET the Extra Terrestrial;E.T. the Extra Terrestrial
+Indiana Jones and the Temple of Doom|1984|Temple of Doom
+The Color Purple|1985|Color Purple;The Colour Purple
+Empire of the Sun|1987
+Indiana Jones and the Last Crusade|1989|The Last Crusade
+Always|1989.9
+Hook|1991
+Jurassic Park|1993
+Schindler's List|1993.9|Schindlers List
+The Lost World: Jurassic Park|1997|The Lost World;Lost World;Jurassic Park 2
+Amistad|1997.9
+Saving Private Ryan|1998
+A.I. Artificial Intelligence|2001|A.I.;Artificial Intelligence
+Minority Report|2002
+Catch Me If You Can|2002.9
+The Terminal|2004|Terminal
+War of the Worlds|2005
+Munich|2005.9
+Indiana Jones and the Kingdom of the Crystal Skull|2008|Kingdom of the Crystal Skull;Crystal Skull
+The Adventures of Tintin|2011|Tintin;The Secret of the Unicorn
+War Horse|2011.9
+Lincoln|2012
+Bridge of Spies|2015
+The BFG|2016|BFG
+The Post|2017|Post
+Ready Player One|2018
+West Side Story|2021
+The Fabelmans|2022|Fabelmans
+Disclosure Day|2026`);
+
+  L('roald-dahl-books', 1, 'Name a book by Roald Dahl.', 'publication', [1961.5, 1978.5], `
+The Gremlins|1943|Gremlins
+Over to You|1946
+Sometime Never|1948|Some Time Never
+Someone Like You|1953
+Kiss Kiss|1960
+James and the Giant Peach|1961
+Charlie and the Chocolate Factory|1964
+The Magic Finger|1966|Magic Finger
+Fantastic Mr Fox|1970|Fantastic Mr. Fox
+Charlie and the Great Glass Elevator|1972|The Great Glass Elevator;Great Glass Elevator
+Switch Bitch|1974
+Danny, the Champion of the World|1975|Danny the Champion of the World;Danny Champion of the World
+The Wonderful Story of Henry Sugar and Six More|1977|The Wonderful Story of Henry Sugar;Henry Sugar
+The Enormous Crocodile|1978|Enormous Crocodile
+My Uncle Oswald|1979
+Tales of the Unexpected|1979.5
+The Twits|1980|Twits
+George's Marvellous Medicine|1981|Georges Marvellous Medicine;George's Marvelous Medicine
+The BFG|1982|BFG;The Big Friendly Giant
+Revolting Rhymes|1982.5
+The Witches|1983|Witches
+Dirty Beasts|1983.5
+Boy|1984|Boy: Tales of Childhood
+The Giraffe and the Pelly and Me|1985|Giraffe and the Pelly and Me
+Going Solo|1986
+Matilda|1988
+Rhyme Stew|1989
+Esio Trot|1990
+The Minpins|1991|Minpins;Billy and the Minpins
+The Vicar of Nibbleswicke|1991.5|Vicar of Nibbleswicke
+My Year|1993`);
+
+  L('cartoon-characters', 1, 'Name a cartoon character.', 'first cartoon or comic', [1929.99, 1959.99], `
+Ally Sloper|1867
+The Yellow Kid|1895|Yellow Kid
+The Katzenjammer Kids|1897|Katzenjammer Kids
+Buster Brown|1902
+Little Nemo|1905
+Mutt and Jeff|1907|Mutt & Jeff
+Krazy Kat|1913
+Gertie the Dinosaur|1914|Gertie
+Koko the Clown|1918|Koko
+Felix the Cat|1919|Felix
+Olive Oyl|1919.95|Olive
+Rupert Bear|1920|Rupert;Rupert the Bear
+Little Orphan Annie|1924|Orphan Annie
+Oswald the Lucky Rabbit|1927|Oswald
+Mickey Mouse|1928|Mickey
+Minnie Mouse|1928.01|Minnie
+Tintin|1929.02
+Popeye|1929.04|Popeye the Sailor
+Betty Boop|1930.6
+Pluto|1930.7
+Goofy|1932
+Donald Duck|1934|Donald
+Porky Pig|1935|Porky
+Daffy Duck|1937|Daffy
+Desperate Dan|1937.9
+Pinocchio|1940.1
+Tom and Jerry|1940.12|Tom & Jerry;Tom;Jerry
+Elmer Fudd|1940.2|Elmer
+Bugs Bunny|1940.55|Bugs
+Woody Woodpecker|1940.9
+Dumbo|1941
+Bambi|1942
+Mighty Mouse|1942.8
+Tweety|1942.9|Tweety Bird;Tweety Pie
+Droopy|1943.2
+Chip 'n' Dale|1943.3|Chip and Dale;Chip n Dale
+Pepé Le Pew|1945.05|Pepe Le Pew
+Sylvester|1945.2|Sylvester the Cat
+Yosemite Sam|1945.4
+Casper the Friendly Ghost|1945.9|Casper
+Foghorn Leghorn|1946
+Lucky Luke|1946.9
+Scrooge McDuck|1947|Uncle Scrooge;Scrooge
+Marvin the Martian|1948|Marvin
+Wile E. Coyote|1949.7|Wile E Coyote;Coyote
+Road Runner|1949.71|The Road Runner;Roadrunner
+Mr. Magoo|1949.72|Mr Magoo;Magoo
+Dan Dare|1950.25
+Captain Pugwash|1950.3
+Beetle Bailey|1950.7
+Charlie Brown|1950.75
+Snoopy|1950.76
+Dennis the Menace|1951
+Astro Boy|1952
+Speedy Gonzales|1953
+Minnie the Minx|1953.9
+Tasmanian Devil|1954|Taz
+Andy Capp|1957
+Yogi Bear|1958.75|Yogi
+Huckleberry Hound|1958.76
+The Smurfs|1958.8|Smurfs;Papa Smurf;Smurfette;Smurf
+Asterix|1959|Astérix;Asterix the Gaul
+Fred Flintstone|1960|The Flintstones;Flintstones;Fred
+Barney Rubble|1960.01|Barney
+Top Cat|1961
+George Jetson|1962|The Jetsons;Jetsons
+The Pink Panther|1963|Pink Panther
+Winnie the Pooh|1966|Pooh;Pooh Bear
+Speed Racer|1966.5
+Dick Dastardly|1968|Dastardly;Dastardly and Muttley;Muttley
+Scooby-Doo|1969|Scooby Doo;Scooby
+Shaggy|1969.01|Shaggy Rogers
+Doraemon|1969.9
+Hägar the Horrible|1973|Hagar the Horrible;Hagar
+Hello Kitty|1974
+Hong Kong Phooey|1974.7
+Roobarb|1974.8|Roobarb and Custard
+Captain Caveman|1977.7
+Garfield|1978
+Scrappy-Doo|1979|Scrappy Doo;Scrappy
+Bananaman|1980
+Danger Mouse|1981.7
+He-Man|1982|He Man
+Inspector Gadget|1983
+Teenage Mutant Ninja Turtles|1984.4|Ninja Turtles;TMNT;Leonardo;Donatello;Michelangelo;Raphael
+Optimus Prime|1984.7
+Goku|1984.9|Son Goku
+She-Ra|1985|She Ra
+Calvin and Hobbes|1985.9|Calvin;Hobbes
+Bart Simpson|1987.3|Bart
+Homer Simpson|1987.31|Homer
+Lisa Simpson|1987.32|Lisa
+Marge Simpson|1987.33|Marge
+Totoro|1988.3
+Roger Rabbit|1988.5
+Dilbert|1989.3
+Wallace and Gromit|1989.85|Wallace & Gromit;Gromit;Wallace
+Ren and Stimpy|1991.6|Ren & Stimpy;Ren;Stimpy
+Sailor Moon|1991.99
+Beavis and Butt-Head|1992.7|Beavis;Butt-Head;Beavis and Butthead;Butthead
+Genie|1992.9|The Genie
+Simba|1994
+The Powerpuff Girls|1995|Powerpuff Girls;Blossom;Bubbles;Buttercup
+Buzz Lightyear|1995.9|Buzz
+Woody|1995.91|Sheriff Woody
+Pikachu|1996.15
+Ash Ketchum|1997.25|Ash
+Luffy|1997.55|Monkey D. Luffy
+Eric Cartman|1997.6|Cartman
+Peter Griffin|1999.08|Peter
+Stewie Griffin|1999.09|Stewie
+Bender|1999.2
+SpongeBob SquarePants|1999.35|SpongeBob;Spongebob;Sponge Bob
+Patrick Star|1999.36|Patrick
+Naruto|1999.7|Naruto Uzumaki
+Dora the Explorer|2000.6|Dora
+Shrek|2001
+Kim Possible|2002.4
+Stitch|2002.45
+Nemo|2003
+Peppa Pig|2004|Peppa
+Ben 10|2005.95|Ben Tennyson
+Lightning McQueen|2006|McQueen
+Phineas and Ferb|2007.6|Phineas;Ferb;Perry the Platypus
+WALL-E|2008|Wall-E;Wall E;Walle
+Minions|2010.5|Minion;The Minions
+Gru|2010.51
+Gumball|2011|Gumball Watterson
+Elsa|2013.9
+Olaf|2013.91
+Rick and Morty|2013.92|Rick & Morty;Rick;Morty;Rick Sanchez
+BoJack Horseman|2014|Bojack
+Moana|2016.9
+Bluey|2018.75`);
+
+  L('kids-tv', 1, "Name a children's TV programme.", 'first shown', [1959.99, 1979.99], `
+For the Children|1937
+Muffin the Mule|1946
+Howdy Doody|1947
+Andy Pandy|1950
+The Flower Pot Men|1952.9|Flower Pot Men;Bill and Ben
+Lassie|1954.7
+The Sooty Show|1955|Sooty;Sooty and Sweep
+Crackerjack|1955.7
+The Mickey Mouse Club|1955.75|Mickey Mouse Club
+Captain Kangaroo|1955.76
+Captain Pugwash|1957
+Blue Peter|1958
+Noggin the Nog|1959.7
+Ivor the Engine|1959.99
+The Flintstones|1960|Flintstones
+Supercar|1961.05
+Top Cat|1961.7
+Fireball XL5|1962.8
+Vision On|1964.2
+Play School|1964.3
+Stingray|1964.75
+Thunderbirds|1965.75
+The Magic Roundabout|1965.8|Magic Roundabout
+Jackanory|1965.95
+Camberwick Green|1966
+Trumpton|1967
+Captain Scarlet and the Mysterons|1967.75|Captain Scarlet
+Mister Rogers' Neighborhood|1968.1|Mister Rogers;Mr Rogers Neighborhood;Mr Rogers
+The Herbs|1968.11|Herbs
+Skippy the Bush Kangaroo|1968.12|Skippy
+The Banana Splits|1968.68|Banana Splits
+Wacky Races|1968.7
+Joe 90|1968.75
+Scooby-Doo, Where Are You!|1969.7|Scooby-Doo;Scooby Doo;Scooby Doo Where Are You
+Chigley|1969.75
+Sesame Street|1969.85
+The Clangers|1969.87|Clangers
+Mr Benn|1971|Mr. Benn
+Fingerbobs|1972.1
+Newsround|1972.3|John Craven's Newsround
+Rainbow|1972.8
+Record Breakers|1972.95
+The Wombles|1973|Wombles
+Why Don't You?|1973.6|Why Dont You
+Tiswas|1974.02
+Bagpuss|1974.1
+Hong Kong Phooey|1974.7
+Roobarb|1974.8|Roobarb and Custard
+Mr. Men|1974.99|Mr Men
+Paddington|1976|Paddington Bear
+Rentaghost|1976.05
+The Muppet Show|1976.7|Muppet Show;The Muppets;Muppets
+Chorlton and the Wheelies|1976.71
+Multi-Coloured Swap Shop|1976.75|Swap Shop;Multi Coloured Swap Shop
+Jamie and the Magic Torch|1977
+Grange Hill|1978
+Worzel Gummidge|1979
+Button Moon|1980.9
+The Smurfs|1981.7|Smurfs
+Postman Pat|1981.71
+Danger Mouse|1981.75
+SuperTed|1982.85|Super Ted
+Fraggle Rock|1983
+He-Man and the Masters of the Universe|1983.7|He-Man;He Man;Masters of the Universe
+Inspector Gadget|1983.75
+Bananaman|1983.76
+The Transformers|1984.7|Transformers
+Thomas the Tank Engine & Friends|1984.75|Thomas the Tank Engine;Thomas & Friends;Thomas and Friends;Thomas
+ThunderCats|1985|Thunder Cats
+DuckTales|1987.7|Duck Tales
+Knightmare|1987.71
+Going Live!|1987.72
+ChuckleVision|1987.73|Chuckle Vision
+Fireman Sam|1987.85
+Teenage Mutant Ninja Turtles|1987.95|Teenage Mutant Hero Turtles;Ninja Turtles;TMNT
+Count Duckula|1988.7
+Playdays|1988.8
+Fun House|1989.15
+Byker Grove|1989.85
+Pingu|1990.2
+Art Attack|1990.45
+Rosie and Jim|1990.7|Rosie & Jim
+Rugrats|1991.6
+Brum|1991.7
+Barney & Friends|1992.3|Barney;Barney and Friends;Barney the Dinosaur
+Bananas in Pyjamas|1992.55|Bananas in Pajamas
+Tots TV|1993
+Mighty Morphin Power Rangers|1993.65|Power Rangers
+Animaniacs|1993.7
+Live & Kicking|1993.75|Live and Kicking
+Goosebumps|1995.8
+The Demon Headmaster|1996.02|Demon Headmaster
+Dexter's Laboratory|1996.3|Dexters Laboratory;Dexter's Lab;Dexters Lab
+Kenan & Kel|1996.55|Kenan and Kel
+Blue's Clues|1996.7|Blues Clues
+Arthur|1996.75
+Hey Arnold!|1996.76
+Teletubbies|1997.25|The Teletubbies
+Pokémon|1997.26|Pokemon
+Recess|1997.65
+SMTV Live|1998.65|SM:TV Live;SMTV
+The Powerpuff Girls|1998.88|Powerpuff Girls
+Bob the Builder|1999.3
+SpongeBob SquarePants|1999.35|SpongeBob;Spongebob;Sponge Bob
+Tweenies|1999.7|The Tweenies
+My Parents Are Aliens|1999.85
+Dora the Explorer|2000.6|Dora
+Lizzie McGuire|2001.03
+The Fairly OddParents|2001.25|Fairly Odd Parents;Fairly OddParents
+The Story of Tracy Beaker|2002|Tracy Beaker
+Kim Possible|2002.45
+Balamory|2002.7
+That's So Raven|2003.04|Thats So Raven
+Something Special|2003.7|Mr Tumble
+Drake & Josh|2004.03|Drake and Josh
+Peppa Pig|2004.4|Peppa
+LazyTown|2004.6|Lazy Town
+Avatar: The Last Airbender|2005.1|Avatar;The Last Airbender
+The Suite Life of Zack & Cody|2005.2|The Suite Life of Zack and Cody;Suite Life of Zack and Cody;The Suite Life;Suite Life
+Charlie and Lola|2005.85
+Ben 10|2005.97
+Hannah Montana|2006.25
+Shaun the Sheep|2007.2
+In the Night Garden|2007.22
+Phineas and Ferb|2007.6
+iCarly|2007.7
+Wizards of Waverly Place|2007.78
+Ben & Holly's Little Kingdom|2009.25|Ben and Holly's Little Kingdom;Ben and Holly
+Horrible Histories|2009.3
+Adventure Time|2010.26
+Octonauts|2010.75|The Octonauts
+Gravity Falls|2012.45
+PAW Patrol|2013.6|Paw Patrol
+Hey Duggee|2014.95
+Numberblocks|2017
+Bluey|2018.75`);
+
+  L('fashion-brands', 1, 'Name a fashion or clothing brand.', 'founding', [1899.99, 1949.99], `
+Birkenstock|1774
+Pringle of Scotland|1815|Pringle
+Brooks Brothers|1818
+Clarks|1825|Clarks Shoes
+Hermès|1837|Hermes
+Loewe|1846
+Aquascutum|1851
+Levi's|1853|Levi Strauss;Levis;Levi
+Louis Vuitton|1854|LV;Vuitton
+Burberry|1856
+Lyle & Scott|1874|Lyle and Scott
+Lee|1889
+Lanvin|1889.2
+Carhartt|1889.5
+Abercrombie & Fitch|1892|Abercrombie and Fitch;Abercrombie
+Barbour|1894
+Lee Cooper|1908
+Chanel|1910|Coco Chanel
+Zegna|1910.5|Ermenegildo Zegna
+L.L.Bean|1912|LL Bean;L.L. Bean
+Prada|1913
+Balenciaga|1919
+Gucci|1921
+Dickies|1922
+Hugo Boss|1924|Boss
+Fendi|1925
+Salvatore Ferragamo|1927|Ferragamo
+Lacoste|1933
+Ray-Ban|1936|Ray Ban;Raybans;Ray-Bans
+Columbia|1938|Columbia Sportswear
+Coach|1941
+Celine|1945|Céline
+Balmain|1945.5
+Dior|1946|Christian Dior
+Dr. Martens|1947|Dr Martens;Doc Martens;Docs;DMs
+Wrangler|1947.3
+H&M|1947.5|H and M;HM;Hennes & Mauritz
+River Island|1948
+Uniqlo|1949
+Max Mara|1951
+Givenchy|1952
+Timberland|1952.2
+Chloé|1952.4|Chloe
+Moncler|1952.5
+Fred Perry|1952.7
+Missoni|1953
+Canada Goose|1957
+Valentino|1960
+Yves Saint Laurent|1961|YSL;Saint Laurent
+Ben Sherman|1963
+Topshop|1964|Top Shop
+Benetton|1965|United Colors of Benetton
+The North Face|1966|North Face
+Bottega Veneta|1966.5|Bottega
+Ralph Lauren|1967|Polo Ralph Lauren;Polo
+Calvin Klein|1968|CK
+Esprit|1968.3
+Gap|1969|The Gap
+Comme des Garçons|1969.2|Comme des Garcons
+New Look|1969.3
+Primark|1969.5|Penneys
+Quiksilver|1969.7
+Paul Smith|1970
+Urban Outfitters|1970.2
+Kenzo|1970.3
+Vivienne Westwood|1971|Westwood
+Mulberry|1971.5
+Diane von Furstenberg|1972|DVF
+Monsoon|1973
+Patagonia|1973.3
+Billabong|1973.5
+Pepe Jeans|1973.7|Pepe
+Zara|1975
+Giorgio Armani|1975.5|Armani;Emporio Armani
+American Eagle|1977|American Eagle Outfitters
+Victoria's Secret|1977.5|Victorias Secret
+Diesel|1978
+Versace|1978.3
+Ugg|1978.6|Uggs;UGG Australia
+Banana Republic|1978.8
+Stüssy|1980|Stussy
+Guess|1981
+Michael Kors|1981.5
+Next|1982
+Stone Island|1982.5
+J.Crew|1983|J Crew;J. Crew
+Moschino|1983.5
+Mango|1984
+Forever 21|1984.3
+Donna Karan|1984.5|DKNY
+Marc Jacobs|1984.6
+Dolce & Gabbana|1985|Dolce and Gabbana;D&G
+Tommy Hilfiger|1985.3|Tommy;Hilfiger
+Massimo Dutti|1985.6
+Ted Baker|1988
+FatFace|1988.5|Fat Face
+G-Star Raw|1989|G-Star;G Star
+Vera Wang|1990
+Christian Louboutin|1991|Louboutin
+Pull&Bear|1991.5|Pull and Bear;Pull & Bear
+Alexander McQueen|1992|McQueen
+Kate Spade|1993
+Miu Miu|1993.2
+Bape|1993.5|A Bathing Ape
+Supreme|1994
+Old Navy|1994.2
+Jimmy Choo|1996
+Juicy Couture|1997|Juicy
+Lululemon|1998
+Bershka|1998.3
+Jack Wills|1999
+Hollister|2000
+ASOS|2000.4
+Stella McCartney|2001
+Crocs|2002
+True Religion|2002.5
+Superdry|2003
+Ed Hardy|2004
+Tom Ford|2005
+Boohoo|2006
+Fashion Nova|2006.5
+Shein|2008
+Palace|2009|Palace Skateboards
+Off-White|2012|Off White
+Gymshark|2012.5
+Skims|2019`);
+
+  L('sportswear', 1, 'Name a sportswear or sports equipment brand.', 'founding', [1909.99, 1949.99], `
+Mitre|1817
+Gilbert|1823
+Gray-Nicolls|1855|Gray Nicolls
+Babolat|1875
+Spalding|1876
+Bukta|1879
+Slazenger|1881
+Le Coq Sportif|1882|Coq Sportif
+Gunn & Moore|1885|Gunn and Moore;GM
+Kookaburra|1890
+Patrick|1892
+Saucony|1898
+Russell Athletic|1902|Russell
+Canterbury|1904|Canterbury of New Zealand
+Gola|1905
+New Balance|1906
+Mizuno|1906.5
+Converse|1908
+Everlast|1910
+Fila|1911
+Wilson|1913
+Speedo|1914
+Admiral|1914.3
+Brooks|1914.5
+Kappa|1916
+Keds|1916.5
+O'Neills|1918|O'Neill's;ONeills
+Champion|1919
+Hummel|1923
+Umbro|1924
+Titleist|1932
+Lacoste|1933
+Yonex|1946
+Karrimor|1946.5
+Salomon|1947
+Puma|1948
+Diadora|1948.5
+Uhlsport|1948.7
+Adidas|1949
+Asics|1949.5|Onitsuka Tiger
+Head|1950
+Fred Perry|1952
+Reebok|1958
+Ellesse|1959
+Ping|1959.5
+Lonsdale|1960
+Nike|1964
+Joma|1965
+Vans|1966
+K-Swiss|1966.3|K Swiss
+The North Face|1966.5|North Face
+Sergio Tacchini|1966.7|Tacchini
+Berghaus|1966.8
+Rip Curl|1969
+Prince|1970
+Macron|1971
+Starter|1971.5
+Lotto|1973
+Arena|1973.3
+Hi-Tec|1974|Hi Tec
+Oakley|1975
+Burton|1977|Burton Snowboards
+TaylorMade|1979|Taylor Made
+Merrell|1981
+Callaway|1982
+Jordan|1984|Air Jordan;Jordans
+TYR|1985
+Etnies|1986
+Erreà|1988|Errea
+Li-Ning|1990|Li Ning
+Anta|1991
+Skechers|1992|Sketchers
+DC Shoes|1994|DC
+Under Armour|1996|Under Armor
+Lululemon|1998
+Hoka|2009|Hoka One One
+On|2010|On Running
+Gymshark|2012
+Castore|2015`);
+
+  L('musicals', 1, 'Name a stage musical.', 'premiere', [1949.99, 1979.99], `
+The Black Crook|1866|Black Crook
+Show Boat|1927|Showboat
+Anything Goes|1934
+Me and My Girl|1937
+Oklahoma!|1943
+Carousel|1945
+Annie Get Your Gun|1946
+Brigadoon|1947
+Kiss Me, Kate|1948|Kiss Me Kate
+South Pacific|1949
+Guys and Dolls|1950
+The King and I|1951
+Salad Days|1954
+The Pajama Game|1954.4|Pajama Game
+Damn Yankees|1955
+My Fair Lady|1956
+West Side Story|1957
+The Music Man|1957.9|Music Man
+Gypsy|1959
+The Sound of Music|1959.9|Sound of Music
+Oliver!|1960
+Bye Bye Birdie|1960.3
+Camelot|1960.9
+How to Succeed in Business Without Really Trying|1961|How to Succeed
+Half a Sixpence|1963
+Hello, Dolly!|1964|Hello Dolly
+Funny Girl|1964.2
+Fiddler on the Roof|1964.7|Fiddler
+Man of La Mancha|1965
+Sweet Charity|1966
+Cabaret|1966.9
+Hair|1967
+Joseph and the Amazing Technicolor Dreamcoat|1968|Joseph;Joseph and His Amazing Technicolor Dreamcoat
+Company|1970
+Grease|1971.1
+Follies|1971.3
+Godspell|1971.4
+Jesus Christ Superstar|1971.8|JCS
+Pippin|1972
+A Little Night Music|1973|Little Night Music
+The Rocky Horror Show|1973.5|Rocky Horror Show;Rocky Horror;The Rocky Horror Picture Show
+The Wiz|1974.8|Wiz
+A Chorus Line|1975|Chorus Line
+Chicago|1975.5
+Annie|1977
+Evita|1978
+Sweeney Todd|1979|Sweeney Todd: The Demon Barber of Fleet Street
+Barnum|1980
+42nd Street|1980.6|Forty-Second Street
+Les Misérables|1980.7|Les Miserables;Les Mis
+Cats|1981
+Dreamgirls|1981.9
+Little Shop of Horrors|1982
+Blood Brothers|1983
+La Cage aux Folles|1983.6
+Starlight Express|1984
+Sunday in the Park with George|1984.3
+Chess|1986
+The Phantom of the Opera|1986.8|Phantom of the Opera;Phantom
+Into the Woods|1987
+Miss Saigon|1989
+Aspects of Love|1989.3
+Buddy|1989.8|Buddy: The Buddy Holly Story;The Buddy Holly Story
+The Who's Tommy|1993|Tommy
+Sunset Boulevard|1993.5
+Beauty and the Beast|1994
+Rent|1996
+The Lion King|1997|Lion King
+Ragtime|1998
+Mamma Mia!|1999|Mamma Mia
+The Producers|2001|Producers
+We Will Rock You|2002
+Chitty Chitty Bang Bang|2002.3
+Hairspray|2002.5
+Wicked|2003
+Avenue Q|2003.2
+Mary Poppins|2004
+Billy Elliot|2005|Billy Elliot the Musical
+Spamalot|2005.2
+Jersey Boys|2005.8
+Spring Awakening|2006
+Legally Blonde|2007
+Shrek the Musical|2008|Shrek
+Matilda the Musical|2010|Matilda
+The Book of Mormon|2011|Book of Mormon
+Aladdin|2011.5
+Newsies|2011.7
+Once|2011.9
+Kinky Boots|2012
+Charlie and the Chocolate Factory|2013
+Hamilton|2015
+Come from Away|2015.4
+Dear Evan Hansen|2015.55
+Waitress|2015.6
+School of Rock|2015.9
+Six|2017
+Everybody's Talking About Jamie|2017.1|Everybodys Talking About Jamie;Jamie
+Bat Out of Hell|2017.15
+Frozen|2017.6
+Mean Girls|2017.8
+Tina|2018.3|Tina: The Tina Turner Musical
+Moulin Rouge!|2018.5|Moulin Rouge
+Beetlejuice|2018.8
+Operation Mincemeat|2019.4
+& Juliet|2019.7|And Juliet
+Back to the Future|2020.1|Back to the Future: The Musical
+MJ the Musical|2022|MJ`);
+
+  // --- closed sets: every winner, every film ---
+
+  L('best-picture', 2, 'Name a film that has won the Oscar for Best Picture.', 'year it won', [1949.99, 1979.99], `
+Wings|1929.4
+The Broadway Melody|1930.25|Broadway Melody
+All Quiet on the Western Front|1930.85
+Cimarron|1931.85
+Grand Hotel|1932.85
+Cavalcade|1934.2
+It Happened One Night|1935
+Mutiny on the Bounty|1936
+The Great Ziegfeld|1937|Great Ziegfeld
+The Life of Emile Zola|1938|Life of Emile Zola
+You Can't Take It with You|1939|You Cant Take It with You
+Gone with the Wind|1940
+Rebecca|1941
+How Green Was My Valley|1942
+Mrs. Miniver|1943|Mrs Miniver
+Casablanca|1944
+Going My Way|1945
+The Lost Weekend|1946|Lost Weekend
+The Best Years of Our Lives|1947|Best Years of Our Lives
+Gentleman's Agreement|1948|Gentlemans Agreement
+Hamlet|1949
+All the King's Men|1950|All the Kings Men
+All About Eve|1951
+An American in Paris|1952|American in Paris
+The Greatest Show on Earth|1953|Greatest Show on Earth
+From Here to Eternity|1954
+On the Waterfront|1955
+Marty|1956
+Around the World in 80 Days|1957|Around the World in Eighty Days
+The Bridge on the River Kwai|1958|Bridge on the River Kwai;Bridge over the River Kwai
+Gigi|1959
+Ben-Hur|1960|Ben Hur
+The Apartment|1961|Apartment
+West Side Story|1962
+Lawrence of Arabia|1963
+Tom Jones|1964
+My Fair Lady|1965
+The Sound of Music|1966|Sound of Music
+A Man for All Seasons|1967|Man for All Seasons
+In the Heat of the Night|1968
+Oliver!|1969
+Midnight Cowboy|1970
+Patton|1971
+The French Connection|1972|French Connection
+The Godfather|1973|Godfather
+The Sting|1974|Sting
+The Godfather Part II|1975|The Godfather 2;Godfather Part II;Godfather 2;The Godfather Part 2
+One Flew Over the Cuckoo's Nest|1976|One Flew Over the Cuckoos Nest
+Rocky|1977
+Annie Hall|1978
+The Deer Hunter|1979|Deer Hunter
+Kramer vs. Kramer|1980|Kramer vs Kramer;Kramer versus Kramer
+Ordinary People|1981
+Chariots of Fire|1982
+Gandhi|1983
+Terms of Endearment|1984
+Amadeus|1985
+Out of Africa|1986
+Platoon|1987
+The Last Emperor|1988|Last Emperor
+Rain Man|1989|Rainman
+Driving Miss Daisy|1990
+Dances with Wolves|1991
+The Silence of the Lambs|1992|Silence of the Lambs
+Unforgiven|1993
+Schindler's List|1994|Schindlers List
+Forrest Gump|1995
+Braveheart|1996
+The English Patient|1997|English Patient
+Titanic|1998
+Shakespeare in Love|1999
+American Beauty|2000
+Gladiator|2001
+A Beautiful Mind|2002|Beautiful Mind
+Chicago|2003
+The Lord of the Rings: The Return of the King|2004|The Return of the King;Return of the King;Lord of the Rings;The Lord of the Rings
+Million Dollar Baby|2005
+Crash|2006
+The Departed|2007|Departed
+No Country for Old Men|2008
+Slumdog Millionaire|2009
+The Hurt Locker|2010|Hurt Locker
+The King's Speech|2011|The Kings Speech
+The Artist|2012|Artist
+Argo|2013
+12 Years a Slave|2014|Twelve Years a Slave
+Birdman|2015
+Spotlight|2016
+Moonlight|2017
+The Shape of Water|2018|Shape of Water
+Green Book|2019
+Parasite|2020
+Nomadland|2021
+CODA|2022
+Everything Everywhere All at Once|2023|Everything Everywhere
+Oppenheimer|2024
+Anora|2025
+One Battle After Another|2026`);
+
+  L('fa-cup-winners', 2, 'Name a club that has won the FA Cup.', 'first win', [1889.5, 1930.5], `
+Wanderers|1872
+Oxford University|1874
+Royal Engineers|1875
+Old Etonians|1879
+Clapham Rovers|1880
+Old Carthusians|1881
+Blackburn Olympic|1883
+Blackburn Rovers|1884|Blackburn
+Aston Villa|1887|Villa
+West Bromwich Albion|1888|West Brom;WBA
+Preston North End|1889|Preston;PNE
+Wolverhampton Wanderers|1893|Wolves;Wolverhampton
+Notts County|1894
+Sheffield Wednesday|1896|The Wednesday
+Nottingham Forest|1898|Forest;Notts Forest
+Sheffield United|1899
+Bury|1900
+Tottenham Hotspur|1901|Tottenham;Spurs
+Manchester City|1904|Man City
+Everton|1906
+Manchester United|1909|Man United;Man Utd
+Newcastle United|1910|Newcastle
+Bradford City|1911|Bradford
+Barnsley|1912
+Burnley|1914
+Huddersfield Town|1922|Huddersfield
+Bolton Wanderers|1923|Bolton
+Cardiff City|1927|Cardiff
+Arsenal|1930
+Sunderland|1937
+Portsmouth|1939|Pompey
+Derby County|1946|Derby
+Charlton Athletic|1947|Charlton
+Blackpool|1953
+West Ham United|1964|West Ham
+Liverpool|1965
+Chelsea|1970
+Leeds United|1972|Leeds
+Southampton|1976
+Ipswich Town|1978|Ipswich
+Coventry City|1987|Coventry
+Wimbledon|1988
+Wigan Athletic|2013|Wigan
+Leicester City|2021|Leicester
+Crystal Palace|2025|Palace`);
+
+  L('ballon-dor', 2, "Name a footballer who has won the men's Ballon d'Or.", 'first win', [1966.5, 1990.5], `
+Stanley Matthews|1956
+Alfredo Di Stéfano|1957|Di Stéfano;Alfredo Di Stefano;Di Stefano
+Raymond Kopa|1958
+Luis Suárez Miramontes|1960|Luis Suárez;Luis Suarez;Suárez
+Omar Sívori|1961|Omar Sivori
+Josef Masopust|1962
+Lev Yashin|1963
+Denis Law|1964
+Eusébio|1965|Eusebio
+Bobby Charlton|1966
+Flórián Albert|1967|Florian Albert
+George Best|1968
+Gianni Rivera|1969
+Gerd Müller|1970|Gerd Muller
+Johan Cruyff|1971|Johan Cruijff;Cruijff
+Franz Beckenbauer|1972
+Oleg Blokhin|1975
+Allan Simonsen|1977
+Kevin Keegan|1978
+Karl-Heinz Rummenigge|1980|Karl Heinz Rummenigge
+Paolo Rossi|1982
+Michel Platini|1983
+Igor Belanov|1986
+Ruud Gullit|1987
+Marco van Basten|1988|Van Basten
+Lothar Matthäus|1990|Lothar Matthaus
+Jean-Pierre Papin|1991|Jean Pierre Papin
+Roberto Baggio|1993
+Hristo Stoichkov|1994
+George Weah|1995
+Matthias Sammer|1996
+Ronaldo|1997|Ronaldo Nazário;Ronaldo Nazario;R9
+Zinedine Zidane|1998|Zizou
+Rivaldo|1999
+Luís Figo|2000|Luis Figo
+Michael Owen|2001
+Pavel Nedvěd|2003|Pavel Nedved
+Andriy Shevchenko|2004|Andrei Shevchenko
+Ronaldinho|2005
+Fabio Cannavaro|2006
+Kaká|2007|Kaka
+Cristiano Ronaldo|2008|CR7
+Lionel Messi|2009|Leo Messi
+Luka Modrić|2018|Luka Modric
+Karim Benzema|2022
+Rodri|2024
+Ousmane Dembélé|2025|Ousmane Dembele
+Harry Kane|2026`, 'P');
+
+  L('ghibli-films', 2, 'Name a Studio Ghibli film.', 'release', [1989.5, 2001.5], `
+Nausicaä of the Valley of the Wind|1984|Nausicaa of the Valley of the Wind;Nausicaa;Nausicaä
+Castle in the Sky|1986|Laputa;Laputa: Castle in the Sky
+Grave of the Fireflies|1988.3
+My Neighbor Totoro|1988.31|My Neighbour Totoro;Totoro
+Kiki's Delivery Service|1989|Kikis Delivery Service;Kiki
+Only Yesterday|1991
+Porco Rosso|1992
+Ocean Waves|1993
+Pom Poko|1994
+Whisper of the Heart|1995
+Princess Mononoke|1997
+My Neighbors the Yamadas|1999|My Neighbours the Yamadas;The Yamadas
+Spirited Away|2001
+The Cat Returns|2002|Cat Returns
+Howl's Moving Castle|2004|Howls Moving Castle
+Tales from Earthsea|2006|Earthsea
+Ponyo|2008|Ponyo on the Cliff by the Sea
+Arrietty|2010|The Secret World of Arrietty;The Borrower Arrietty
+From Up on Poppy Hill|2011
+The Wind Rises|2013|Wind Rises
+The Tale of the Princess Kaguya|2013.9|Princess Kaguya;The Tale of Princess Kaguya
+When Marnie Was There|2014
+The Red Turtle|2016|Red Turtle
+Earwig and the Witch|2020
+The Boy and the Heron|2023|Boy and the Heron`);
+
+  L('super-bowl-winners', 2, 'Name a team that has won the Super Bowl.', 'first win', [1971.5, 1987.5], `
+Green Bay Packers|1967|Packers;Green Bay
+New York Jets|1969|Jets
+Kansas City Chiefs|1970|Chiefs;Kansas City
+Baltimore Colts|1971|Indianapolis Colts;Colts
+Dallas Cowboys|1972|Cowboys;Dallas
+Miami Dolphins|1973|Dolphins;Miami
+Pittsburgh Steelers|1975|Steelers;Pittsburgh
+Oakland Raiders|1977|Las Vegas Raiders;Los Angeles Raiders;Raiders
+San Francisco 49ers|1982|49ers;Niners;San Francisco
+Washington Commanders|1983|Washington Redskins;Washington;Commanders;Redskins
+Chicago Bears|1986|Bears;Chicago
+New York Giants|1987|Giants
+Denver Broncos|1998|Broncos;Denver
+St. Louis Rams|2000|Los Angeles Rams;LA Rams;Rams
+Baltimore Ravens|2001|Ravens
+New England Patriots|2002|Patriots;New England
+Tampa Bay Buccaneers|2003|Buccaneers;Bucs;Tampa Bay
+New Orleans Saints|2010|Saints;New Orleans
+Seattle Seahawks|2014|Seahawks;Seattle
+Philadelphia Eagles|2018|Eagles;Philadelphia`);
+
+  L('eurovision-winners', 2, 'Name a country that has won the Eurovision Song Contest.', 'first win', [1963.5, 1982.5], `
+Switzerland|1956
+Netherlands|1957|The Netherlands;Holland
+France|1958
+Luxembourg|1961
+Denmark|1963
+Italy|1964
+Austria|1966
+United Kingdom|1967|UK;Britain;Great Britain
+Spain|1968
+Ireland|1970
+Monaco|1971
+Sweden|1974
+Israel|1978
+Germany|1982|West Germany
+Norway|1985
+Belgium|1986
+Yugoslavia|1989
+Estonia|2001
+Latvia|2002
+Turkey|2003|Türkiye
+Ukraine|2004
+Greece|2005
+Finland|2006
+Serbia|2007
+Russia|2008
+Azerbaijan|2011
+Portugal|2017
+Bulgaria|2026`);
+
+  L('wimbledon-champions', 2, 'Name a player who has won a Wimbledon singles title since 1968.', 'first Wimbledon title', [1969.5, 1988.5], `
+Rod Laver|1961
+Margaret Court|1963|Margaret Smith;Margaret Smith Court
+Billie Jean King|1966|Billie Jean Moffitt
+John Newcombe|1967
+Ann Jones|1969
+Evonne Goolagong|1971|Evonne Goolagong Cawley;Goolagong Cawley;Evonne Cawley
+Stan Smith|1972
+Jan Kodeš|1973|Jan Kodes
+Jimmy Connors|1974
+Chris Evert|1974.01|Chris Evert Lloyd;Chrissie Evert
+Arthur Ashe|1975
+Björn Borg|1976|Bjorn Borg
+Virginia Wade|1977
+Martina Navratilova|1978
+John McEnroe|1981
+Boris Becker|1985
+Pat Cash|1987
+Stefan Edberg|1988
+Steffi Graf|1988.01
+Michael Stich|1991
+Andre Agassi|1992
+Pete Sampras|1993
+Conchita Martínez|1994|Conchita Martinez
+Richard Krajicek|1996
+Martina Hingis|1997
+Jana Novotná|1998|Jana Novotna
+Lindsay Davenport|1999
+Venus Williams|2000|Venus
+Goran Ivanišević|2001|Goran Ivanisevic
+Lleyton Hewitt|2002
+Serena Williams|2002.01|Serena
+Roger Federer|2003
+Maria Sharapova|2004
+Amélie Mauresmo|2006|Amelie Mauresmo
+Rafael Nadal|2008|Rafa Nadal
+Novak Djokovic|2011|Novak Đoković
+Petra Kvitová|2011.01|Petra Kvitova
+Andy Murray|2013
+Marion Bartoli|2013.01
+Garbiñe Muguruza|2017|Garbine Muguruza
+Angelique Kerber|2018
+Simona Halep|2019
+Ashleigh Barty|2021|Ash Barty
+Elena Rybakina|2022
+Markéta Vondroušová|2023|Marketa Vondrousova
+Carlos Alcaraz|2023.01
+Barbora Krejčíková|2024|Barbora Krejcikova
+Jannik Sinner|2025
+Iga Świątek|2025.01|Iga Swiatek
+Linda Nosková|2026|Linda Noskova`, 'P');
+
+  L('stephen-king-novels', 2, 'Name a novel by Stephen King.', 'publication', [1979.99, 1989.99], `
+Carrie|1974.3
+'Salem's Lot|1975.8|Salems Lot;Salem's Lot
+The Shining|1977|Shining
+Rage|1977.7
+The Stand|1978|Stand
+The Long Walk|1979|Long Walk
+The Dead Zone|1979.6|Dead Zone
+Firestarter|1980
+Roadwork|1981
+Cujo|1981.7
+The Running Man|1982|Running Man
+The Gunslinger|1982.4|Gunslinger;The Dark Tower: The Gunslinger
+Christine|1983
+Pet Sematary|1983.8|Pet Semetary;Pet Cemetery
+The Talisman|1984|Talisman
+Thinner|1984.8
+It|1986
+The Eyes of the Dragon|1987|Eyes of the Dragon
+The Drawing of the Three|1987.3|Drawing of the Three
+Misery|1987.4
+The Tommyknockers|1987.8|Tommyknockers
+The Dark Half|1989|Dark Half
+The Waste Lands|1991|Waste Lands
+Needful Things|1991.7
+Gerald's Game|1992|Geralds Game
+Dolores Claiborne|1992.9
+Insomnia|1994
+Rose Madder|1995
+The Green Mile|1996|Green Mile
+Desperation|1996.7
+The Regulators|1996.71|Regulators
+Wizard and Glass|1997
+Bag of Bones|1998
+The Girl Who Loved Tom Gordon|1999|Girl Who Loved Tom Gordon
+Dreamcatcher|2001
+Black House|2001.7
+From a Buick 8|2002
+Wolves of the Calla|2003
+Song of Susannah|2004
+The Dark Tower|2004.7|Dark Tower
+The Colorado Kid|2005|Colorado Kid
+Cell|2006
+Lisey's Story|2006.8|Liseys Story
+Blaze|2007
+Duma Key|2008
+Under the Dome|2009
+11/22/63|2011|11.22.63
+The Wind Through the Keyhole|2012|Wind Through the Keyhole
+Joyland|2013
+Doctor Sleep|2013.7|Dr Sleep
+Mr. Mercedes|2014|Mr Mercedes
+Revival|2014.9
+Finders Keepers|2015
+End of Watch|2016
+Sleeping Beauties|2017
+The Outsider|2018|Outsider
+Elevation|2018.8
+The Institute|2019|Institute
+Later|2021
+Billy Summers|2021.6
+Fairy Tale|2022
+Holly|2023
+Never Flinch|2025`);
+
+  L('f1-constructors', 2, "Name a team that has won the Formula One constructors' championship.", 'first title', [1962.5, 1974.5], `
+Vanwall|1958
+Cooper|1959
+Ferrari|1961
+BRM|1962
+Lotus|1963
+Brabham|1966
+Matra|1969
+Tyrrell|1971
+McLaren|1974
+Williams|1980
+Benetton|1995
+Renault|2005
+Brawn GP|2009|Brawn
+Red Bull|2010|Red Bull Racing
+Mercedes|2014`);
+
   TOPIC = 'history';
 
   // ======================= narrower questions from the rolls above =======================
@@ -4447,7 +6627,6 @@ Paris Saint-Germain|2025|PSG;Paris St Germain
   V('composers-1800-on', 'composers', 2, 'Name a composer born since 1800.', [1819.99, 1859.99], 1800, N);
   V('philosophers-ancient', 'philosophers', 2, 'Name a philosopher of the ancient world.', [-500, -300], N, 500);
   V('generals-ancient', 'generals', 2, 'Name a general or conqueror of the ancient world.', [-500, -200], N, 500);
-  V('french-louis', 'french-monarchs', 2, 'Name a French king called Louis.', [986, 1498], N, N, /^Louis/);
   V('uk-pms-1945-on', 'uk-pms', 2, 'Name a British prime minister since 1945.', [1957, 1979], 1945, N);
   V('landmarks-1800-on', 'landmarks', 2, 'Name a famous landmark built since 1800.', [1859.99, 1899.99], 1800, N);
 
@@ -4475,6 +6654,8 @@ Paris Saint-Germain|2025|PSG;Paris St Germain
   V('uk-pms-1800s', 'uk-pms', 3, 'Name a British prime minister who first took office in the 19th century.', [1812, 1834.9], 1800, 1899.99);
   V('roman-emperors-200-on', 'roman-emperors', 3, 'Name a Roman emperor who took power in the year 200 or later.', [244, 305], 200, N);
   V('pharaohs-new-kingdom', 'pharaohs', 3, 'Name a pharaoh of the New Kingdom.', [-1479, -1319], -1550, -1070);
+  V('french-monarchs-since-1500', 'french-monarchs', 2, 'Name a king or emperor of France who came to the throne after 1500.', [1560.5, 1715.5], 1500, N);
+  V('universities-since-1800', 'universities', 2, 'Name a university founded since 1800.', [1831.5, 1876.5], 1800, N);
 
   // everyday knowledge
   V('consoles-nintendo', 'consoles', 1, 'Name a Nintendo console.', [1983, 1996], N, N, /Nintendo|Game Boy|Game & Watch|Color TV-Game|Virtual Boy|GameCube|^Wii/);
@@ -4491,6 +6672,49 @@ Paris Saint-Germain|2025|PSG;Paris St Germain
   V('bond-films-since-1980', 'bond-films', 1, 'Name a James Bond film made since 1980.', [1985, 1999], 1980, N);
   V('mario-games-since-2000', 'mario-games', 1, 'Name a game with Mario in it released since 2000.', [2002, 2008], 2000, N);
   V('pixar-films-since-2010', 'pixar-films', 1, 'Name a Pixar film made since 2010.', [2012, 2017], 2010, N);
+  V('phones-since-2010', 'phones', 1, 'Name a mobile phone released since 2010.', [2012.99, 2018.99], 2010, N);
+  V('video-games-1980s', 'video-games', 1, 'Name a video game from the 1980s.', [1981.99, 1984.99], 1980, 1989.99);
+  V('video-games-2010s', 'video-games', 1, 'Name a video game from the 2010s.', [2011.99, 2014.99], 2010, 2019.99);
+  V('superheroes-since-1960', 'superheroes', 1, 'Name a Marvel or DC superhero who first appeared in 1960 or later.', [1963.99, 1972.99], 1960, N);
+  V('consoles-pre2000', 'consoles', 1, 'Name a video game console released before 2000.', [1979.99, 1989.99], N, 1999.99);
+  V('bond-films-pre1980', 'bond-films', 2, 'Name a James Bond film made before 1980.', [1963.99, 1969.99], N, 1979.99);
+  V('football-clubs-pre1880', 'football-clubs', 2, 'Name a British football club founded before 1880.', [1865.99, 1875.99], N, 1879.99);
+  V('superheroes-pre1960', 'superheroes', 2, 'Name a Marvel or DC superhero who first appeared before 1960.', [1939.99, 1940.99], N, 1959.99);
+  V('chocolate-bars-pre1940', 'chocolate-bars', 2, 'Name a chocolate bar or chocolate sweet launched before 1940.', [1908.99, 1929.99], N, 1939.99);
+  V('soft-drinks-pre1940', 'soft-drinks', 2, 'Name a soft drink launched before 1940.', [1876.99, 1905.99], N, 1939.99);
+  V('f1-champions-since-2000', 'f1-champions', 2, 'Name a driver whose first Formula One world title came in 2000 or later.', [2007.5, 2010.5], 2000, N);
+  V('mario-games-pre2000', 'mario-games', 2, 'Name a game with Mario in it released before 2000.', [1985.99, 1990.99], N, 1999.99);
+
+  // from the newer everyday rolls
+  V('fast-food-since-1970', 'fast-food', 1, 'Name a fast-food or restaurant chain founded since 1970.', [1978.99, 1986.99], 1970, N);
+  V('fast-food-pre1960', 'fast-food', 2, 'Name a fast-food or restaurant chain founded before 1960.', [1930.99, 1946.99], N, 1959.99);
+  V('car-makers-since-1945', 'car-makers', 1, 'Name a car maker founded since 1945.', [1950.99, 1983.99], 1945, N);
+  V('car-makers-pre1920', 'car-makers', 2, 'Name a car maker founded before 1920.', [1878.99, 1905.99], N, 1919.99);
+  V('car-models-since-1980', 'car-models', 1, 'Name a model of car launched since 1980.', [1984.99, 1996.99], 1980, N);
+  V('social-media-since-2008', 'social-media', 1, 'Name a social network or messaging app launched since 2008.', [2010.79, 2012.99], 2008, N);
+  V('sitcoms-since-2000', 'sitcoms', 1, 'Name a TV sitcom first shown since 2000.', [2004.5, 2007.99], 2000, N);
+  V('sitcoms-1990s', 'sitcoms', 1, 'Name a TV sitcom first shown in the 1990s.', [1992.5, 1995.99], 1990, 1999.99);
+  V('sitcoms-1970s-80s', 'sitcoms', 1, 'Name a TV sitcom first shown in the 1970s or 1980s.', [1973.5, 1979.5], 1970, 1989.99);
+  V('car-models-1950-1979', 'car-models', 1, 'Name a model of car launched between 1950 and 1979.', [1957.45, 1966.5], 1950, 1979.99);
+  V('sportswear-since-1950', 'sportswear', 1, 'Name a sportswear or sports equipment brand founded since 1950.', [1964.5, 1975.5], 1950, N);
+  V('toys-since-1980', 'toys', 1, 'Name a famous toy first sold since 1980.', [1985.2, 1996.85], 1980, N);
+  V('toys-pre1970', 'toys', 2, 'Name a famous toy first sold before 1970.', [1914.5, 1950.3], N, 1969.99);
+  V('tech-companies-since-1990', 'tech-companies', 1, 'Name a technology company founded since 1990.', [1996.5, 2003.55], 1990, N);
+  V('tech-companies-pre1970', 'tech-companies', 2, 'Name a technology company founded before 1970.', [1891.5, 1919.5], N, 1969.99);
+  V('airlines-since-1970', 'airlines', 1, 'Name an airline founded since 1970.', [1979.5, 1989.5], 1970, N);
+  V('dreamworks-films-since-2010', 'dreamworks-films', 1, 'Name a DreamWorks animated film released since 2010.', [2012.95, 2017.5], 2010, N);
+  V('spielberg-films-since-1990', 'spielberg-films', 1, 'Name a film directed by Steven Spielberg since 1990.', [1997.95, 2005.95], 1990, N);
+  V('cartoon-characters-since-1980', 'cartoon-characters', 1, 'Name a cartoon character who first appeared since 1980.', [1987.5, 1997.3], 1980, N);
+  V('cartoon-characters-pre1960', 'cartoon-characters', 1, 'Name a cartoon character who first appeared before 1960.', [1920.5, 1941.5], N, 1959.99);
+  V('kids-tv-since-1990', 'kids-tv', 1, "Name a children's TV programme first shown since 1990.", [1993.8, 2001.1], 1990, N);
+  V('kids-tv-pre1990', 'kids-tv', 1, "Name a children's TV programme first shown before 1990.", [1961.1, 1972.5], N, 1989.99);
+  V('fashion-brands-since-1950', 'fashion-brands', 1, 'Name a fashion or clothing brand founded since 1950.', [1968.1, 1981.7], 1950, N);
+  V('fashion-brands-pre1900', 'fashion-brands', 2, 'Name a fashion or clothing brand founded before 1900.', [1830, 1860], N, 1899.99);
+  V('musicals-since-1980', 'musicals', 1, 'Name a stage musical that opened in 1980 or later.', [1986.9, 2004.5], 1980, N);
+  V('musicals-pre1970', 'musicals', 2, 'Name a stage musical that opened before 1970.', [1946.5, 1957.5], N, 1969.99);
+  V('pokemon-games-since-2010', 'pokemon-games', 1, 'Name a Pokémon video game released since 2010.', [2014.95, 2018.95], 2010, N);
+  V('best-picture-since-1990', 'best-picture', 1, 'Name a film that has won the Oscar for Best Picture since 1990.', [1996.5, 2008.5], 1990, N);
+  V('wimbledon-since-2000', 'wimbledon-champions', 1, 'Name a player whose first Wimbledon singles title came in 2000 or later.', [2003.5, 2013.5], 2000, N);
 
   // ======================= more names for the rolls above =======================
   // Kept apart so the rolls stay readable. M(id, roll) adds lines to a roll.
@@ -4605,21 +6829,6 @@ Shah Jahan III|1759`);
 Kenmu Restoration|1333|Kenmu
 Nanboku-cho|1336.5|Northern and Southern Courts
 Bakumatsu|1853`);
-
-  M('crusades', `
-Crusade of 1101|1101
-Venetian Crusade|1122
-Wendish Crusade|1147.3
-Livonian Crusade|1198
-Prussian Crusade|1217.5
-Barons' Crusade|1239
-Shepherds' Crusade|1251
-Aragonese Crusade|1284
-Smyrniote Crusades|1343|Smyrna Crusade
-Alexandrian Crusade|1365
-Crusade of Nicopolis|1396|Nicopolis
-Hussite Crusades|1420|Hussite Wars
-Crusade of Varna|1443|Varna`);
 
   M('german-chancellors', `
 Joseph Goebbels|1945.3
@@ -6814,7 +9023,7 @@ Verdun|1792.67|Siege of Verdun`);
     var bank = [], rolls = {};
     LISTS.forEach(function (def) {
       var roll = rolls[def.id] = { def: def, answers: parseRoll(def) };
-      bank.push(makePrompt(def, def.id, roll.answers, def.people, def.by, def.topic));
+      if (!def.unasked) bank.push(makePrompt(def, def.id, roll.answers, def.people, def.by, def.topic));
     });
     VARIANTS.forEach(function (def) {
       var roll = rolls[def.base];
