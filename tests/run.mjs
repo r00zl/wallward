@@ -107,9 +107,10 @@ const cases = [
   ['us-presidents-1900s', 'Truman', 'Harry S. Truman'], ['us-presidents-1900s', 'Lincoln', 'outside'],
   ['us-presidents-1900s', 'Obama', 'outside'], ['us-presidents-1900s', 'Roosevelt', '?'],
   ['us-presidents-1800s', 'Roosevelt', 'outside'], ['us-presidents-1800s', 'Jefferson', 'Thomas Jefferson'],
-  ['french-louis', 'Louis XIV', 'Louis XIV'], ['french-louis', 'louis 14', 'Louis XIV'],
-  ['french-louis', 'Sun King', 'Louis XIV'], ['french-louis', 'Charlemagne', 'outside'],
-  ['french-louis', 'Louis', '?'], ['french-louis', 'Louis XVII', null], ['french-louis', 'Louis Philippe', 'Louis-Philippe'],
+  ['french-monarchs-since-1500', 'Louis XIV', 'Louis XIV'], ['french-monarchs-since-1500', 'louis 14', 'Louis XIV'],
+  ['french-monarchs-since-1500', 'Sun King', 'Louis XIV'], ['french-monarchs-since-1500', 'Charlemagne', 'outside'],
+  ['french-monarchs-since-1500', 'Louis I', 'outside'], ['french-monarchs-since-1500', 'Louis XVII', null],
+  ['french-monarchs-since-1500', 'Louis Philippe', 'Louis-Philippe'], ['french-monarchs-since-1500', 'Francis I', 'Francis I'],
   ['eng-monarchs-tudor-stuart', 'Victoria', 'outside'], ['eng-monarchs-tudor-stuart', 'Elizabeth', 'Elizabeth I'],
   ['eng-monarchs-1714-on', 'Elizabeth', 'Elizabeth II'],
 
@@ -163,8 +164,29 @@ const cases = [
   ['revolutions', 'French', 'French Revolution'], ['revolutions', 'the French Revolution', 'French Revolution'],
   ['revolutions', 'Industrial Revolution', 'Industrial Revolution'], ['revolutions', '1848', 'Revolutions of 1848'],
   ['revolutions', 'Russian', 'Russian Revolution'], ['revolutions', 'October Revolution', 'Russian Revolution'],
-  ['crusades', 'First Crusade', 'First Crusade'], ['crusades', '1st crusade', 'First Crusade'], ['crusades', 'first', 'First Crusade'],
-  ['crusades', 'the third crusade', 'Third Crusade'], ['crusades', '3rd', 'Third Crusade'], ['crusades', 'Tenth Crusade', null],
+  ['popes', 'John Paul II', 'John Paul II'], ['popes', 'john paul 2', 'John Paul II'], ['popes', 'Pope Francis', 'Francis'],
+  ['popes', 'Pius', '?'], ['popes', 'benedict 16', 'Benedict XVI'], ['popes', 'Ratzinger', 'Benedict XVI'], ['popes', 'Peter', null],
+  // everyday rolls
+  ['car-models', 'mustang', 'Ford Mustang'], ['car-models', 'model t', 'Ford Model T'], ['car-models', 'porsche 911', 'Porsche 911'],
+  ['car-models', 'porsche', '?'], ['car-makers', 'vw', 'Volkswagen'], ['fast-food', 'mcdonalds', "McDonald's"],
+  ['fast-food', 'kentucky fried chicken', 'KFC'], ['fast-food', 'a&w', 'A&W'], ['tech-companies', 'hp', 'Hewlett-Packard'],
+  ['universities', 'Oxford University', 'University of Oxford'], ['universities', 'university of oxford', 'University of Oxford'],
+  ['universities', 'glasgow university', 'University of Glasgow'], ['universities', 'MIT', 'Massachusetts Institute of Technology'],
+  ['universities', 'harvard', 'Harvard University'], ['universities', 'university', null],
+  ['pokemon-games', 'pokemon red', 'Pokémon Red and Green'], ['pokemon-games', 'sword and shield', 'Pokémon Sword and Shield'],
+  ['pokemon-games', 'pokemon go', 'Pokémon Go'], ['best-picture', 'lord of the rings', 'The Lord of the Rings: The Return of the King'],
+  ['best-picture', 'godfather', 'The Godfather'], ['best-picture', 'godfather 2', 'The Godfather Part II'],
+  ['best-picture-since-1990', 'Casablanca', 'outside'], ['ballon-dor', 'messi', 'Lionel Messi'], ['ballon-dor', 'ronaldo', 'Ronaldo'],
+  ['ballon-dor', 'cristiano ronaldo', 'Cristiano Ronaldo'], ['ballon-dor', 'suarez', 'Luis Suárez Miramontes'],
+  ['sitcoms', 'the office', 'The Office'], ['sitcoms', 'the office us', 'The Office (US)'], ['sitcoms', 'mash', 'M*A*S*H'],
+  ['sitcoms', 'brooklyn 99', 'Brooklyn Nine-Nine'], ['sitcoms', 'thirty rock', '30 Rock'],
+  ['wimbledon-since-2000', 'Federer', 'Roger Federer'], ['wimbledon-since-2000', 'Borg', 'outside'], ['wimbledon-since-2000', 'Williams', '?'],
+  ['apple-products-since-2000', 'Apple I', 'outside'], ['apple-products-since-2000', 'iphone', 'iPhone'],
+  ['fa-cup-winners', 'Arsenal FC', 'Arsenal'], ['fa-cup-winners', 'wanderers', 'Wanderers'], ['fa-cup-winners', 'spurs', 'Tottenham Hotspur'],
+  ['eurovision-winners', 'uk', 'United Kingdom'], ['super-bowl-winners', 'patriots', 'New England Patriots'],
+  ['stephen-king-novels', 'it', 'It'], ['stephen-king-novels', '11/22/63', '11/22/63'], ['spielberg-films', 'et', 'E.T. the Extra-Terrestrial'],
+  ['spielberg-films', '1941', '1941'], ['musicals', 'les mis', 'Les Misérables'], ['musicals', 'six', 'Six'],
+  ['kids-tv', 'blue peter', 'Blue Peter'], ['cartoon-characters', 'bugs bunny', 'Bugs Bunny'], ['cartoon-characters', 'woody', 'Woody'],
   ['ships', 'Titanic', 'RMS Titanic'], ['ships', 'RMS Titanic', 'RMS Titanic'], ['ships', 'the Titanic', 'RMS Titanic'],
   ['ships', 'HMS Victory', 'HMS Victory'], ['ships', 'Victory', 'HMS Victory'], ['ships', 'Mayflower', 'Mayflower'],
   ['ships', 'QE2', 'Queen Elizabeth 2'], ['ships', 'Santa Maria', 'Santa María'],
@@ -213,7 +235,7 @@ ok(WW.fmtYear({ year: -2560, approx: true }) === 'c. 2560 BC' && WW.fmtYear({ ye
 
 // ---------- daily walls ----------
 console.log('Daily');
-const DAYS = 365, lastSeen = new Map(), lastFam = new Map();
+const DAYS = 1100, MONTH = 31, lastSeen = new Map(), lastFam = new Map();
 let minGap = Infinity, minFamGap = Infinity, sameFamNextDay = 0;
 const used = new Map();
 for (let n = 1; n <= DAYS; n++) {
@@ -236,7 +258,13 @@ for (let n = 1; n <= DAYS; n++) {
     lastFam.set(f, n);
   }
 }
-ok(minGap >= 12, 'no question returns within twelve days (closest ' + minGap + ')');
+ok(minGap > MONTH, 'no question returns within a month (closest ' + minGap + ' days)');
+// ...and that is not luck: each foe's place has more questions to draw on than a month can use up
+for (const want of [{ tier: 1, topic: 'everyday' }, { tier: 1, topic: 'history' }, { tier: 2, topic: 'history' }, { tier: 2, topic: null }]) {
+  const pool = bank.filter(p => p.tier === want.tier && (!want.topic || p.topic === want.topic));
+  const places = D.DAILY_ENEMIES.filter(e => e.tier === want.tier && (want.topic ? e.topic === want.topic : true)).length;
+  ok(pool.length >= places * (MONTH + 1) + 6, 'enough tier ' + want.tier + ' ' + (want.topic || 'any') + ' questions for ' + places + ' a day: ' + pool.length);
+}
 ok(sameFamNextDay === 0, 'a roll is never used two days running (' + sameFamNextDay + ')');
 const dailyPool = bank.filter(p => D.DAILY_ENEMIES.some(e => e.tier === p.tier));
 ok(dailyPool.every(p => used.get(p.id) > 0), 'every daily question gets used: missing ' + dailyPool.filter(p => !used.get(p.id)).map(p => p.id));
@@ -295,7 +323,7 @@ const OLDEST = {
   wonders: 'Great Pyramid of Giza', 'royal-houses': 'Wessex', space: 'Sputnik', queens: 'Neithhotep',
   documents: 'Treaty of Mesilim', 'ottoman-sultans': 'Osman I', 'mughal-emperors': 'Babur',
   'japanese-periods': 'Japanese Paleolithic', 'ww1-battles': 'Liege', 'napoleonic-battles': 'Quievrain',
-  crusades: 'People\'s Crusade', 'thirteen-colonies': 'Virginia', 'german-chancellors': 'Otto von Bismarck',
+  popes: 'Pius III', 'thirteen-colonies': 'Virginia', 'german-chancellors': 'Otto von Bismarck',
   'civil-war-battles': 'Fort Sumter', moonwalkers: 'Neil Armstrong',
   'us-states': 'Delaware', elements: 'Gold', 'world-cup-hosts': 'Uruguay', emperors: 'Sargon of Akkad',
   'us-wars': 'American Revolutionary War', 'board-games': 'Senet', aeroplanes: 'Wright Flyer',
@@ -304,20 +332,54 @@ const OLDEST = {
   'scottish-monarchs': 'Kenneth MacAlpin', caliphates: 'Rashidun', 'roses-battles': 'First St Albans',
   'revolutionary-war-battles': 'Lexington and Concord', 'indian-pms': 'Jawaharlal Nehru',
   'canadian-pms': 'John A. Macdonald', 'australian-pms': 'Edmund Barton', 'winter-olympics': 'Chamonix',
+  universities: 'Nalanda', 'dickens-novels': 'The Pickwick Papers',
   // everyday knowledge
-  'gta-games': 'Grand Theft Auto', consoles: 'Magnavox Odyssey', 'video-games': 'Cathode-ray tube amusement device',
+  consoles: 'Magnavox Odyssey', 'video-games': 'Cathode-ray tube amusement device',
   phones: 'Motorola DynaTAC 8000X', 'mario-games': 'Donkey Kong', 'disney-films': 'Snow White and the Seven Dwarfs',
-  'pixar-films': 'Toy Story', 'bond-films': 'Dr. No', 'star-wars-films': 'Star Wars', 'marvel-films': 'Iron Man',
-  'harry-potter-books': "Harry Potter and the Philosopher's Stone", 'taylor-swift-albums': 'Taylor Swift',
-  'disney-princesses': 'Snow White', 'world-cup-winners': 'Uruguay', 'apple-products': 'Apple I',
+  'pixar-films': 'Toy Story', 'bond-films': 'Dr. No', 'marvel-films': 'Iron Man',
+  'harry-potter-books': "Harry Potter and the Philosopher's Stone",
+  'disney-princesses': 'Snow White', 'world-cup-winners': 'Uruguay',
   'football-clubs': 'Sheffield F.C.', 'soft-drinks': 'Schweppes', 'chocolate-bars': "Fry's Chocolate Cream",
-  superheroes: 'Doctor Occult', 'zelda-games': 'The Legend of Zelda', 'final-fantasy-games': 'Final Fantasy',
+  superheroes: 'Doctor Occult',
   'beatles-albums': 'Please Please Me', 'f1-champions': 'Giuseppe Farina', 'euro-winners': 'Soviet Union',
-  'champions-league-winners': 'Real Madrid'
+  'champions-league-winners': 'Real Madrid',
+  'fast-food': 'Yoshinoya', 'car-makers': 'Peugeot', 'car-models': 'Benz Patent-Motorwagen', 'social-media': 'Usenet',
+  sitcoms: "Pinwright's Progress", toys: 'Märklin', 'tech-companies': 'Siemens', airlines: 'DELAG',
+  'pokemon-games': 'Pokémon Red and Green', 'dreamworks-films': 'Antz', 'spielberg-films': 'Duel',
+  'roald-dahl-books': 'The Gremlins', 'cartoon-characters': 'Ally Sloper', 'kids-tv': 'For the Children',
+  'fashion-brands': 'Birkenstock', sportswear: 'Mitre', musicals: 'The Black Crook', 'best-picture': 'Wings',
+  'fa-cup-winners': 'Wanderers', 'ballon-dor': 'Stanley Matthews', 'ghibli-films': 'Nausicaä of the Valley of the Wind',
+  'super-bowl-winners': 'Green Bay Packers', 'eurovision-winners': 'Switzerland', 'wimbledon-champions': 'Rod Laver',
+  'stephen-king-novels': 'Carrie', 'f1-constructors': 'Vanwall'
 };
+ok(!bank.some(p => p.id === 'apple-products') && P('apple-products-since-2000').family === 'apple-products', 'a roll that is not asked whole still feeds its narrower question');
+for (const gone of ['gta-games', 'star-wars-films', 'taylor-swift-albums', 'zelda-games', 'final-fantasy-games', 'french-louis', 'crusades']) {
+  ok(!bank.some(p => p.id === gone), 'a question that gave itself away is gone: ' + gone);
+}
 for (const p of bank) {
   if (p.id !== p.family) continue;
   ok(OLDEST[p.id] === p.oldest.name, 'oldest on the roll: ' + p.id + ' is ' + p.oldest.name + ', expected ' + OLDEST[p.id]);
+}
+// No question may give its own best answer away. Type every run of words in the question back at it, bare
+// and as "the first one" might be put ("Louis I", "first crusade"): none may fell the foe outright.
+{
+  const AFTER = ['', ' i', ' 1', ' one', ' first', ' the first', ' original', ' classic'];
+  const BEFORE = ['', 'first ', 'the first ', 'original ', 'the original ', 'classic '];
+  for (const p of bank) {
+    const words = p.q.toLowerCase().replace(/[^a-z0-9é' -]+/g, ' ').split(/\s+/).filter(Boolean).slice(1);
+    const runs = new Set(['']);
+    for (let n = 1; n <= 5; n++) for (let i = 0; i + n <= words.length; i++) {
+      const run = words.slice(i, i + n).join(' ');
+      runs.add(run);
+      if (/s$/.test(run)) runs.add(run.replace(/s$/, ''));
+    }
+    const given = [];
+    for (const run of runs) for (const b of BEFORE) for (const a of AFTER) {
+      const typed = (b + run + a).trim(), r = typed ? A.check(typed, p, {}) : {};
+      if (r.ok && D.kills(p, r.ans)) given.push('"' + typed + '" is ' + r.ans.name);
+    }
+    ok(given.length === 0, 'the question does not give its oldest answer away: ' + p.id + ' ' + given.slice(0, 3).join(', '));
+  }
 }
 {
   const p = P('roman-emperors'), by = n => p.answers.find(a => a.name === n);
