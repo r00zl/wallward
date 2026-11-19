@@ -44,11 +44,22 @@
   var $ = function (id) { return document.getElementById(id); };
   var el = {};
   ['app', 'cv', 'veil', 'hud', 'lives', 'progress', 'score', 'quitBtn', 'banner', 'floats', 'combo', 'comboN', 'titleBlock',
-    'menu', 'playDaily', 'dailyNo', 'dailyDone', 'doneMarks', 'doneLine', 'doneCopy', 'doneNext', 'answersBtn',
-    'playEndless', 'endlessBest', 'howBtn', 'almanacBtn', 'soundBtn', 'stats',
+    'menu', 'playDaily', 'dailyLabel', 'dailySub', 'dailyNo', 'dailyDone', 'doneMarks', 'doneLine', 'doneScore',
+    'playEndless', 'endlessBest', 'howBtn', 'almanacBtn', 'soundBtn', 'soundLabel', 'stats',
     'fightTop', 'health', 'foe', 'qText', 'rule', 'chips', 'fightBottom', 'answerForm', 'answer', 'skipBtn', 'strikeBtn', 'feedback',
     'end', 'endKicker', 'endTitle', 'endScore', 'endRank', 'endMarks', 'copyBtn', 'againBtn', 'homeBtn', 'nextIn', 'endRecap',
     'copyBox', 'copyText', 'howto', 'howClose', 'book', 'bookTitle', 'bookBody', 'bookClose'].forEach(function (id) { el[id] = $(id); });
+  // A browser can hold an old copy of the page beside this newer script. Then the page lacks
+  // what the script expects: fetch it afresh, once, rather than fail.
+  if (!el.dailyLabel) {
+    try {
+      if (!window.sessionStorage.getItem('predate.refetched')) {
+        window.sessionStorage.setItem('predate.refetched', '1');
+        window.location.reload();
+      }
+    } catch (e) { /* ignore */ }
+    return;
+  }
 
   var BANK = WW.buildBank();
   A.setGuard(BANK);
@@ -122,7 +133,20 @@
     el.app.classList.toggle('short', appH < 560);
     // the combo count is cut into the face of the wall, under the knight
     el.combo.style.top = Math.round((scene.groundY + 9) * scene.scale) + 'px';
+    fitMenu();
     skyline();
+  }
+
+  /**
+   * The gate hangs on the face of the wall, below the walkway. Where that face is too short
+   * for all of it (a small phone), the small print is dropped so the knight stays in view.
+   */
+  function fitMenu() {
+    if (el.menu.hidden) return;
+    el.menu.classList.remove('tight');
+    var app = el.app.getBoundingClientRect(), walk = (scene.groundY + 7) * scene.scale;
+    var beside = window.matchMedia && window.matchMedia('(orientation: landscape) and (max-height: 480px)').matches;
+    if (!beside && el.menu.getBoundingClientRect().top - app.top < walk) el.menu.classList.add('tight');
   }
 
   /** Tell the scene how much of the sky the question covers, so sun and moon stay in view. */
@@ -313,6 +337,7 @@
   // ---------- a run ----------
   function startRun(mode, resume) {
     WW.Sound.wake();
+    el.app.classList.remove('intro');
     G.mode = mode; G.results = []; G.recap = []; G.score = 0; G.lives = CONFIG.LIVES; G.idx = 0;
     G.combo = 0; G.bestCombo = 0; G.recent = []; G.reveal = ''; G.told = false;
     G.bits = []; G.arcs = []; G.trail = []; G.fx = [];
@@ -819,15 +844,7 @@
         }
         s.best = Math.max(s.best, G.score);
       }
-      el.endKicker.textContent = 'Wall No. ' + G.num;
-      el.endTitle.textContent = held ? (felled === G.total ? 'The wall stands unbroken' : 'The wall held') : 'The wall fell';
-      el.endRank.textContent = D.rankFor(G.score) + '. ' + felled + ' of ' + G.total + ' felled, ' +
-        G.lives + (G.lives === 1 ? ' torch' : ' torches') + ' still burning.' + comboLine;
-      el.endMarks.textContent = D.markRow(G.results, G.total);
-      el.endMarks.hidden = false;
-      el.copyBtn.hidden = false;
-      el.againBtn.textContent = 'Endless march';
-      el.nextIn.hidden = false;
+      dailyEnd(d, G.num);
     } else {
       var best = G.score > s.bestEndless;
       s.bestEndless = Math.max(s.bestEndless, G.score);
@@ -850,9 +867,42 @@
     try { el.answer.blur(); el.end.querySelector('button:not([hidden])').focus({ preventScroll: true }); } catch (e) { /* ignore */ }
   }
 
+  /** Did a saved daily wall hold? (Walls saved before this was recorded held if a torch was left.) */
+  function heldOut(d) { return d.held != null ? !!d.held : d.lives == null || d.lives > 0; }
+
+  /** The words of the end screen for a daily wall, from what is saved of it. */
+  function dailyEnd(d, num) {
+    var total = d.total || 5, felled = D.felledCount(d.results), lives = d.lives == null ? 0 : d.lives;
+    el.endKicker.textContent = 'Wall No. ' + num;
+    el.endTitle.textContent = heldOut(d) ? (felled === total ? 'The wall stands unbroken' : 'The wall held') : 'The wall fell';
+    el.endRank.textContent = D.rankFor(d.score) + '. ' + felled + ' of ' + total + ' felled, ' +
+      lives + (lives === 1 ? ' torch' : ' torches') + ' still burning.' + (d.best > 1 ? ' Best combo ×' + d.best + '.' : '');
+    el.endMarks.textContent = D.markRow(d.results, total);
+    el.endMarks.hidden = false;
+    el.copyBtn.hidden = false;
+    el.againBtn.textContent = 'Endless march';
+    el.nextIn.hidden = false;
+  }
+
+  /** Today's result again, from the gate: the same screen a finished wall ends on. */
+  function showResult() {
+    var d = store.daily;
+    if (!d || !d.done || d.num !== D.dayNumber()) return;
+    dailyEnd(d, d.num);
+    el.endScore.textContent = D.fmt(d.score);
+    el.endRecap.innerHTML = recapHtml(d.results, d.recap || []);
+    el.copyBox.hidden = true;
+    show('end');
+    tick();
+    try { el.end.querySelector('button:not([hidden])').focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+  }
+
   function shareUrl() {
     if (CONFIG.SHARE_URL) return CONFIG.SHARE_URL;
-    return /\.github\.io$/.test(window.location.hostname) ? window.location.origin + window.location.pathname : '';
+    // the address the game is being played at, unless that is a file or a machine of one's own
+    var at = window.location;
+    if (at.protocol !== 'https:' || /^(localhost|127\.|10\.|192\.168\.|\[)/.test(at.hostname)) return '';
+    return (at.origin + at.pathname).replace(/index\.html$/, '').replace(/^(https:\/\/[^/]+)\/$/, '$1');
   }
 
   function copyResult(btn) {
@@ -884,30 +934,29 @@
 
   function drawMenu() {
     var num = D.dayNumber(), d = store.daily, s = store.stats;
-    var today = d && d.num === num ? d : null;
+    var today = d && d.num === num ? d : null, done = !!(today && today.done);
     el.dailyNo.textContent = 'No. ' + num;
-    el.titleBlock.classList.toggle('brief', !!(today && today.done)); // the taller menu needs the room on a small phone
-    if (today && today.done) {
-      el.playDaily.hidden = true;
-      el.dailyDone.hidden = false;
+    el.titleBlock.classList.toggle('brief', done); // on a small phone the result needs the room the introduction takes
+    el.playDaily.hidden = done;
+    el.dailyDone.hidden = !done;
+    if (done) {
+      el.doneLine.textContent = 'Wall No. ' + num + (heldOut(today) ? ' held' : ' fell');
       el.doneMarks.textContent = D.markRow(today.results, today.total || 5);
-      el.doneLine.textContent = 'Wall No. ' + num + ': ' + D.fmt(today.score) + ' glory, ' + D.rankFor(today.score).toLowerCase() + '.';
-      el.answersBtn.hidden = !(today.recap && today.recap.length);
+      el.doneScore.textContent = D.fmt(today.score);
+      el.dailyDone.setAttribute('aria-label', 'Wall No. ' + num + (heldOut(today) ? ' held' : ' fell') + ', ' + D.fmt(today.score) +
+        ' glory. See today\'s result and answers.');
     } else {
-      el.playDaily.hidden = false;
-      el.dailyDone.hidden = true;
-      el.playDaily.firstChild.textContent = today && today.idx > 0 ? 'Return to today\'s wall ' : 'Hold today\'s wall ';
+      el.dailyLabel.textContent = today && today.idx > 0 ? 'Return to the wall' : 'Hold today\'s wall';
     }
     el.endlessBest.textContent = s.bestEndless ? 'Best ' + D.fmt(s.bestEndless) : 'No end';
     // until the switch has been used (or a few walls played), it asks to be noticed
     var nudge = !store.sound && !store.soundSet && s.played < 3;
-    el.soundBtn.textContent = nudge ? 'Turn on sound and music' : 'Sound and music: ' + (store.sound ? 'on' : 'off');
+    el.soundLabel.textContent = store.sound ? 'Sound on' : 'Sound off';
     el.soundBtn.classList.toggle('nudge', nudge);
     el.soundBtn.setAttribute('aria-pressed', store.sound ? 'true' : 'false');
-    el.stats.textContent = s.played
-      ? 'Walls held ' + s.played + '. Streak ' + s.streak + (s.streak === 1 ? ' day' : ' days') + '.' + (s.best ? ' Best ' + D.fmt(s.best) + ' glory.' : '')
-      : 'A new wall every day at 00:00 UTC, the same for everyone.';
+    el.soundBtn.setAttribute('aria-label', 'Sound and music: ' + (store.sound ? 'on' : 'off'));
     tick();
+    fitMenu();
   }
 
   function clock(ms) {
@@ -917,11 +966,24 @@
   }
   var lastNum = D.dayNumber();
   function tick() {
-    var text = 'Next wall in ' + clock(D.msToNextWall());
+    var left = clock(D.msToNextWall()), text = 'Next wall in ' + left;
     el.nextIn.textContent = text;
-    el.doneNext.textContent = text;
     var n = D.dayNumber();
-    if (n !== lastNum) { lastNum = n; if (!el.menu.hidden) drawMenu(); }
+    if (n !== lastNum) { lastNum = n; if (!el.menu.hidden) { drawMenu(); return; } }
+    if (el.menu.hidden) return;
+    // the gate's small print: how long today's wall has left, and what the player has to show for it
+    var d = store.daily, s = store.stats, today = d && d.num === n ? d : null;
+    var streak = s.streak > 1 ? 'Streak ' + s.streak + ' days. ' : '';
+    if (today && today.done) {
+      el.stats.textContent = text + '. ' + streak;
+    } else {
+      el.dailySub.textContent = today && today.idx > 0
+        ? 'Foe ' + (today.idx + 1) + ' of ' + (today.total || 5) + ' is waiting'
+        : 'Five foes. ' + left + ' left today.';
+      el.stats.textContent = s.played
+        ? streak + 'Walls held ' + s.played + '.' + (s.best ? ' Best ' + D.fmt(s.best) + ' glory.' : '')
+        : 'A new wall every day, the same for everyone.';
+    }
   }
   window.setInterval(tick, 1000);
 
@@ -1395,7 +1457,7 @@
   el.homeBtn.addEventListener('click', toMenu);
   el.quitBtn.addEventListener('click', toMenu);
   el.copyBtn.addEventListener('click', function () { copyResult(el.copyBtn); });
-  el.doneCopy.addEventListener('click', function () { copyResult(el.doneCopy); });
+  el.dailyDone.addEventListener('click', showResult);
   el.soundBtn.addEventListener('click', function () {
     store.sound = WW.Sound.enabled = !store.sound; store.soundSet = true; save(); drawMenu();
     if (store.sound) { WW.Sound.wake(); sfx.hit(1, 0); } else WW.Sound.hush();
@@ -1406,10 +1468,6 @@
   el.howBtn.addEventListener('click', function () { openDialog(el.howto); });
   el.howClose.addEventListener('click', function () { closeDialog(el.howto); });
   el.almanacBtn.addEventListener('click', function () { openBook('Almanac', almanacHtml()); });
-  el.answersBtn.addEventListener('click', function () {
-    var d = store.daily;
-    openBook('Today\'s answers', '<ol class="recap">' + recapHtml(d.results, d.recap) + '</ol>');
-  });
   el.bookClose.addEventListener('click', function () { closeDialog(el.book); });
 
   function onPointer(ev) {
@@ -1440,6 +1498,8 @@
     layout();
     scene.setStage(2, true);
     toMenu();
+    // the arrival flourish plays once; after it the plates answer to the hand again
+    window.setTimeout(function () { el.app.classList.remove('intro'); }, 1900);
     last = window.performance.now();
     window.requestAnimationFrame(loop);
   }
