@@ -441,6 +441,18 @@
       '..ro.oo.or..',
       '.r...oo...r.',
       '.....rr.....'] },
+    // a day whose wall fell: the torch burnt down to embers
+    ember: { pal: { k: K, y: '#ffe08a', o: '#f08a2c', r: '#c9382f', d: '#6e1420', g: '#6c6678' }, rows: [
+      '.........',
+      '....g....',
+      '...g.....',
+      '....g....',
+      '.....g...',
+      '.........',
+      '...kkk...',
+      '..kroyk..',
+      '.krorork.',
+      '.kkkkkkk.'] },
     // a foe never met
     markNone: { pal: MARK, rows: [
       '............',
@@ -456,6 +468,75 @@
       '............',
       '............'] }
   };
+
+  // A badge for each rank of the end screen, Recruit to Warden of the Wall: one shield, its rim
+  // going from iron to silver to gold and its charge from a plain boss to the wall's own tower.
+  // L and D are the lit and shaded sides of the rim, f the field.
+  var SHIELD = [
+    '.kkkkkkkkkkkkkk.',
+    'kLLLLLLLLLLLLLLk',
+    'kLffffffffffffDk',
+    'kLffffffffffffDk',
+    'kLffffffffffffDk',
+    'kLffffffffffffDk',
+    'kLffffffffffffDk',
+    'kLffffffffffffDk',
+    'kLffffffffffffDk',
+    'kLffffffffffffDk',
+    '.kLffffffffffDk.',
+    '.kLffffffffffDk.',
+    '..kLffffffffDk..',
+    '..kLffffffffDk..',
+    '...kLffffffDk...',
+    '....kLffffDk....',
+    '.....kDDDDk.....',
+    '......kkkk......'];
+  /** The shield with a charge laid on its field: rows of twelve, from the field's top row down; '.' leaves the field showing. */
+  function shield(charge) {
+    return SHIELD.map(function (row, y) {
+      var c = charge[y - 2];
+      if (!c) return row;
+      var out = row.split('');
+      for (var x = 0; x < 12; x++) if (c.charAt(x) !== '.' && out[x + 2] === 'f') out[x + 2] = c.charAt(x);
+      return out.join('');
+    });
+  }
+  var SWORDS = [ // two blades crossed, points up, hilts down
+    '.s........s.',
+    '.ts......st.',
+    '..ts....st..',
+    '...ts..st...',
+    '....tsst....',
+    '.....ss.....',
+    '....stts....',
+    '..ggt..tgg..',
+    '...n....n...',
+    '..n......n..'];
+  var RANK_BADGES = [
+    { // Recruit: a plain wooden shield with an iron boss
+      pal: { k: K, L: '#9a94a8', D: '#4a4558', f: '#7a5232', F: '#563820', b: '#a9a394', B: '#e8e2cf', n: '#6c6678' },
+      charge: ['...F....F...', '...F....F...', '...F....F...', '...F.kk.F...', '...FkBbkF...', '...FkbnkF...',
+        '...F.kk.F...', '...F....F...', '...F....F...', '...F....F...', '...F....F...', '...F....F...', '...F....F...'] },
+    { // Sentry: iron, with the torch of the watch
+      pal: { k: K, L: '#9a94a8', D: '#4a4558', f: '#2f3446', y: '#ffe08a', o: '#f08a2c', r: '#c9382f', c: '#8f8aa0', h: '#7a5232' },
+      charge: ['......r.....', '.....ro.....', '.....oyo....', '....oyyo....', '....oyyyo...', '....royor...', '....kcccck..',
+        '.....khhk...', '.....khhk...', '.....khhk...', '.....khhk...', '......kk....'] },
+    { // Man-at-arms: steel, with a sword point down
+      pal: { k: K, L: '#c9d1dc', D: '#5d6779', f: '#3a4560', s: '#eef3f8', t: '#8f9fb4', g: '#d9a441', n: '#3a2a22' },
+      charge: ['.....gg.....', '.....nn.....', '.....nn.....', '..gggggggg..', '.....st.....', '.....st.....', '.....st.....',
+        '.....st.....', '.....st.....', '.....st.....', '.....st.....', '.....st.....', '......s.....'] },
+    { // Captain: a red field, silver rim, crossed swords
+      pal: { k: K, L: '#f2ecdc', D: '#8e8776', f: '#8f1d2c', s: '#eef3f8', t: '#8f9fb4', g: '#d9a441', n: '#3a2a22' },
+      charge: [''].concat(SWORDS) },
+    { // Commander: gold rim, and a crown over the swords
+      pal: { k: K, L: '#ffe08a', D: '#9a6f24', f: '#8f1d2c', s: '#eef3f8', t: '#8f9fb4', g: '#d9a441', n: '#3a2a22', y: '#f5c044', r: '#4fd0e0' },
+      charge: ['...y.yy.y...', '...yyyyyy...', '...yryyry...'].concat(SWORDS.slice(1)) },
+    { // Warden of the Wall: the wall's own tower in gold on the night sky
+      pal: { k: K, L: '#fff1c9', D: '#b8862a', f: '#1d2240', y: '#f5c044', Y: '#b8862a', e: '#ff9a3c', w: '#e8e2cf' },
+      charge: ['w.........w.', '...y.yy.y...', '...yyyyyy...', '...yyyyyY...', '...yyeeyY...', '...yyeeyY...', '...yyyyyY...',
+        '...yyyyyY...', '..yyyyyyyY..', '..yyykkyyY..', '..yyykkyyY..', '..YYYYYYYY..'] }
+  ];
+  RANK_BADGES.forEach(function (b, i) { ICONS['rank' + i] = { pal: b.pal, rows: shield(b.charge) }; });
 
   function compose(bodyRows, legRows, pal, bob) {
     var w = 0;
@@ -473,23 +554,36 @@
     return s;
   }
 
+  /** A figure on two legs, in every pose: the three all of them share, then any of its own. */
+  function human(def, mirror, extra) {
+    var poses = [{ legs: LEGS.split, bob: 1 }, { legs: LEGS.pass, bob: 0 }, { legs: LEGS.stand, bob: 0 }].concat(def.poses || []);
+    function framesOf(body) {
+      var frames = poses.map(function (p) { return compose(body, p.legs, def.pal, p.bob); });
+      return mirror ? frames.map(flipped) : frames;
+    }
+    var frames = framesOf(def.body);
+    extra = extra || {};
+    extra.bob = poses.map(function (p) { return p.bob; });
+    if (mirror && def.hand) extra.hand = [frames[0].width - 1 - def.hand[0], def.hand[1]];
+    if (def.shut) extra.shut = framesOf(def.body.map(function (row, y) { return def.shut[y] || row; }));
+    return pack(frames, extra);
+  }
+
+  /** The knight with some of his colours changed: the scarf at his throat follows the colour of his cape. */
+  function knight(colours) {
+    var pal = {}, k;
+    for (k in WARRIOR.pal) pal[k] = WARRIOR.pal[k];
+    for (k in colours || {}) pal[k] = colours[k];
+    var def = {};
+    for (k in WARRIOR) def[k] = WARRIOR[k];
+    def.pal = pal;
+    return human(def, false, { shoulder: WARRIOR.shoulder, neck: WARRIOR.neck });
+  }
+
   var built = null;
   /** Build every sprite once. Each has frames, a white flash copy of each, and a few anchor points. */
   function build() {
     if (built) return built;
-    function human(def, mirror, extra) {
-      var poses = [{ legs: LEGS.split, bob: 1 }, { legs: LEGS.pass, bob: 0 }, { legs: LEGS.stand, bob: 0 }].concat(def.poses || []);
-      function framesOf(body) {
-        var frames = poses.map(function (p) { return compose(body, p.legs, def.pal, p.bob); });
-        return mirror ? frames.map(flipped) : frames;
-      }
-      var frames = framesOf(def.body);
-      extra = extra || {};
-      extra.bob = poses.map(function (p) { return p.bob; });
-      if (mirror && def.hand) extra.hand = [frames[0].width - 1 - def.hand[0], def.hand[1]];
-      if (def.shut) extra.shut = framesOf(def.body.map(function (row, y) { return def.shut[y] || row; }));
-      return pack(frames, extra);
-    }
     var wolf = [compose(WOLF.body, WOLF.legs[0], WOLF.pal, 0), compose(WOLF.body, WOLF.legs[1], WOLF.pal, 0)].map(flipped);
     var wraith = [compose(WRAITH.body, WRAITH.tails[0], WRAITH.pal, 0), compose(WRAITH.body, WRAITH.tails[1], WRAITH.pal, 0)];
     var dreadRaw = [compose(DREAD.body, DREAD.legs[1], DREAD.pal, 1), compose(DREAD.body, DREAD.legs[0], DREAD.pal, 0)];
@@ -566,6 +660,66 @@
     }
   }
 
+  /**
+   * An iron band round a panel of dark wood, with a riveted plate at each corner, lit from
+   * the top left: a nineteen-pixel square for the page to stretch round any panel (a CSS
+   * border-image cut 7 pixels in from each side). Returns a data URL.
+   */
+  function frameURL() {
+    var N = 19, c = makeCanvas(N, N), g = c.getContext('2d');
+    var col = { ink: '#0d0b12', hi: '#8c869c', iron: '#5c566c', lo: '#36313f', wood: '#261d22',
+      plate: '#6a6479', plateHi: '#a49eb4', plateLo: '#3f3a4a', rivet: '#c9c3d6', glint: '#f2ecdc', rivetLo: '#2a2633' };
+    function px(x, y, k) { g.fillStyle = col[k] || k; g.fillRect(x, y, 1, 1); }
+    function rect(x, y, w, h, k) { g.fillStyle = col[k] || k; g.fillRect(x, y, w, h); }
+    rect(0, 0, N, N, 'wood');
+    // the bands: outer ink, the lit edge, iron, the shaded edge, inner ink
+    var band = ['ink', 'hi', 'iron', 'iron', 'lo', 'ink'], i;
+    for (i = 0; i < 6; i++) {
+      rect(0, i, N, 1, band[i]);                 // top: lit along its top
+      rect(0, N - 1 - i, N, 1, band[5 - i] === 'hi' ? 'lo' : band[5 - i] === 'lo' ? 'hi' : band[5 - i]); // bottom: lit along its top, which faces in
+    }
+    for (i = 0; i < 6; i++) {
+      rect(i, 6, 1, N - 12, band[i]);            // left, between the top and bottom bands
+      rect(N - 1 - i, 6, 1, N - 12, band[5 - i] === 'hi' ? 'lo' : band[5 - i] === 'lo' ? 'hi' : band[5 - i]);
+    }
+    // the corner plates, seven pixels square, each with a rivet
+    [[0, 0], [N - 7, 0], [0, N - 7], [N - 7, N - 7]].forEach(function (o) {
+      var x = o[0], y = o[1];
+      rect(x, y, 7, 7, 'ink');
+      rect(x + 1, y + 1, 5, 5, 'plate');
+      rect(x + 1, y + 1, 5, 1, 'plateHi'); rect(x + 1, y + 1, 1, 5, 'plateHi');
+      rect(x + 1, y + 5, 5, 1, 'plateLo'); rect(x + 5, y + 1, 1, 5, 'plateLo');
+      px(x + 2, y + 2, 'rivet'); px(x + 3, y + 2, 'rivet'); px(x + 2, y + 3, 'rivet'); px(x + 3, y + 3, 'rivetLo');
+      px(x + 2, y + 2, 'glint');
+    });
+    return c.toDataURL('image/png');
+  }
+
+  /**
+   * A ribbon to carry a rank: a swallow-tailed cap at each end and a body between, twelve
+   * pixels high (a border-image cut 7 pixels in from either end). Returns a data URL.
+   */
+  function ribbonURL() {
+    var rows = [
+      '.kkkkkk.kkkkkk.',
+      'kRrrrrkkrrrrrRk',
+      'kRrrrrrrrrrrrRk',
+      'kRrrrrrrrrrrrRk',
+      '.kRrrrrrrrrrRk.',
+      '..kRrrrrrrrRk..',
+      '..kRrrrrrrrRk..',
+      '.kRrrrrrrrrrRk.',
+      'kRrrrrrrrrrrrRk',
+      'kRrrrrrrrrrrrRk',
+      'kRdddddddddddRk',
+      '.kkkkkk.kkkkkk.'];
+    // the body: the middle column, lit along the top and shaded along the bottom
+    var pal = { k: K, r: '#a8262b', R: '#5e1220', d: '#6e1420' };
+    var c = paint(rows, pal), g = c.getContext('2d');
+    g.fillStyle = '#c9383d'; g.fillRect(2, 1, 11, 1);
+    return c.toDataURL('image/png');
+  }
+
   /** A sprite as a crisp, enlarged data URL for use in the page's HTML. */
   function iconURL(name, scale) {
     var def = ICONS[name], small = paint(def.rows, def.pal);
@@ -575,6 +729,6 @@
     return c.toDataURL('image/png');
   }
 
-  WW.Sprites = { build: build, makeCanvas: makeCanvas, tinted: tinted, drawWeapon: drawWeapon, cleanAngle: cleanAngle,
-    iconURL: iconURL, POSE: POSE, OUTLINE: K };
+  WW.Sprites = { build: build, knight: knight, makeCanvas: makeCanvas, tinted: tinted, drawWeapon: drawWeapon, cleanAngle: cleanAngle,
+    stroke: stroke, iconURL: iconURL, frameURL: frameURL, ribbonURL: ribbonURL, POSE: POSE, OUTLINE: K };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -94,10 +94,29 @@ Predate No. 1 · 8,765 glory
 game the same five marks are small pixel pictures (a skull, crossed swords, a
 sword, a gust, a burst), drawn in `js/sprites.js` like everything else.
 
-**After the wall** the end screen lists every question with the answers you
-gave and a three-damage answer to each; at the gate, the plate for a wall
-already held opens the whole result again. The **Almanac** at the gate keeps every oldest answer you have ever
-given, out of all the questions in the bank.
+**After the wall** the result is told over rather than shown all at once: the
+glory is counted up, the five marks are stamped one by one, the rank unrolls
+on a ribbon under its badge, today's torch catches, and a new best is called
+out. A tap shows the rest at once; a result opened again from the gate, a wall
+that fell while no one was there, and anyone who asks the browser for less
+motion get it whole. Each of the six ranks, Recruit to Warden of the Wall, has
+a badge: one shield whose rim goes from iron to silver to gold and whose charge
+goes from a plain boss to the wall's own tower. The end screen then lists every
+question with the answers you gave and a three-damage answer to each; at the
+gate, the plate for a wall already held carries its badge and marks, and opens
+the whole result again.
+
+**The last seven days** burn as torches under the plates at the gate and on the
+end screen: lit for a wall held, embers for one that fell, dark for a day
+missed, with the streak beside them.
+
+The **Almanac** at the gate keeps every oldest answer you have ever given. It
+lists only the questions a foe has already put to you; the rest of the bank is
+counted but never shown, so the book cannot be read ahead and the answers
+looked up. It also holds the **looks** the knight can win by giving oldest
+answers: the Midnight cape at 10, the Ash-white cape at 25 and the Starsteel
+blade, which glows and sheds light, at 50. A look is put on the moment it is
+won, and any look won can be chosen there.
 
 **Endless march** has no end: foes gain health and speed, and the questions get
 harder, until the last torch goes out. Felling every fifth foe relights one.
@@ -211,7 +230,8 @@ question may return),
 block: paces a blow drives the foe back, the cost of a wrong name, how often
 the endless march relights a torch, and the address added to shared results.
 `AWAY`, just below it, sets how long a pause must be before it is made up, and
-how long before it is made up unseen and unheard.
+how long before it is made up unseen and unheard. `LOOKS`, further down, lists
+the looks to win, their colours and how many oldest answers each takes.
 
 ## Project layout
 
@@ -219,11 +239,12 @@ how long before it is made up unseen and unheard.
 index.html             page, styles and markup
 manifest.webmanifest   lets a phone add the game to its home screen
 icon-192.png, icon-512.png
+og.png                 the picture a shared link shows (1200 x 630)
 js/questions.js        the rolls of names and their cut-off years
 js/answers.js          typed-answer matching
 js/lookup.js           the archives: checking a name that is not on a roll against Wikidata
 js/daily.js            date-seeded daily calendar, endless mode, scoring
-js/sprites.js          pixel sprites drawn from text pictures; the knight's poses; blades drawn at clean pixel angles
+js/sprites.js          pixel sprites drawn from text pictures; the knight's poses; blades drawn at clean pixel angles; rank badges; the iron frames round the panels
 js/scene.js            the wall, five backdrops, parallax, weather, torches
 js/sound.js            the effects and the score, both made with the Web Audio API (no audio files)
 js/cape.js             the wind-blown cloak
@@ -269,9 +290,22 @@ and the score rests while the page is hidden.
 ## On a phone
 
 The scene fills the screen and follows the keyboard: when it opens, the
-question plate tightens and the fight stays in view above the answer box. The
+question plate tightens and the fight stays in view above the answer box. A
+phone held upright has height to spare and little width, so there the wall is
+drawn half as large again (about 136 scene pixels across instead of 185 or
+more) and the track the foes walk is pulled in to fit; it keeps that size while
+the keyboard is up, unless the keyboard leaves the page wider than it is tall. The
 view leans with the phone where the browser reports tilt, and drifts by itself
 otherwise. Pressing Skip or Strike keeps the keyboard open.
+
+## Link previews
+
+A link to the game shared in a chat unfolds into `og.png` with the title and
+line set in the `og:` tags at the top of `index.html`. The picture is the game
+itself, the knight facing a dread knight on the autumn stretch of wall under
+the name, taken from the page at 1200 x 630 and saved as a 256-colour PNG. Chat
+apps keep a link's preview for a while, so a changed picture can take days to
+show where the link was shared before.
 
 ## Hosting on GitHub Pages
 

@@ -93,6 +93,20 @@
     fall: function () { tone(220, 0.5, 'sawtooth', 0.07, 40); },
     win: function () { [392, 494, 587, 784].forEach(function (f, i) { tone(f, 0.18, 'square', 0.05, 0, i * 0.13); }); },
 
+    // ----- the end of a wall, told over -----
+    /** Glory being counted: a dry click that climbs as the sum does. */
+    tick: function (u) { tone(900 + 700 * (u || 0), 0.025, 'square', 0.012); },
+    /** A mark stamped on the result: a thud, a little higher each time. */
+    stamp: function (i) { tone(130 + 14 * (i || 0), 0.14, 'triangle', 0.09, 70); rush(0.06, 0.07, 'lowpass', 1400, 200); },
+    /** The rank's ribbon unrolled: cloth shaken out. */
+    unfurl: function () { rush(0.32, 0.06, 'bandpass', 700, 2600, 0, 0.5); },
+    /** The wall fell: one low bell. */
+    toll: function () { ring(110, 2.4, 0.06, 0.02); },
+    /** A torch caught: a breath of flame and a crackle. */
+    ignite: function () { rush(0.4, 0.07, 'bandpass', 300, 1800, 0, 0.2); tone(196, 0.2, 'triangle', 0.03, 392); },
+    /** A new best: a bright run up. */
+    best: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.12, 'square', 0.04, 0, i * 0.07); }); },
+
     // ----- the finishing blow, stage by stage -----
     /** The leap: air rushing past as the knight goes up. */
     leap: function () { tone(180, 0.4, 'triangle', 0.05, 900); rush(0.42, 0.14, 'bandpass', 260, 2800, 0, 0.75); },

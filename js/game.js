@@ -49,17 +49,18 @@
   var $ = function (id) { return document.getElementById(id); };
   var el = {};
   ['app', 'cv', 'veil', 'hud', 'lives', 'progress', 'score', 'quitBtn', 'banner', 'floats', 'combo', 'comboN', 'titleBlock',
-    'menu', 'playDaily', 'dailyLabel', 'dailySub', 'dailyNo', 'dailyDone', 'doneMarks', 'doneLine', 'doneScore',
-    'playEndless', 'endlessBest', 'howBtn', 'almanacBtn', 'soundBtn', 'soundLabel', 'stats',
+    'menu', 'playDaily', 'dailyLabel', 'dailySub', 'dailyNo', 'dailyDone', 'doneMarks', 'doneLine', 'doneScore', 'doneBadge',
+    'playEndless', 'endlessBest', 'howBtn', 'almanacBtn', 'soundBtn', 'soundLabel', 'streak', 'stats',
+    'endBest', 'endRibbon', 'endBadge', 'endRankName', 'endStreak',
     'fightTop', 'health', 'foe', 'qText', 'rule', 'chips', 'fightBottom', 'answerForm', 'answer', 'skipBtn', 'strikeBtn', 'feedback',
     'end', 'endKicker', 'endTitle', 'endScore', 'endRank', 'endMarks', 'copyBtn', 'againBtn', 'homeBtn', 'nextIn', 'endRecap',
     'copyBox', 'copyText', 'howto', 'howClose', 'markKey', 'book', 'bookTitle', 'bookBody', 'bookClose'].forEach(function (id) { el[id] = $(id); });
   // A browser can hold an old copy of the page beside this newer script. Then the page lacks
   // what the script expects: fetch it afresh, once, rather than fail.
-  if (!el.dailyLabel) {
+  if (!el.dailyLabel || !el.endRibbon) {
     try {
-      if (!window.sessionStorage.getItem('predate.refetched')) {
-        window.sessionStorage.setItem('predate.refetched', '1');
+      if (!window.sessionStorage.getItem('predate.refetched.7')) {
+        window.sessionStorage.setItem('predate.refetched.7', '1');
         window.location.reload();
       }
     } catch (e) { /* ignore */ }
@@ -69,19 +70,27 @@
   var BANK = WW.buildBank();
   A.setGuard(BANK);
   var SPR = Sp.build();
+  var KNIGHT = SPR.warrior; // as he first comes, in crimson
   var scene = new Scene(el.cv);
   var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   scene.calm = calm;
 
   // ---------- saved data (this browser only) ----------
   // found: the oldest answers the player has given, by question, for the almanac
+  // met: every question a foe has put to the player; the almanac shows only these, so it cannot be read ahead
+  // days: how each day's wall ended, by its number: H held, F fell (P: played before this was kept)
+  // look: what the knight wears; earned: the looks won, kept even if the bank should change
   var store = { stats: { played: 0, streak: 0, maxStreak: 0, lastNum: 0, best: 0, bestEndless: 0 }, daily: null,
-    sound: false, soundSet: false, found: {} };
+    sound: false, soundSet: false, found: {}, met: null, days: null, look: null, earned: null };
   try {
     var raw = JSON.parse(window.localStorage.getItem(STORE_KEY) || 'null');
     if (raw && raw.stats) {
       store.stats = Object.assign(store.stats, raw.stats); store.daily = raw.daily || null;
       store.sound = !!raw.sound; store.soundSet = !!raw.soundSet; store.found = raw.found || {};
+      store.met = raw.met && typeof raw.met === 'object' ? raw.met : null;
+      store.days = raw.days && typeof raw.days === 'object' ? raw.days : null;
+      store.look = raw.look && typeof raw.look === 'object' ? raw.look : null;
+      store.earned = raw.earned && typeof raw.earned === 'object' ? raw.earned : null;
     }
     else {
       // carry the streak over from the earlier version of the game
@@ -98,8 +107,81 @@
   }
   WW.Sound.enabled = store.sound;
 
+  // Saved before questions met were kept: count as met those whose oldest answer was found,
+  // the ones on today's (or the last) wall that were asked, and the foe that was being fought.
+  if (!store.met) {
+    store.met = {};
+    Object.keys(store.found).forEach(function (id) { store.met[id] = 1; });
+    var was = store.daily, byQ = {};
+    BANK.forEach(function (p) { byQ[p.q] = p.id; });
+    if (was) {
+      (was.recap || []).forEach(function (r) { if (r && byQ[r.q]) store.met[byQ[r.q]] = 1; });
+      if (was.foe && !was.done && was.num === D.dayNumber()) {
+        try { store.met[D.dailyPlan(was.num, BANK).enemies[was.idx].prompt.id] = 1; } catch (e) { /* ignore */ }
+      }
+    }
+    save();
+  }
+  // Saved before each day's ending was kept: the days of the running streak were played, and the last wall's ending is known.
+  if (!store.days) {
+    store.days = {};
+    var st0 = store.stats, n0;
+    if (st0.lastNum && st0.streak) for (n0 = st0.lastNum - st0.streak + 1; n0 <= st0.lastNum; n0++) store.days[n0] = 'P';
+    if (store.daily && store.daily.done && store.daily.num) store.days[store.daily.num] = heldOut(store.daily) ? 'H' : 'F';
+    save();
+  }
+  store.look = store.look || { cape: 'crimson', blade: 'steel' };
+  store.earned = store.earned || {};
+
   var heroCape = new Cape(9, 3, [6, 7, 8, 8, 8, 7, 6, 5, 3], ['#c12a3a', '#8f1d2c', '#5e1220']);
   var foeCape = new Cape(10, 3, [8, 9, 10, 10, 10, 9, 8, 7, 5, 4], ['#6e1420', '#3a0b14', '#1f060b']);
+
+  // ---------- looks the knight can earn ----------
+  // Each is won by giving the oldest answer to so many questions (the almanac's count) and is
+  // kept once won. A cape's colours run lit, folded, shaded; the scarf at his throat follows it.
+  var LOOKS = [
+    { id: 'crimson', kind: 'cape', name: 'Crimson cape', need: 0, cols: ['#c12a3a', '#8f1d2c', '#5e1220'] },
+    { id: 'midnight', kind: 'cape', name: 'Midnight cape', need: 10, cols: ['#4a6fd0', '#2d4a9a', '#1a2a5e'] },
+    { id: 'ashen', kind: 'cape', name: 'Ash-white cape', need: 25, cols: ['#f2ecdc', '#c2bba6', '#857e6c'] },
+    { id: 'steel', kind: 'blade', name: 'Plain steel', need: 0 },
+    { id: 'starsteel', kind: 'blade', name: 'Starsteel blade', need: 50, glow: ['#e6dcff', '#a58cff', '#6a52d9'] }
+  ];
+  function lookById(id) { for (var i = 0; i < LOOKS.length; i++) if (LOOKS[i].id === id) return LOOKS[i]; return null; }
+  /** How many questions the player has given the oldest answer to. */
+  function foundCount() {
+    var n = 0;
+    BANK.forEach(function (p) { if (store.found[p.id] === p.oldest.name) n++; });
+    return n;
+  }
+  function hasLook(l, count) { return !!l && (l.need === 0 || !!store.earned[l.id] || (count == null ? foundCount() : count) >= l.need); }
+  /** What the knight wears of a kind: his choice, if he has earned it, or the plain one. */
+  function worn(kind) {
+    var l = lookById(store.look[kind]);
+    if (l && l.kind === kind && hasLook(l)) return l;
+    for (var i = 0; i < LOOKS.length; i++) if (LOOKS[i].kind === kind && LOOKS[i].need === 0) return LOOKS[i];
+    return null;
+  }
+  /** Put the chosen looks on the knight: the cape's colours, and the scarf to match. */
+  function dress() {
+    var cape = worn('cape');
+    heroCape.cols = cape.cols;
+    G.blade = worn('blade');
+    SPR.warrior = cape.id === 'crimson' || !Sp.knight ? KNIGHT : Sp.knight({ c: cape.cols[1] });
+    for (var id in tintCache) if (id.indexOf('warrior') !== -1) delete tintCache[id];
+  }
+  /** Looks newly won by the oldest answers found so far: kept, and the first of them put on. */
+  function earnLooks() {
+    var count = foundCount(), won = [];
+    LOOKS.forEach(function (l) {
+      if (l.need && !store.earned[l.id] && count >= l.need) { store.earned[l.id] = 1; won.push(l); }
+    });
+    if (won.length) {
+      won.forEach(function (l) { store.look[l.kind] = l.id; });
+      save();
+      dress();
+    }
+    return won;
+  }
 
   // ---------- state ----------
   var G = {
@@ -110,7 +192,7 @@
     camFrom: 0, camTo: 0, walkDur: 2.4, spawned: false,
     strike: null, bits: [], arcs: [], trail: [], fx: [], shake: 0, stop: 0, emberT: 0,
     hero: { dx: 0, dy: 0, walkT: 0, hurt: 0, sword: SWORD.rest },
-    titleT: 0
+    titleT: 0, blade: null
   };
   var clockAt = Date.now(); // the moment, by the clock on the wall, the game has been played out to
   var absent = false;       // true while time no one was there for is being played out
@@ -131,7 +213,8 @@
     var appW = el.app.clientWidth || window.innerWidth;
     scene.resize(appW, appH);
     // On short screens the wall sits lower, leaving the sky to the question.
-    var ground = Math.round(scene.H * (scene.H < 240 ? 0.66 : 0.6));
+    // (An upright phone's scene is drawn large, so it is judged by the page's height instead.)
+    var ground = Math.round(scene.H * ((scene.upright ? appH < 480 : scene.H < 240) ? 0.66 : 0.6));
     if (ground !== scene.groundY || !scene.cache[scene.stage]) {
       scene.groundY = ground;
       scene.cache = {};
@@ -140,6 +223,9 @@
     el.app.classList.toggle('short', appH < 560);
     // the combo count is cut into the face of the wall, under the knight
     el.combo.style.top = Math.round((scene.groundY + 9) * scene.scale) + 'px';
+    // words across the sky go above the fighters' heads and their health, whatever the screen
+    var bannerH = parseFloat(window.getComputedStyle(el.banner).fontSize) || 40;
+    el.banner.style.top = Math.round(Math.max(0, Math.min(appH * 0.43, (scene.groundY - 50) * scene.scale - bannerH - 10))) + 'px';
     fitMenu();
     skyline();
   }
@@ -162,8 +248,9 @@
     scene.skyTarget = r ? Math.round((r.bottom - el.app.getBoundingClientRect().top) / scene.scale) : 0;
   }
 
+  /** Scene pixels to a pace: the track from the knight to the furthest a foe can be driven, less room for its health bar. */
   function paceLen() {
-    return (scene.W - scene.warriorX() - GAP - 34) / TRACK;
+    return (scene.W - scene.warriorX() - GAP - (scene.W < 170 ? 22 : 34)) / TRACK;
   }
 
   // ---------- page helpers ----------
@@ -181,6 +268,10 @@
   }
 
   var flameOn = Sp.iconURL('flame', 3), flameOff = Sp.iconURL('flameOut', 3);
+  var torchLit = Sp.iconURL('flame', 2), torchOut = Sp.iconURL('flameOut', 2), torchEmber = torchLit;
+  try { torchEmber = Sp.iconURL('ember', 2); } catch (e) { /* an older set of pictures */ }
+  /** A sound effect, if this copy of the sound script has it. */
+  function sound(name, arg) { if (sfx[name]) sfx[name](arg); }
 
   // How each foe of a wall ended, as a small picture. On the page these stand where a copied
   // result has emoji (see shareText in daily.js): the pictures belong to the game, the emoji travel.
@@ -308,16 +399,78 @@
     }).join('');
   }
 
-  /** The almanac: every question, with its oldest answer once the player has given it. */
+  /**
+   * The almanac: the questions the player has met, with the oldest answer to each once they
+   * have given it. Questions not yet met are only counted, never shown, so the book cannot be
+   * read ahead of the wall.
+   */
   function almanacHtml() {
-    var found = [], unfound = [];
+    var found = [], open = [], met = 0;
     BANK.forEach(function (p) {
+      if (!store.met[p.id] && !store.found[p.id]) return;
+      met++;
       if (store.found[p.id] === p.oldest.name) found.push('<li><p class="asked">' + esc(p.q) + '</p><p class="found">' + esc(dated(p.oldest)) + '</p></li>');
-      else unfound.push('<li>' + esc(p.q) + '</li>');
+      else open.push('<li>' + esc(p.q) + '</li>');
     });
+    var unmet = BANK.length - met;
+    var waiting = !unmet ? '' : unmet === BANK.length ? 'All ' + unmet + ' questions wait' : unmet === 1 ? 'One more question waits' : unmet + ' more questions wait';
     return '<p>' + found.length + ' of ' + BANK.length + ' oldest answers found. Give a question its oldest answer and it is written here.</p>' +
-      '<ol class="recap">' + found.join('') + '</ol>' +
-      (unfound.length ? '<h3>Still to find</h3><ul class="unfound">' + unfound.join('') + '</ul>' : '');
+      looksHtml(found.length) +
+      (found.length ? '<ol class="recap">' + found.join('') + '</ol>' : '') +
+      (open.length ? '<h3>Still to find</h3><ul class="unfound">' + open.join('') + '</ul>' : '') +
+      (waiting ? '<p class="note">' + waiting + ' along the wall. Each is written here once a foe has asked it.</p>' : '');
+  }
+
+  /** The looks, as buttons: worn, ready to wear, or still to be won. */
+  function looksHtml(count) {
+    return '<h3>Looks to win</h3><div class="looks">' + LOOKS.map(function (l) {
+      var have = hasLook(l, count), on = worn(l.kind) === l, pic = portrait(l.kind === 'cape' ? l : worn('cape'), l.kind === 'blade' ? l : worn('blade'));
+      return '<button class="look" type="button" data-look="' + l.id + '" aria-pressed="' + on + '"' + (have ? '' : ' disabled') + '>' +
+        (pic ? '<img alt="" width="104" height="80" src="' + pic + '">' : '') + esc(l.name) +
+        '<small>' + (on ? 'Worn' : have ? 'Wear it' : 'At ' + l.need + ' oldest answers') + '</small></button>';
+    }).join('') + '</div>';
+  }
+
+  /** The knight in a cape and with a blade, standing guard: a picture for the almanac. */
+  var portraitURL = {};
+  function portrait(cape, blade) {
+    var key = cape.id + '/' + blade.id;
+    if (portraitURL[key]) return portraitURL[key];
+    try {
+      var W = 52, H = 40, c = Sp.makeCanvas(W, H), g = c.getContext('2d');
+      var ws = cape.id === 'crimson' || !Sp.knight ? KNIGHT : Sp.knight({ c: cape.cols[1] }), frame = POSE.stand;
+      var x = 20, y = H - 2 - ws.h, bob = ws.bob[frame];
+      var cloth = new Cape(9, 3, [6, 7, 8, 8, 8, 7, 6, 5, 3], cape.cols);
+      for (var i = 0; i < 90; i++) cloth.step(x + ws.neck[0], y + ws.neck[1] + bob, -1, 1 / 60, 1.3 + i / 60, H - 2);
+      cloth.draw(g);
+      g.drawImage(ws.frames[frame], x, y);
+      var deg = Sp.cleanAngle(SWORD.rest), a = deg * Math.PI / 180;
+      var sx = x + ws.shoulder[0], sy = y + ws.shoulder[1] + bob;
+      var hx = sx + Math.round(Math.cos(a) * 3 + 2), hy = sy + Math.round(-Math.sin(a) * 3 + 2);
+      g.fillStyle = '#5d6779'; g.fillRect(Math.min(sx, hx), Math.min(sy, hy), Math.abs(hx - sx) + 2, Math.abs(hy - sy) + 2);
+      g.fillStyle = '#9aa3b3'; g.fillRect(hx, hy, 2, 2);
+      bladeGlow(g, hx + 1, hy, deg, blade, 0);
+      Sp.drawWeapon(g, hx + 1, hy, deg, 'sword');
+      var big = Sp.makeCanvas(W * 2, H * 2), bg = big.getContext('2d');
+      bg.imageSmoothingEnabled = false;
+      bg.drawImage(c, 0, 0, W * 2, H * 2);
+      portraitURL[key] = big.toDataURL('image/png');
+    } catch (e) { portraitURL[key] = ''; }
+    return portraitURL[key];
+  }
+
+  /** A blade that has earned it glows along its length, the light breathing. */
+  function bladeGlow(g, hx, hy, deg, blade, t) {
+    if (!blade || !blade.glow || !Sp.stroke) return;
+    var a = deg * Math.PI / 180, px = Math.sin(a), py = Math.cos(a); // a step to one side of the blade
+    g.globalAlpha = calm ? 0.6 : 0.45 + 0.25 * Math.sin(t * 4);
+    Sp.stroke(g, hx + px, hy + py, deg, 2, 18, blade.glow[1]);
+    Sp.stroke(g, hx - px, hy - py, deg, 2, 18, blade.glow[1]);
+    g.globalAlpha = calm ? 0.35 : 0.25 + 0.15 * Math.sin(t * 4 + 1);
+    Sp.stroke(g, hx + 2 * px, hy + 2 * py, deg, 4, 16, blade.glow[2]);
+    Sp.stroke(g, hx - 2 * px, hy - 2 * py, deg, 4, 16, blade.glow[2]);
+    Sp.stroke(g, hx, hy, deg, 19, 20, blade.glow[0]);
+    g.globalAlpha = 1;
   }
 
   function openDialog(d) {
@@ -362,6 +515,7 @@
   // ---------- a run ----------
   function startRun(mode, resume) {
     var back = false;
+    endCeremony(true);
     WW.Sound.wake();
     el.app.classList.remove('intro');
     G.mode = mode; G.results = []; G.recap = []; G.score = 0; G.lives = CONFIG.LIVES; G.idx = 0;
@@ -437,6 +591,8 @@
   }
 
   function engage() {
+    var id = G.def.prompt.id;
+    if (!store.met[id]) { store.met[id] = 1; save(); } // it may now be written in the almanac
     G.phase = 'fight'; G.phaseT = 0; G.reveal = '';
     G.enemy.shown = G.enemy.pace = CONFIG.START;
     G.enemy.stepT = 0;
@@ -520,12 +676,12 @@
    */
   function catchUp(seconds) {
     if (!(seconds > 0) || !G.mode || G.phase === 'title' || G.phase === 'over') return;
-    var quiet = seconds >= AWAY.quiet, torches = G.lives, sound = WW.Sound.enabled, left = Math.min(seconds, AWAY.most);
+    var quiet = seconds >= AWAY.quiet, torches = G.lives, heard = WW.Sound.enabled, left = Math.min(seconds, AWAY.most);
     if (quiet) { absent = true; WW.Sound.enabled = false; }
     try {
       while (left > 0 && G.phase !== 'over') { update(Math.min(AWAY.step, left)); left -= AWAY.step; }
     } finally {
-      absent = false; WW.Sound.enabled = sound;
+      absent = false; WW.Sound.enabled = heard;
     }
     if (!quiet) return;
     G.bits = []; G.arcs = []; G.trail = []; G.fx = []; G.shake = 0; G.stop = 0;
@@ -738,6 +894,7 @@
     var said = a.name + ', ' + WW.fmtYear(a) + ': ' + worth + (a.archive ? ' Found in the archives.' : res.exact ? '' : ' Close enough.');
     var learned = blow.oldest && store.found[p.id] !== a.name;
     if (learned) { store.found[p.id] = a.name; save(); }
+    var won = learned ? earnLooks() : [];
     if (blow.killed) {
       gain += D.fellGlory(e.pace, G.flawless) + (outright ? D.OLDEST_GLORY : 0);
       var told = record(outright ? 'K' : G.flawless ? 'F' : 'W');
@@ -746,7 +903,8 @@
       if (relit) G.lives++;
       var how = outright ? 'Felled outright' : G.flawless ? 'Felled cleanly' : 'Felled';
       feedback('ok t' + blow.dmg, said + ' ' + how + ', +' + D.fmt(gain) + ' glory.' + (learned ? ' Written in your almanac.' : '') +
-        (relit ? ' A torch is relit.' : ''), 5200);
+        (relit ? ' A torch is relit.' : '') + (won.length ? ' You have won the ' + won[0].name.toLowerCase() + '.' : ''), won.length ? 7000 : 5200);
+      if (won.length) banner(won[0].name + ' won');
       G.reveal = NAMES[e.kind] + (outright ? ' felled outright. ' : ' felled. ') + told;
       closePrompt(G.reveal);
     } else {
@@ -953,9 +1111,12 @@
     var felled = D.felledCount(G.results);
     var s = store.stats, comboLine = G.bestCombo > 1 ? ' Best combo ×' + G.bestCombo + '.' : '';
     var away = absent && !held; // it fell with no one there
+    var quiet = calm || absent; // nothing to tell over to an empty room
     if (G.mode === 'daily') {
       var d = store.daily;
       if (!d.done) {
+        // a new best: more glory than any wall before it (the first wall has nothing to beat)
+        d.newBest = s.played > 0 && G.score > s.best;
         d.done = true; d.held = held; d.away = away; d.results = G.results.slice(); d.recap = G.recap.slice();
         d.score = G.score; d.lives = G.lives; d.best = G.bestCombo; d.idx = G.idx; d.foe = null;
         if (s.lastNum !== G.num) {
@@ -965,52 +1126,193 @@
           s.lastNum = G.num;
         }
         s.best = Math.max(s.best, G.score);
+        store.days[G.num] = held ? 'H' : 'F';
+        // seven days are all the gate shows; a year is plenty to keep
+        Object.keys(store.days).forEach(function (n) { if (+n < G.num - 366) delete store.days[n]; });
       }
-      dailyEnd(d, G.num);
+      dailyEnd(d, G.num, !quiet);
     } else {
-      var best = G.score > s.bestEndless;
+      var best = G.score > s.bestEndless, before = s.bestEndless;
       s.bestEndless = Math.max(s.bestEndless, G.score);
       el.endKicker.textContent = 'Endless march';
       el.endTitle.textContent = 'The wall fell';
       el.endRank.textContent = (away ? AWAY_FELL : '') + felled + (felled === 1 ? ' foe' : ' foes') + ' felled.' + comboLine +
-        (best && G.score > 0 ? ' A new best.' : ' Best ' + D.fmt(s.bestEndless) + ' glory.');
+        (best && G.score > 0 ? '' : ' Best ' + D.fmt(s.bestEndless) + ' glory.');
       el.endMarks.hidden = true;
+      el.endRibbon.hidden = true;
+      el.endStreak.hidden = true;
+      el.endBest.hidden = !(best && G.score > 0);
+      el.endBest.textContent = before > 0 ? 'New best' : 'First march';
       el.copyBtn.hidden = true;
       el.againBtn.textContent = 'March again';
       el.nextIn.hidden = true;
     }
+    if (G.mode === 'daily') el.endBest.textContent = 'New best';
     save();
     el.endScore.textContent = D.fmt(G.score);
     el.endRecap.innerHTML = recapHtml(G.results, G.recap);
     el.copyBox.hidden = true;
-    if (held) sfx.win();
     show('end');
     tick();
-    try { el.answer.blur(); el.end.querySelector('button:not([hidden])').focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    try { el.answer.blur(); } catch (e) { /* ignore */ }
+    ceremony({ score: G.score, held: held, torch: G.mode === 'daily' ? (held ? 'H' : 'F') : null, quiet: quiet });
+    if (quiet) {
+      if (held) sfx.win();
+      try { el.end.querySelector('button:not([hidden])').focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    }
+  }
+
+  // ---------- the last seven days ----------
+  var DAY_SAID = { H: 'held', P: 'played', F: 'fell' };
+  /** The streak as it stands today: it is broken once a whole day has passed with no wall played. */
+  function liveStreak(today) {
+    var s = store.stats;
+    return s.lastNum >= today - 1 ? s.streak : 0;
+  }
+  /**
+   * The last seven days as torches, oldest first: lit for a wall held (or played), embers
+   * for one that fell, dark for a day missed. Today, unplayed, flickers. `pending` leaves
+   * today's torch dark, for the end screen to light.
+   */
+  function torchesHtml(today, pending) {
+    var html = '', said = [], n, r, src, cls;
+    for (n = Math.max(1, today - 6); n <= today; n++) { // (there were no walls before the first)
+      r = n === today && pending ? null : store.days[n];
+      src = r === 'F' ? torchEmber : r ? torchLit : torchOut;
+      cls = !r && n === today ? (pending ? ' class="today"' : ' class="wait"') : '';
+      html += '<img' + cls + ' alt="" width="18" height="20" src="' + src + '">';
+      said.push(n === today ? (r ? 'today ' + DAY_SAID[r] : 'today still to play') : DAY_SAID[r] || 'missed');
+    }
+    return { html: html, said: said };
+  }
+  /** The torches and the streak beside them. */
+  function streakHtml(today, pending) {
+    var t = torchesHtml(today, pending), n = liveStreak(today);
+    var words = n > 1 ? 'Streak ' + n + ' <small>days</small>' : n === 1 ? 'Streak 1 <small>day</small>' : '<small>No streak yet</small>';
+    return '<span class="torches" role="img" aria-label="The last ' + (t.said.length === 1 ? 'day' : t.said.length + ' days') + ': ' + t.said.join(', ') + '.">' + t.html + '</span>' +
+      '<span class="streak-n">' + words + '</span>';
   }
 
   /** Did a saved daily wall hold? (Walls saved before this was recorded held if a torch was left.) */
   function heldOut(d) { return d.held != null ? !!d.held : d.lives == null || d.lives > 0; }
 
-  /** The words of the end screen for a daily wall, from what is saved of it. */
-  function dailyEnd(d, num) {
+  /** The rank's badge, `scale` screen pixels to each of its pixels. */
+  var badgeURL = {};
+  function badgeSrc(level, scale) {
+    var key = level + 'x' + scale;
+    try { if (!badgeURL[key]) badgeURL[key] = Sp.iconURL('rank' + level, scale); } catch (e) { return ''; }
+    return badgeURL[key];
+  }
+  function rankLevel(glory) { return D.rankLevel ? D.rankLevel(glory) : 0; }
+
+  /** The words of the end screen for a daily wall, from what is saved of it. `pending` leaves today's torch for the ceremony to light. */
+  function dailyEnd(d, num, pending) {
     var total = d.total || 5, felled = D.felledCount(d.results), lives = d.lives == null ? 0 : d.lives;
     el.endKicker.textContent = 'Wall No. ' + num;
     el.endTitle.textContent = heldOut(d) ? (felled === total ? 'The wall stands unbroken' : 'The wall held') : 'The wall fell';
-    el.endRank.textContent = (d.away ? AWAY_FELL : '') + D.rankFor(d.score) + '. ' + felled + ' of ' + total + ' felled, ' +
+    var badge = badgeSrc(rankLevel(d.score), 3);
+    el.endRibbon.hidden = false;
+    el.endBadge.hidden = !badge;
+    if (badge) el.endBadge.src = badge;
+    el.endRankName.textContent = D.rankFor(d.score);
+    el.endRank.textContent = (d.away ? AWAY_FELL : '') + felled + ' of ' + total + ' felled, ' +
       lives + (lives === 1 ? ' torch' : ' torches') + ' still burning.' + (d.best > 1 ? ' Best combo ×' + d.best + '.' : '');
     el.endMarks.innerHTML = marksHtml(d.results, total, 36);
     el.endMarks.hidden = false;
+    el.endStreak.innerHTML = streakHtml(num, pending);
+    el.endStreak.hidden = false;
+    el.endBest.hidden = !d.newBest;
     el.copyBtn.hidden = false;
     el.againBtn.textContent = 'Endless march';
     el.nextIn.hidden = false;
+  }
+
+  // ---------- the end of a wall, told over ----------
+  // When a wall ends, its result is not shown all at once: the glory is counted up, the marks
+  // are stamped one by one, the rank's ribbon unrolls, today's torch catches, and a new best is
+  // called. A tap or a key shows the rest at once. A result opened again from the gate, a wall
+  // that ended while no one was there, and anyone who asks for less motion get it whole.
+  var cer = null;
+  function ceremony(opts) {
+    endCeremony(true);
+    var final = opts.score || 0;
+    if (calm || opts.quiet) { endCeremony(); return; }
+    var timers = [], frame = 0;
+    cer = { timers: timers, final: final, torch: opts.torch, stop: function () { window.cancelAnimationFrame(frame); } };
+    el.end.classList.add('cer');
+    el.end.querySelectorAll('.on').forEach(function (n) { n.classList.remove('on'); });
+    el.endScore.textContent = '0';
+    function at(ms, fn) { timers.push(window.setTimeout(fn, ms)); }
+    function on(node) { if (node && !node.hidden) node.classList.add('on'); }
+    var t = 0, head = el.end.querySelector('[data-stage]'), glory = el.endScore.parentNode;
+    at(t, function () { on(head); });
+    t += 300;
+    at(t, function () {
+      on(glory);
+      // the glory counted up, fast at first and slowing to its sum, with a click as it climbs
+      var began = window.performance.now(), dur = Math.min(1300, 500 + final / 12), lastTick = 0;
+      (function count(now) {
+        var u = Math.min(1, (now - began) / dur), v = 1 - Math.pow(1 - u, 3);
+        el.endScore.textContent = D.fmt(Math.round(final * v));
+        if (now - lastTick > 70 && u < 1) { lastTick = now; sound('tick', v); }
+        if (u < 1) frame = window.requestAnimationFrame(count);
+      })(began);
+    });
+    t += Math.min(1300, 500 + final / 12) + 150;
+    if (!el.endMarks.hidden) {
+      var marks = el.endMarks.querySelectorAll('.mk');
+      at(t, function () { on(el.endMarks); });
+      marks.forEach(function (m, i) { at(t + i * 170, function () { on(m); sound('stamp', i); }); });
+      t += marks.length * 170 + 120;
+    }
+    if (!el.endRibbon.hidden) {
+      at(t, function () { on(el.endRibbon); sound('unfurl'); });
+      at(t + 380, function () { if (opts.held) sfx.win(); else sound('toll'); });
+      t += 620;
+    } else if (opts.held) at(t, function () { sfx.win(); });
+    at(t, function () { on(el.endRank); });
+    t += 220;
+    if (!el.endStreak.hidden) {
+      at(t, function () { on(el.endStreak); });
+      at(t + 300, function () { lightToday(true); });
+      t += 760;
+    }
+    if (!el.endBest.hidden) { at(t, function () { on(el.endBest); sound('best'); }); t += 420; }
+    at(t, function () { el.end.querySelectorAll('.row, #nextIn, #endRecap').forEach(on); });
+    at(t + 380, function () { endCeremony(); });
+  }
+  /** Today's torch on the end screen, lit as the day ended. */
+  function lightToday(now) {
+    var img = el.endStreak.querySelector('img.today');
+    if (!img || !cer || !cer.torch) return;
+    img.src = cer.torch === 'F' ? torchEmber : torchLit;
+    img.className = now ? 'lighting' : '';
+    if (now) sound('ignite');
+  }
+  /** Show whatever of the end screen is still to come, at once. `quietly`: only stop, the screen is about to change. */
+  function endCeremony(quietly) {
+    if (cer) {
+      cer.timers.forEach(function (id) { window.clearTimeout(id); });
+      cer.stop();
+      if (!quietly) {
+        el.endScore.textContent = D.fmt(cer.final);
+        lightToday(false);
+      }
+    }
+    el.end.classList.remove('cer');
+    if (cer && !quietly) {
+      try { el.end.querySelector('button:not([hidden])').focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    }
+    cer = null;
   }
 
   /** Today's result again, from the gate: the same screen a finished wall ends on. */
   function showResult() {
     var d = store.daily;
     if (!d || !d.done || d.num !== D.dayNumber()) return;
+    endCeremony(true);
     dailyEnd(d, d.num);
+    el.endBest.textContent = 'New best';
     el.endScore.textContent = D.fmt(d.score);
     el.endRecap.innerHTML = recapHtml(d.results, d.recap || []);
     el.copyBox.hidden = true;
@@ -1047,6 +1349,7 @@
 
   // ---------- menu ----------
   function toMenu() {
+    endCeremony(true);
     G.mode = null; G.phase = 'title'; G.enemy = null; G.strike = null; G.bits = []; G.arcs = []; G.fx = []; G.trail = [];
     G.hero.dx = 0; G.hero.dy = 0; G.combo = 0; G.prompt = null;
     try { el.answer.blur(); } catch (e) { /* ignore */ }
@@ -1065,12 +1368,17 @@
       el.doneLine.textContent = 'Wall No. ' + num + (heldOut(today) ? ' held' : ' fell');
       el.doneMarks.innerHTML = marksHtml(today.results, today.total || 5, 24);
       el.doneScore.textContent = D.fmt(today.score);
+      var badge = badgeSrc(rankLevel(today.score), 2);
+      el.doneBadge.hidden = !badge;
+      if (badge) { el.doneBadge.src = badge; el.doneBadge.alt = D.rankFor(today.score); }
       el.dailyDone.setAttribute('aria-label', 'Wall No. ' + num + (heldOut(today) ? ' held' : ' fell') + ', ' + D.fmt(today.score) +
         ' glory. See today\'s result and answers.');
     } else {
       el.dailyLabel.textContent = today ? 'Return to the wall' : 'Hold today\'s wall';
     }
     el.endlessBest.textContent = s.bestEndless ? 'Best ' + D.fmt(s.bestEndless) : 'No end';
+    el.streak.hidden = !s.played;
+    if (s.played) el.streak.innerHTML = streakHtml(num, false);
     // until the switch has been used (or a few walls played), it asks to be noticed
     var nudge = !store.sound && !store.soundSet && s.played < 3;
     el.soundLabel.textContent = store.sound ? 'Sound on' : 'Sound off';
@@ -1096,16 +1404,15 @@
     if (el.menu.hidden) return;
     // the gate's small print: how long today's wall has left, and what the player has to show for it
     var d = store.daily, s = store.stats, today = d && d.num === n ? d : null;
-    var streak = s.streak > 1 ? 'Streak ' + s.streak + ' days. ' : '';
     if (today && today.done) {
-      el.stats.textContent = text + '. ' + streak;
+      el.stats.textContent = text + '.';
     } else {
       // a wall once begun goes on without the player: its foe is not waiting at the gate
       el.dailySub.textContent = today
         ? 'Foe ' + Math.min(today.idx + 1, today.total || 5) + ' of ' + (today.total || 5) + ' is still coming'
         : 'Five foes. ' + left + ' left today.';
       el.stats.textContent = s.played
-        ? streak + 'Walls held ' + s.played + '.' + (s.best ? ' Best ' + D.fmt(s.best) + ' glory.' : '')
+        ? 'Walls played ' + s.played + '.' + (s.best ? ' Best ' + D.fmt(s.best) + ' glory.' : '')
         : 'A new wall every day, the same for everyone.';
     }
   }
@@ -1337,7 +1644,8 @@
   /** A blade that has not missed in a while smoulders, then burns, then burns blue. */
   function updateAura(dt) {
     var level = comboLevel(G.combo);
-    if (!level || calm || !G.mode) return;
+    if (calm || !G.mode) return;
+    if (!level) { if (G.blade && G.blade.glow) motes(dt); return; }
     G.emberT -= dt;
     if (G.emberT > 0) return;
     G.emberT = [0, 0.09, 0.05, 0.035][level];
@@ -1345,6 +1653,16 @@
     G.bits.push({ x: sw.tipX + (Math.random() - 0.5) * 3, y: sw.tipY + (Math.random() - 0.5) * 3,
       vx: -14 + (Math.random() - 0.5) * 16, vy: -18 - Math.random() * 26, life: 0.3 + Math.random() * 0.35, g: -20,
       col: cols[Math.floor(Math.random() * cols.length)], size: 1 });
+  }
+
+  /** A starsteel blade sheds a mote of its light now and then. */
+  function motes(dt) {
+    G.emberT -= dt;
+    if (G.emberT > 0) return;
+    G.emberT = 0.2 + Math.random() * 0.15;
+    var sw = swordAt(heroPose()), u = 0.25 + Math.random() * 0.75, cols = G.blade.glow;
+    G.bits.push({ x: sw.hx + (sw.tipX - sw.hx) * u, y: sw.hy + (sw.tipY - sw.hy) * u, vx: (Math.random() - 0.5) * 6, vy: -5 - Math.random() * 8,
+      life: 0.45 + Math.random() * 0.4, g: -4, col: cols[Math.floor(Math.random() * 2)], size: 1 });
   }
 
   function updateSparks(dt) {
@@ -1526,9 +1844,11 @@
     if (s && s.embed && e) {
       // the blade is buried in the foe's head: only what stands above the skull shows
       g.save(); g.beginPath(); g.rect(0, 0, scene.W, skullY(e) + 1); g.clip();
+      bladeGlow(g, hx + 1, hy, sw.deg, G.blade, scene.t);
       Sp.drawWeapon(g, hx + 1, hy, sw.deg, 'sword');
       g.restore();
     } else {
+      bladeGlow(g, hx + 1, hy, sw.deg, G.blade, scene.t);
       Sp.drawWeapon(g, hx + 1, hy, sw.deg, 'sword');
     }
     // the sweep of the blade: white for a plain cut, gold for two damage, fire for three
@@ -1604,6 +1924,17 @@
   el.howBtn.addEventListener('click', function () { openDialog(el.howto); });
   el.howClose.addEventListener('click', function () { closeDialog(el.howto); });
   el.almanacBtn.addEventListener('click', function () { openBook('Almanac', almanacHtml()); });
+  el.bookBody.addEventListener('click', function (ev) {
+    var b = ev.target.closest ? ev.target.closest('.look') : null, l = b && lookById(b.getAttribute('data-look'));
+    if (!l || b.disabled || !hasLook(l)) return;
+    store.look[l.kind] = l.id; save(); dress();
+    var top = el.book.scrollTop;
+    el.bookBody.innerHTML = almanacHtml();
+    el.book.scrollTop = top;
+    try { el.bookBody.querySelector('[data-look="' + l.id + '"]').focus(); } catch (e) { /* ignore */ }
+  });
+  el.end.addEventListener('pointerdown', function () { if (cer) endCeremony(); });
+  window.addEventListener('keydown', function () { if (cer) endCeremony(); });
   el.bookClose.addEventListener('click', function () { closeDialog(el.book); });
 
   function onPointer(ev) {
@@ -1630,7 +1961,19 @@
   }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
 
+  /** The panels' iron frames and the rank's ribbon, painted once and handed to the page's styles. */
+  function hangFrames() {
+    try {
+      var root = document.documentElement;
+      root.style.setProperty('--frame', 'url(' + Sp.frameURL() + ')');
+      root.style.setProperty('--ribbon', 'url(' + Sp.ribbonURL() + ')');
+      root.classList.add('framed');
+    } catch (e) { /* an older set of pictures: the plain panels stay */ }
+  }
+
   function start() {
+    hangFrames();
+    dress();
     layout();
     scene.setStage(2, true);
     toMenu();

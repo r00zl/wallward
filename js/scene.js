@@ -421,16 +421,24 @@
   /**
    * Fit the drawing to the page. Each scene pixel covers a whole number of device
    * pixels, so the art stays crisp on any screen density. The scene is kept about
-   * 300 pixels wide on big screens and never narrower than 185 on phones.
+   * 300 pixels wide on big screens and never narrower than 185 on them. A phone held
+   * upright has height to spare and little width, so there the scene is drawn larger,
+   * about 136 pixels across (never fewer than 124), and the fight is pulled in to fit.
    */
   Scene.prototype.resize = function (cssW, cssH) {
     var dpr = Math.max(1, Math.round((window.devicePixelRatio || 1) * 4) / 4);
-    var want = Math.max(2, Math.min(cssW / 300, cssH / 175));
-    want = Math.min(want, cssW / 185);
+    // (Judged by the phone's screen, which a keyboard opening does not change, so the scene keeps its size
+    // while the player types; unless the keyboard leaves the page wider than it is tall, when the page is
+    // laid out as if the phone were on its side, and the scene is drawn as it would be then.)
+    var scr = window.screen || {}, tall = scr.width && scr.height ? scr.height > scr.width * 1.25 : cssH > cssW * 1.25;
+    var upright = cssW < 560 && cssH >= cssW && tall, least = upright ? 124 : 185;
+    var want = upright ? cssW / 136 : Math.max(2, Math.min(cssW / 300, cssH / 175));
+    want = Math.min(want, cssW / least);
     var k = Math.max(1, Math.round(want * dpr));
-    if (cssW / (k / dpr) < 185) k = Math.max(1, Math.floor(cssW / 185 * dpr));
+    if (cssW / (k / dpr) < least) k = Math.max(1, Math.floor(cssW / least * dpr));
     var scale = k / dpr;
     var W = Math.ceil(cssW / scale), H = Math.ceil(cssH / scale);
+    this.upright = upright;
     if (W === this.W && H === this.H && scale === this.scale && this.buf) return;
     this.W = W; this.H = H; this.scale = scale;
     this.groundY = Math.round(H * 0.6);
@@ -662,7 +670,7 @@
 
   /** Where the warrior stands, in scene pixels (before the pointer offset). */
   Scene.prototype.warriorX = function () {
-    return Math.max(34, Math.round(this.W * 0.19));
+    return this.W < 170 ? Math.max(22, Math.round(this.W * 0.16)) : Math.max(34, Math.round(this.W * 0.19));
   };
 
   /** Everything behind the characters. During a stage change, the new stage dissolves in. */

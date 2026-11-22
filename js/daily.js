@@ -167,6 +167,11 @@
     for (var i = 0; i < RANKS.length; i++) if (glory >= RANKS[i][0]) return RANKS[i][1];
     return 'Recruit';
   }
+  /** How high a rank: 0 for a Recruit, up to 5 for a Warden of the Wall. */
+  function rankLevel(glory) {
+    for (var i = 0; i < RANKS.length; i++) if (glory >= RANKS[i][0]) return RANKS.length - 1 - i;
+    return 0;
+  }
 
   function fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
@@ -193,7 +198,7 @@
     LIVES: LIVES, START: START, MAX_PACE: MAX_PACE, KILL_RANGE: KILL_RANGE, KILL_MOST: KILL_MOST, DAILY_ENEMIES: DAILY_ENEMIES,
     dayNumber: dayNumber, msToNextWall: msToNextWall, dailyPlan: dailyPlan,
     endlessEnemy: endlessEnemy, drawPrompt: drawPrompt, kills: kills,
-    hitGlory: hitGlory, fellGlory: fellGlory, OLDEST_GLORY: OLDEST_GLORY, rankFor: rankFor, fmt: fmt,
+    hitGlory: hitGlory, fellGlory: fellGlory, OLDEST_GLORY: OLDEST_GLORY, rankFor: rankFor, rankLevel: rankLevel, fmt: fmt,
     markRow: markRow, felledCount: felledCount, shareText: shareText
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

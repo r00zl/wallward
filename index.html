@@ -11,6 +11,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Predate">
 <meta name="format-detection" content="telephone=no">
+<!-- how a link to the game looks when it is shared: the picture is made by the game itself (see README) -->
+<link rel="canonical" href="https://predate.quest/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Predate">
+<meta property="og:url" content="https://predate.quest/">
+<meta property="og:title" content="Predate: the oldest answer wins">
+<meta property="og:description" content="A daily pixel trivia game. Each foe demands a name, from Roman emperors to video games. The older your answer, the harder it hits.">
+<meta property="og:image" content="https://predate.quest/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A knight on a castle wall facing a dread knight, under the title Predate.">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -215,6 +227,9 @@ button { cursor: pointer; }
 .gate.held b { font-size: clamp(26px, 7.6vw, 33px); }
 .gate.held small.marks { display: flex; gap: 3px; margin-top: 5px; }
 .gate.held .gate-tag { color: var(--ember); }
+.gate.held { justify-content: flex-start; }
+.gate.held .gate-main { flex: 1 1 auto; }
+.gate .badge { flex: none; width: 32px; height: 36px; margin: 2px -2px 0 -4px; image-rendering: pixelated; filter: drop-shadow(2px 2px 0 rgba(13, 11, 18, 0.8)); }
 .gate:active, .plaque:active { transform: translateY(2px); }
 .gate:focus-visible, .plaque:focus-visible { outline: none; --edge: #ffe08a; }
 .plaques { display: flex; gap: 8px; }
@@ -240,16 +255,18 @@ button { cursor: pointer; }
 
 /* the one flourish: on arrival the sword drops into the name, then the gate is hung */
 .app.intro .title-block h1 .sword { animation: sword-drop 0.66s steps(11) 0.2s both; }
-.app.intro .title-block .tagline, .app.intro .title-block .lede { animation: rise 0.36s steps(6) 0.8s both; }
-.app.intro .menu > * { animation: rise 0.36s steps(6) both; }
+.app.intro .title-block .tagline, .app.intro .title-block .lede { animation: arrive 0.36s steps(6) 0.8s both; }
+.app.intro .menu > * { animation: arrive 0.36s steps(6) both; }
 .app.intro .menu > :nth-child(1), .app.intro .menu > :nth-child(2) { animation-delay: 0.95s; }
 .app.intro .menu > :nth-child(3) { animation-delay: 1.03s; }
 .app.intro .menu > :nth-child(4) { animation-delay: 1.11s; }
 .app.intro .menu > :nth-child(5) { animation-delay: 1.19s; }
 @keyframes sword-drop { 0% { transform: translateY(-150%); opacity: 0; } 10% { opacity: 1; } 68% { transform: translateY(7%); } 84% { transform: translateY(-3%); } 100% { transform: none; } }
-@keyframes rise { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: none; } }
+@keyframes arrive { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: none; } }
 
 /* ---------- the end of a run ---------- */
+/* told over in turn (see ceremony() in game.js): glory counted up, the marks stamped, the
+   rank's ribbon unrolled, today's torch lit. A tap shows it all at once. */
 .center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100% - 24px));
   max-height: calc(100% - 24px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
   padding: 16px 18px 18px; background: rgba(27, 24, 35, 0.94); box-shadow: 0 0 0 3px var(--ink), 0 0 0 5px var(--iron-lit); }
@@ -257,7 +274,43 @@ button { cursor: pointer; }
 .center .kicker { margin: 0 0 2px; color: var(--bone-dim); }
 .score-big { margin: 8px 0 0; font-family: var(--display); font-size: 60px; line-height: 0.8; color: var(--ember); font-variant-numeric: tabular-nums; }
 .score-big small { font-size: 32px; color: var(--bone); }
-.center .rank { margin: 8px 0 0; }
+.center .rank { margin: 0; }
+.score-big .best { display: inline-block; margin-left: 12px; padding: 4px 9px 6px; vertical-align: 8px; font-size: 26px; line-height: 0.8;
+  color: var(--ink); background: #f5c044; box-shadow: 0 0 0 2px var(--ink), 3px 3px 0 2px var(--ink); transform: rotate(-4deg); }
+/* the rank: its badge pinned to a ribbon */
+.rank-line { display: flex; align-items: center; min-width: 0; }
+.rank-line .badge { position: relative; z-index: 1; flex: none; width: 48px; height: 54px; image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 0 var(--ink)); }
+.ribbon { min-width: 0; margin-left: -10px; padding: 5px 16px 7px 20px; font-family: var(--title); font-size: clamp(25px, 6.4vw, 32px);
+  line-height: 1; color: #fff3e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--blood);
+  box-shadow: 0 0 0 2px var(--ink); text-shadow: 2px 2px 0 var(--blood-deep); }
+.framed .ribbon { padding: 0 calc(3 * var(--fs)) 0 calc(5 * var(--fs)); min-height: calc(12 * var(--fs)); display: flex; align-items: center;
+  border: solid transparent; border-width: 0 calc(7 * var(--fs)); border-image: var(--ribbon) 0 7 fill / 0 calc(7 * var(--fs)) repeat;
+  background: none; box-shadow: none; image-rendering: pixelated; }
+/* the last seven days, a torch each: lit for a wall held, embers for one that fell, dark for one missed */
+.streak { display: flex; align-items: center; gap: 10px; min-height: 22px; }
+.torches { display: flex; gap: 4px; line-height: 0; }
+.torches img { display: block; width: 18px; height: 20px; image-rendering: pixelated; }
+.torches img.wait { animation: wait 1.8s steps(2) infinite; }
+@keyframes wait { 0% { opacity: 0.45; } 50% { opacity: 1; } }
+.streak-n { font-family: var(--display); font-size: 22px; line-height: 1; color: #f5c044; white-space: nowrap; }
+.streak-n small { font-family: var(--body); font-size: 17px; color: var(--bone-dim); }
+/* under the plates: the torches, and the small print beside them where there is room, under them where not */
+.menu .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 18px; }
+.menu .streak { padding-left: 2px; }
+.center.cer [data-stage]:not(.on), .center.cer .marks .mk:not(.on) { visibility: hidden; }
+.center.cer [data-stage].on { animation: arrive 0.36s steps(6) both; }
+.center.cer .marks.on { animation: none; }
+.center.cer .marks .mk.on { animation: stamp 0.22s steps(4) both; }
+.center.cer .rank-line.on { animation: none; }
+.center.cer .rank-line.on .ribbon { animation: unfurl 0.42s steps(7) both; }
+.center.cer .rank-line.on .badge { animation: drop 0.42s steps(6) 0.18s both; }
+.center.cer .best.on { animation: pop 0.34s steps(7) both; }
+.torches img.lighting { animation: ignite 0.5s steps(5) both; }
+@keyframes stamp { 0% { opacity: 0; transform: scale(2.6) rotate(-12deg); } 40% { opacity: 1; } 100% { transform: none; } }
+@keyframes unfurl { 0% { clip-path: inset(0 50% 0 50%); } 100% { clip-path: inset(0 0 0 0); } }
+@keyframes drop { 0% { opacity: 0; transform: translateY(-28px); } 60% { opacity: 1; transform: translateY(3px); } 100% { transform: none; } }
+@keyframes ignite { 0% { transform: scale(0.3) translateY(8px); filter: brightness(2.2); } 60% { transform: scale(1.35); } 100% { transform: none; } }
 .center .note { color: var(--bone-dim); }
 /* what was asked, what was given, and the oldest answer there was */
 .recap { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 18px; line-height: 1.25; }
@@ -281,6 +334,27 @@ dialog h3 { margin: 14px 0 6px; font-weight: 400; font-size: 20px; color: var(--
 dialog .recap { margin-bottom: 14px; }
 .unfound { margin: 0 0 14px; padding-left: 22px; font-size: 18px; color: var(--bone-dim); }
 .unfound li { margin: 0 0 3px; }
+dialog .note { margin: 4px 0 14px; color: var(--bone-dim); }
+/* the looks the knight has earned, in the almanac */
+.looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; margin: 2px 0 14px; }
+.look { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 6px 9px; border: 0; border-radius: 0;
+  background: #2c2836; color: var(--bone); font-size: 17px; line-height: 1.05; text-align: center; box-shadow: inset 0 -3px 0 var(--iron-lit); }
+.look img { display: block; image-rendering: pixelated; }
+.look small { font-size: 15px; color: var(--bone-dim); }
+.look[aria-pressed=true] { box-shadow: inset 0 0 0 2px #f5c044, inset 0 -3px 0 #f5c044; }
+.look[aria-pressed=true] small { color: #f5c044; }
+.look:disabled { cursor: default; opacity: 0.6; }
+.look:disabled img { opacity: 0.55; filter: saturate(0.6); }
+/* Panels hang in iron: a band with riveted corners round dark wood, painted by the game
+   (sprites.js) and stretched round each panel as a border-image. --fs is one of its pixels. */
+.framed { --fs: 3px; }
+@media (max-width: 520px) { .framed { --fs: 2px; } }
+.framed .plate, .framed .center, .framed dialog { border: calc(7 * var(--fs)) solid transparent; background: none; box-shadow: none;
+  border-image: var(--frame) 7 fill / calc(7 * var(--fs)) repeat; image-rendering: pixelated; }
+.framed .plate { padding: 2px 7px 4px; }
+.framed .center { padding: 6px 10px 10px; }
+.framed dialog { padding: 6px 10px 12px; }
+.app.short .plate { padding: 0 5px 2px; }
 /* the sound switch asks to be noticed until it has been used */
 @keyframes nudge { 50% { --edge: #ffe08a; color: #fff; } }
 
@@ -327,10 +401,13 @@ dialog .recap { margin-bottom: 14px; }
   .menu { left: auto; right: calc(12px + var(--safe-r)); transform: none; width: min(48%, 420px); }
   .title-block .lede { display: none; }
   .title-block .tagline { font-size: clamp(22px, 4vw, 32px); }
+  /* words across the sky go beside the question, over the foe's side of the wall */
+  .banner { left: 48%; right: calc(12px + var(--safe-r)); font-size: clamp(26px, 4.2vw, 44px); white-space: nowrap; }
 }
 @media (prefers-reduced-motion: reduce) {
   .banner.go, .veil.hurt, .veil.flash, .float, .combo.pop b, .combo.broke, .plaque.nudge { animation: none; }
   .app.intro .title-block h1 .sword, .app.intro .title-block .tagline, .app.intro .title-block .lede, .app.intro .menu > * { animation: none; }
+  .torches img.wait, .torches img.lighting { animation: none; }
   .btn:active, .gate:active, .plaque:active { transform: none; }
 }
 </style>
@@ -383,6 +460,7 @@ dialog .recap { margin-bottom: 14px; }
       <span class="gate-tag" id="dailyNo">No. 1</span>
     </button>
     <button class="gate held" id="dailyDone" type="button" hidden>
+      <img class="badge" id="doneBadge" alt="" width="32" height="36">
       <span class="gate-main"><b id="doneLine"></b><small class="marks" id="doneMarks"></small></span>
       <span class="gate-tag"><span id="doneScore"></span><small>glory</small></span>
     </button>
@@ -395,18 +473,23 @@ dialog .recap { margin-bottom: 14px; }
       <button class="plaque" id="almanacBtn" type="button"><svg viewBox="0 0 10 10" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path d="M1 0h8v1h-8zM0 1h2v1h-2zM8 1h2v1h-2zM0 2h2v1h-2zM3 2h4v1h-4zM8 2h2v1h-2zM0 3h2v1h-2zM8 3h2v1h-2zM0 4h2v1h-2zM3 4h4v1h-4zM8 4h2v1h-2zM0 5h2v1h-2zM8 5h2v1h-2zM0 6h2v1h-2zM8 6h2v1h-2zM0 7h10v1h-10zM0 8h2v1h-2zM8 8h2v1h-2zM1 9h8v1h-8z"/></svg>Almanac</button>
       <button class="plaque" id="soundBtn" type="button" aria-pressed="false" aria-label="Sound and music: off"><svg viewBox="0 0 10 10" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path d="M4 0h1v1h-1zM3 1h2v1h-2zM0 2h5v6h-5zM3 8h2v1h-2zM4 9h1v1h-1z"/><path class="waves" d="M8 1h1v1h-1zM7 2h1v1h-1zM9 2h1v1h-1zM9 3h1v1h-1zM7 4h1v1h-1zM9 4h1v1h-1zM7 5h1v1h-1zM9 5h1v1h-1zM9 6h1v1h-1zM7 7h1v1h-1zM9 7h1v1h-1zM8 8h1v1h-1z"/><path class="mute" d="M7 2h1v1h-1zM9 2h1v1h-1zM7 3h1v1h-1zM9 3h1v1h-1zM8 4h1v2h-1zM7 6h1v1h-1zM9 6h1v1h-1zM7 7h1v1h-1zM9 7h1v1h-1z"/></svg><span id="soundLabel">Sound off</span></button>
     </div>
-    <p class="note outlined" id="stats"></p>
+    <div class="foot">
+      <div class="streak outlined" id="streak" hidden></div>
+      <p class="note outlined" id="stats"></p>
+    </div>
   </section>
 
   <section class="center" id="end" hidden>
-    <div>
+    <div data-stage>
       <p class="kicker" id="endKicker"></p>
       <h2 id="endTitle"></h2>
-      <p class="score-big"><span id="endScore">0</span> <small>glory</small></p>
-      <p class="rank" id="endRank"></p>
     </div>
-    <p class="marks" id="endMarks"></p>
-    <div class="row">
+    <p class="score-big" data-stage><span id="endScore">0</span> <small>glory</small><span class="best" id="endBest" data-stage hidden>New best</span></p>
+    <p class="marks" id="endMarks" data-stage></p>
+    <div class="rank-line" id="endRibbon" data-stage hidden><img class="badge" id="endBadge" alt="" width="48" height="54"><span class="ribbon" id="endRankName"></span></div>
+    <p class="rank" id="endRank" data-stage></p>
+    <div class="streak" id="endStreak" data-stage hidden></div>
+    <div class="row" data-stage>
       <button class="btn small" id="copyBtn" type="button">Copy result</button>
       <button class="btn small alt" id="againBtn" type="button">Endless march</button>
       <button class="btn small alt" id="homeBtn" type="button">Back to the gate</button>
@@ -415,8 +498,8 @@ dialog .recap { margin-bottom: 14px; }
       <p class="note">Copying was blocked here. Select the text and copy it yourself:</p>
       <textarea id="copyText" readonly aria-label="Your result"></textarea>
     </div>
-    <p class="note" id="nextIn"></p>
-    <ol class="recap" id="endRecap" aria-label="Your answers, and a three-damage answer to each question"></ol>
+    <p class="note" id="nextIn" data-stage></p>
+    <ol class="recap" id="endRecap" data-stage aria-label="Your answers, and a three-damage answer to each question"></ol>
   </section>
 
   <dialog id="howto" aria-labelledby="howTitle">
@@ -431,7 +514,7 @@ dialog .recap { margin-bottom: 14px; }
       <li>A wrong name lets the foe gain a pace and breaks the combo. If it reaches you, one of your five torches goes out.</li>
       <li>Out of names? Skip the foe. It costs a torch, and you keep the glory for the damage done.</li>
     </ol>
-    <p>Today's wall has five foes and is the same for everyone. It changes at 00:00 UTC. Every oldest answer you find is kept in your Almanac.</p>
+    <p>Today's wall has five foes and is the same for everyone. It changes at 00:00 UTC. Every oldest answer you find is kept in your Almanac, and enough of them win the knight new looks.</p>
     <p>The foes do not wait. Hide or close the page and they keep coming: a torch goes out each time one reaches you, whether you are there or not.</p>
     <p class="mark-key" id="markKey"></p>
     <button class="btn small" id="howClose" type="button">Close</button>
@@ -447,12 +530,12 @@ dialog .recap { margin-bottom: 14px; }
 <script src="js/questions.js"></script>
 <script src="js/answers.js"></script>
 <script src="js/lookup.js"></script>
-<script src="js/daily.js"></script>
-<script src="js/sprites.js?v=4"></script>
-<script src="js/scene.js"></script>
-<script src="js/sound.js"></script>
+<script src="js/daily.js?v=2"></script>
+<script src="js/sprites.js?v=5"></script>
+<script src="js/scene.js?v=2"></script>
+<script src="js/sound.js?v=2"></script>
 <script src="js/cape.js"></script>
 <!-- the number is raised whenever the page and this script must change together, so a browser never pairs a new page with an old script -->
-<script src="js/game.js?v=5"></script>
+<script src="js/game.js?v=7"></script>
 </body>
 </html>
