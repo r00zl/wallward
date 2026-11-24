@@ -244,7 +244,7 @@ js/questions.js        the rolls of names and their cut-off years
 js/answers.js          typed-answer matching
 js/lookup.js           the archives: checking a name that is not on a roll against Wikidata
 js/daily.js            date-seeded daily calendar, endless mode, scoring
-js/sprites.js          pixel sprites drawn from text pictures; the knight's poses; blades drawn at clean pixel angles; rank badges; the iron frames round the panels
+js/sprites.js          pixel sprites drawn from text pictures; the knight's poses and his walking and running strides; blades drawn at clean pixel angles; rank badges; the iron frames round the panels
 js/scene.js            the wall, five backdrops, parallax, weather, torches
 js/sound.js            the effects and the score, both made with the Web Audio API (no audio files)
 js/cape.js             the wind-blown cloak
@@ -286,6 +286,22 @@ wavers like a worn tape. The voice sings a call and an answer in one half of
 each pass and leaves the other half empty; which phrases it sings, and where,
 changes every time. Everything is heard through a synthetic stone-hall echo,
 and the score rests while the page is hidden.
+
+## How the knight moves
+
+He walks on an eight-frame stride and runs on a six-frame one, both drawn in
+`js/sprites.js` (`STRIDE`). Only one leg is drawn through each stride: his other
+leg is the same drawing half a stride on, in shade and a pixel across, and the
+hem of his tunic is laid over both. His free arm swings against the leg on its
+side, his sword hand answers it, and he leans his head into a run.
+
+The stride is turned by the ground he covers, not by the clock (`GAIT` at the
+top of `js/game.js`): 24 pixels of wall to a walking stride, 48 to a running
+one, which is exactly how far each planted foot is drawn sliding back, so his
+feet stay where he puts them instead of skating. At the gate he walks. Between
+foes he sets off at a walk, breaks into a run as the wall speeds past, kicks a
+little dust, his cloak streaming out behind him, and drops back to a walk as he
+pulls up. The dash before a finishing blow uses the same run.
 
 ## On a phone
 

@@ -109,7 +109,8 @@
   // foe. s/S skin, w and k the eyes, the bar of the helm running down between them.
   var WARRIOR = {
     pal: { k: K, m: '#c9d1dc', M: '#7b8798', w: '#ffffff', s: '#e8b48c', S: '#b87a56', n: '#5a2f24', c: '#8f1d2c',
-      a: '#9aa3b3', A: '#5d6779', g: '#d9a441', t: '#2b2f45', b: '#3a2a22', r: '#2b2f45', R: '#1e2133', p: '#7b8798', P: '#5a6476' },
+      a: '#9aa3b3', A: '#5d6779', g: '#d9a441', t: '#2b2f45', b: '#3a2a22', r: '#2b2f45', R: '#1e2133', p: '#7b8798', P: '#5a6476',
+      q: '#4f5970', Q: '#3d455a', d: '#251a16' }, // q/Q/d: the leg on his far side, in shade
     body: [
       '.......kkkkkk',
       '.....kkmwwmmMkk',
@@ -162,10 +163,192 @@
         ''
       ] }
     ],
-    shoulder: [13, 14], neck: [5, 12]
+    shoulder: [13, 14], neck: [5, 12],
+    split: 11 // the row his torso starts at: above it is the head, which a gait may carry apart from the rest
   };
-  /** Which frame of a human figure is which pose. The last two are the knight's alone. */
-  var POSE = { stride: 0, pass: 1, stand: 2, lunge: 3, air: 4 };
+
+  // ---------- the knight's gaits ----------
+  // He walks and runs on drawn strides, not on two frames swapped. One leg is drawn through a
+  // whole stride; his other leg is the same leg half a stride on, in shade and a pixel across
+  // (see gait()). Ten rows, the last on the ground; each leg is drawn for the height his hips
+  // ride at in that frame (`bob`: how far the body has sunk), so its top two or three rows are
+  // left for the hem. While a foot is planted it is drawn `step` pixels further back each
+  // frame, which is how far the wall slides by in that time when the game runs the stride by
+  // the ground covered (GAIT in game.js): a planted foot stays where it was put.
+  var STRIDE = {
+    // eight frames to two steps, 24 pixels of ground: heel down, weight on, passing, pushing off; then the swing through
+    walk: { step: 3, bob: [1, 1, 0, 0, 1, 1, 0, 0], leg: [
+      [ // the foot comes down, leg out ahead
+        '', '', '',
+        '........kpppk',
+        '.........kpppk',
+        '..........kPPk',
+        '...........kbbk',
+        '............kbbk',
+        '............kbbbk',
+        '............kkkkk'],
+      [ // the weight comes on to it, knee giving
+        '', '', '',
+        '.......kpppk',
+        '........kpppk',
+        '.........kPPk',
+        '.........kbbk',
+        '.........kbbk',
+        '.........kbbbk',
+        '.........kkkkk'],
+      [ // straight under him as the other leg passes
+        '', '',
+        '......kpppk',
+        '......kpppk',
+        '......kppk',
+        '......kPPk',
+        '......kbbk',
+        '......kbbk',
+        '......kbbbk',
+        '......kkkkk'],
+      [ // behind him now, pushing
+        '', '',
+        '......kpppk',
+        '.....kpppk',
+        '....kppkk',
+        '...kPPk',
+        '...kbbk',
+        '...kbbk',
+        '...kbbbk',
+        '...kkkkk'],
+      [ // the last of the push: up on the toe, heel lifted
+        '', '', '',
+        '....kpppk',
+        '...kpppk',
+        '..kPPkk',
+        '.kbbk',
+        'kbbbk',
+        'kkbbk',
+        '..kkk'],
+      [ // off the ground and folding, the foot trailing
+        '', '', '',
+        '......kpppk',
+        '.....kpppk',
+        '...kkPPkk',
+        '..kbbbk',
+        '..kbbk',
+        '...kk',
+        ''],
+      [ // swinging through: knee leading, the foot tucked up behind it
+        '', '',
+        '.......kpppk',
+        '........kpppk',
+        '......kkkPPk',
+        '.....kbbbkk',
+        '.....kbbk',
+        '......kk',
+        '', ''],
+      [ // reaching for the next step, toe up
+        '', '',
+        '.......kpppk',
+        '........kpppk',
+        '.........kPPk',
+        '..........kbbk',
+        '..........kbbkk',
+        '..........kbbbk',
+        '..........kkkk',
+        '']
+    ] },
+    // six frames to two bounds, 48 pixels of ground: landing, driving off, flight; then the leg gathered and thrown forward
+    run: { step: 8, bob: [2, 1, 0, 2, 1, 0], lean: 1, leg: [
+      [ // landing: foot flat ahead of him, knee deep
+        '', '', '', '',
+        '........kpppk',
+        '.........kPPPk',
+        '..........kbbk',
+        '..........kbbk',
+        '..........kbbbk',
+        '..........kkkkk'],
+      [ // driving off: the leg straight out behind, on its toe
+        '', '', '',
+        '......kpppk',
+        '.....kpppk',
+        '....kPPkk',
+        '...kbbk',
+        '..kbbbk',
+        '..kkbbk',
+        '....kkk'],
+      [ // in the air: trailing, heel kicked up
+        '', '',
+        '......kpppk',
+        '.....kpppk',
+        '...kkPPkk',
+        '..kbbbk',
+        '..kbbk',
+        '...kk',
+        '', ''],
+      [ // gathered under him as the other foot lands
+        '', '', '', '',
+        '.......kpppk',
+        '......kkPPk',
+        '.....kbbbk',
+        '.....kbbk',
+        '......kk',
+        ''],
+      [ // the knee driven forward
+        '', '', '',
+        '.......kpppk',
+        '........kpppk',
+        '.........kPPk',
+        '.........kbbk',
+        '.........kbbbk',
+        '.........kkkkk',
+        ''],
+      [ // in the air: thrown out ahead for the landing
+        '', '',
+        '.......kpppk',
+        '........kpppk',
+        '.........kPPk',
+        '..........kbbk',
+        '..........kbbkk',
+        '..........kbbbk',
+        '..........kkkk',
+        '']
+    ] }
+  };
+  // The arm he does not fight with swings against the leg on its side: these rows of his body
+  // redrawn with that arm, from the shoulder down, a pixel back, or a pixel forward across his belt.
+  var ARM = {
+    back: { 14: 'kaAaaaaaaaaaaaAak', 15: 'kaAkkattttttakAak', 16: '.kkkkatgttgtakkk' },
+    fore: { 14: '..kaAaaaaaaaaaAak', 15: '..kaAkttttttakAak', 16: '...kkktgttgtakkk' }
+  };
+  var HEM = ['....krrrrrrrrrk', '....krRrrrrrRrk'];
+
+  /**
+   * The frames of a gait, as poses: for each, the far leg (the same stride half a turn on,
+   * in shade, a pixel across), the near leg over it and the hem of his tunic over both.
+   * He leans his head into a run; his free arm swings back as the near leg comes forward,
+   * and his sword hand answers it (`sway`).
+   */
+  function gait(stride) {
+    var n = stride.leg.length, half = n / 2;
+    function shaded(rows) {
+      return rows.map(function (r) { return r ? '.' + r.replace(/p/g, 'q').replace(/P/g, 'Q').replace(/b/g, 'd') : r; });
+    }
+    return stride.leg.map(function (near, i) {
+      var bob = stride.bob[i], hem = [], y;
+      for (y = 0; y < bob; y++) hem.push('');
+      var u = i / n, swing = Math.cos(u * 2 * Math.PI); // 1 as the near leg strikes ahead, -1 as the far one does
+      return { bob: bob, legs: [shaded(stride.leg[(i + half) % n]), near, hem.concat(HEM)],
+        head: stride.lean ? { dx: stride.lean } : null,
+        patch: swing > 0.5 ? ARM.back : swing < -0.5 ? ARM.fore : null,
+        sway: swing > 0.5 ? 1 : swing < -0.5 ? -1 : 0 };
+    });
+  }
+  WARRIOR.poses = WARRIOR.poses.concat(gait(STRIDE.walk), gait(STRIDE.run));
+
+  /** Which frame of a human figure is which pose. Those after `stand` are the knight's alone: `walk` and `run` list the frames of his strides. */
+  var POSE = { stride: 0, pass: 1, stand: 2, lunge: 3, air: 4, walk: [], run: [] };
+  (function () {
+    var i, at = 5;
+    for (i = 0; i < STRIDE.walk.leg.length; i++) POSE.walk.push(at++);
+    for (i = 0; i < STRIDE.run.leg.length; i++) POSE.run.push(at++);
+  })();
 
   // ---------- enemies ----------
   var CULTIST = {
@@ -538,12 +721,27 @@
   ];
   RANK_BADGES.forEach(function (b, i) { ICONS['rank' + i] = { pal: b.pal, rows: shield(b.charge) }; });
 
-  function compose(bodyRows, legRows, pal, bob) {
-    var w = 0;
-    bodyRows.concat(legRows).forEach(function (r) { w = Math.max(w, r.length); });
-    var c = makeCanvas(w, bodyRows.length + legRows.length);
-    paint(legRows, pal, c, 0, bodyRows.length);
-    paint(bodyRows, pal, c, 0, bob || 0);
+  /**
+   * A body over its legs. The legs may be several pictures laid one over another. A pose
+   * may redraw rows of the body (`patch`), and carry the head (the rows above `split`)
+   * apart from the rest: a pixel forward, or at a height of its own. A head riding higher
+   * than the body has its last row drawn again to fill the neck; one riding lower sinks
+   * behind the collar.
+   */
+  function compose(bodyRows, legRows, pal, bob, pose, split) {
+    var layers = typeof legRows[0] === 'string' ? [legRows] : legRows, w = 0, i;
+    var rows = pose && pose.patch ? bodyRows.map(function (r, y) { return pose.patch[y] || r; }) : bodyRows;
+    var head = pose && split ? pose.head : null, dx = head ? head.dx || 0 : 0;
+    rows.forEach(function (r) { w = Math.max(w, r.length + dx); });
+    layers.forEach(function (l) { l.forEach(function (r) { w = Math.max(w, r.length); }); });
+    var c = makeCanvas(w, rows.length + layers[0].length);
+    layers.forEach(function (l) { paint(l, pal, c, 0, rows.length); });
+    bob = bob || 0;
+    if (!head) { paint(rows, pal, c, 0, bob); return c; }
+    var top = rows.slice(0, split), hb = head.bob == null ? bob : head.bob;
+    paint(top, pal, c, dx, hb);
+    for (i = hb; i < bob; i++) paint([top[split - 1]], pal, c, dx, i + split);
+    paint(rows.slice(split), pal, c, 0, bob + split);
     return c;
   }
 
@@ -558,12 +756,13 @@
   function human(def, mirror, extra) {
     var poses = [{ legs: LEGS.split, bob: 1 }, { legs: LEGS.pass, bob: 0 }, { legs: LEGS.stand, bob: 0 }].concat(def.poses || []);
     function framesOf(body) {
-      var frames = poses.map(function (p) { return compose(body, p.legs, def.pal, p.bob); });
+      var frames = poses.map(function (p) { return compose(body, p.legs, def.pal, p.bob, p, def.split); });
       return mirror ? frames.map(flipped) : frames;
     }
     var frames = framesOf(def.body);
     extra = extra || {};
     extra.bob = poses.map(function (p) { return p.bob; });
+    extra.sway = poses.map(function (p) { return p.sway || 0; }); // the sword hand, a pixel forward or back with his stride
     if (mirror && def.hand) extra.hand = [frames[0].width - 1 - def.hand[0], def.hand[1]];
     if (def.shut) extra.shut = framesOf(def.body.map(function (row, y) { return def.shut[y] || row; }));
     return pack(frames, extra);

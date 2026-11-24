@@ -28,6 +28,13 @@
   var STRIKE_POSE = { out: POSE.lunge, cut: POSE.lunge, back: POSE.pass,
     leap: POSE.air, hang: POSE.air, plunge: POSE.air, hold: POSE.air, rip: POSE.air, land: POSE.lunge, pose: POSE.stand };
   var GHOST = { gap: 7, life: 0.2 }; // after-images of a dash: pixels apart, and seconds each lasts
+  // The knight's legs go by the ground he covers, not by the clock, so a planted foot stays where
+  // it was put: pixels of wall to one whole stride of each gait (as the strides are drawn, see
+  // STRIDE in sprites.js). He breaks into a run above `quicken` pixels a second and drops back to
+  // a walk below `slacken`; however fast the wall goes by, his legs turn over at most `most` times a second.
+  var GAIT = { walk: 24, run: 48, quicken: 62, slacken: 44, most: 2.7, still: 5 };
+  var WALK = POSE.walk && POSE.walk.length ? POSE.walk : [POSE.stride, POSE.pass];
+  var RUN = POSE.run && POSE.run.length ? POSE.run : WALK;
   var REEL = 0.24;       // seconds a foe staggers after a blow
   var BRACE = 0.82;      // share of the wait between steps after which a foe gathers itself to move
   var LOST_HOLD = 0.4;   // seconds lost health stays blanched on the bar before it drains
@@ -191,7 +198,7 @@
     reveal: '', recent: [], skipArmed: 0, told: false, asking: null,
     camFrom: 0, camTo: 0, walkDur: 2.4, spawned: false,
     strike: null, bits: [], arcs: [], trail: [], fx: [], shake: 0, stop: 0, emberT: 0,
-    hero: { dx: 0, dy: 0, walkT: 0, hurt: 0, sword: SWORD.rest },
+    hero: { dx: 0, dy: 0, stride: 0, gait: 'walk', speed: 0, hurt: 0, sword: SWORD.rest },
     titleT: 0, blade: null
   };
   var clockAt = Date.now(); // the moment, by the clock on the wall, the game has been played out to
@@ -565,6 +572,7 @@
       G.def.hp = Math.min(G.def.hp, G.def.prompt.hpCap);
     }
     G.phase = 'walk'; G.phaseT = 0; G.spawned = false; G.enemy = null; G.strike = null;
+    G.hero.stride = 0.25; G.hero.gait = 'walk'; G.hero.speed = 0; // he sets off from the frame nearest to standing, legs together
     G.flawless = true;
     disarmSkip();
     var W = Scene.WALK;
@@ -1504,8 +1512,38 @@
   function heroFrame() {
     var s = G.strike, h = G.hero;
     if (h.dy < -2) return POSE.air;
-    if (s) return s.stage === 'run' ? Math.floor(s.t * 16) % 2 : STRIKE_POSE[s.stage];
-    return G.phase === 'title' || G.phase === 'walk' ? Math.floor(h.walkT * 8) % 2 : POSE.stand;
+    if (s) return s.stage === 'run' ? RUN[(1 + Math.floor(s.t * 26)) % RUN.length] : STRIKE_POSE[s.stage]; // the dash starts from the leg that drives off
+    if (G.phase !== 'title' && G.phase !== 'walk') return POSE.stand;
+    if (G.phase === 'walk' && h.speed < GAIT.still) return POSE.stand; // setting off, or pulling up
+    var set = h.gait === 'run' ? RUN : WALK;
+    return set[Math.floor(h.stride * set.length) % set.length];
+  }
+
+  /**
+   * Carry the knight's stride on by the ground covered in this step, and note each foot as
+   * it comes down. A run keeps the walk's place in the stride, so the same leg leads.
+   */
+  function pace(dist, dt) {
+    var h = G.hero;
+    if (!(dt > 0)) return;
+    h.speed += (dist / dt - h.speed) * Math.min(1, dt * 14);
+    if (h.gait !== 'run' && h.speed > GAIT.quicken) h.gait = 'run';
+    else if (h.gait === 'run' && h.speed < GAIT.slacken) h.gait = 'walk';
+    var before = h.stride;
+    h.stride += Math.min(dist / GAIT[h.gait], GAIT.most * dt);
+    if (Math.floor(h.stride * 2) !== Math.floor(before * 2)) footfall();
+    h.stride %= 1;
+  }
+
+  /** A foot comes down: at a run it kicks a little dust off the stone, left behind as the wall goes by. */
+  function footfall() {
+    var h = G.hero;
+    if (h.gait !== 'run' || calm || absent || G.phase !== 'walk') return;
+    var pose = heroPose();
+    for (var i = 0; i < 2; i++) {
+      G.bits.push({ x: pose.x + 9 + Math.random() * 4, y: pose.feet - 1, vx: -h.speed * (0.55 + Math.random() * 0.3), vy: -4 - Math.random() * 9,
+        life: 0.22 + Math.random() * 0.16, g: 30, col: i ? 'rgba(232,226,207,0.5)' : 'rgba(180,172,158,0.55)', size: 1 });
+    }
   }
 
   /** Where the knight is drawn this frame: the top-left of his sprite, and which frame of it. */
@@ -1521,7 +1559,8 @@
     var ws = SPR.warrior, deg = Sp.cleanAngle(G.hero.sword), a = deg * Math.PI / 180;
     var breathe = pose.still && Math.sin(scene.t * 2.4) > 0.6 ? 1 : 0;
     var sx = pose.x + ws.shoulder[0], sy = pose.y + ws.shoulder[1] + ws.bob[pose.frame] + breathe;
-    var hx = sx + Math.round(Math.cos(a) * 3 + 2), hy = sy + Math.round(-Math.sin(a) * 3 + 2);
+    var sway = ws.sway && !G.strike ? ws.sway[pose.frame] || 0 : 0; // a pixel forward and back as he strides
+    var hx = sx + Math.round(Math.cos(a) * 3 + 2) + sway, hy = sy + Math.round(-Math.sin(a) * 3 + 2);
     return { deg: deg, sx: sx, sy: sy, hx: hx, hy: hy, tipX: hx + Math.cos(a) * 15, tipY: hy - Math.sin(a) * 15 };
   }
 
@@ -1595,16 +1634,17 @@
 
   /** Move the run on: the walk between foes, the foe's advance, and what follows its end. */
   function updatePhase(dt) {
-    var e = G.enemy, h = G.hero;
+    var e = G.enemy;
     if (G.phase === 'title') {
       G.titleT += dt;
       scene.camX += dt * 24;
-      h.walkT += dt;
+      pace(dt * 24, dt);
       if (!calm && G.titleT > 10) { G.titleT = 0; scene.setStage(scene.shownStage() + 1); }
     } else if (G.phase === 'walk') {
       var u = Math.min(1, G.phaseT / G.walkDur), lead = 1.0; // the foe comes into view over the last second
+      var camWas = scene.camX;
       scene.camX = G.camFrom + (G.camTo - G.camFrom) * ease(u);
-      h.walkT += dt;
+      pace(Math.max(0, scene.camX - camWas), dt);
       if (!G.spawned && G.phaseT >= G.walkDur - lead) spawn();
       if (G.spawned) {
         var v = Math.min(1, (G.phaseT - (G.walkDur - lead)) / lead);
@@ -1679,6 +1719,7 @@
 
   function updateCloaks(dt) {
     var pose = heroPose(), ws = SPR.warrior, e = G.enemy;
+    heroCape.rush = G.phase === 'walk' ? 1 + Math.min(1.1, G.hero.speed / 170) : 1; // it streams out behind him as he runs
     heroCape.step(pose.x + ws.neck[0], pose.y + ws.neck[1] + ws.bob[pose.frame], -1, dt, scene.t, pose.feet);
     if (e && !e.gone && e.spr.cape) {
       var c = foeAt(e);

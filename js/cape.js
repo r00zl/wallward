@@ -28,7 +28,7 @@
       for (i = 1; i < this.n; i++) {
         var vx = (this.x[i] - this.px[i]) * 0.9, vy = (this.y[i] - this.py[i]) * 0.9;
         this.px[i] = this.x[i]; this.py[i] = this.y[i];
-        var gust = 150 + 90 * Math.sin(t * 2.1) + 50 * Math.sin(t * 5.3 + i * 0.7);
+        var gust = (150 + 90 * Math.sin(t * 2.1) + 50 * Math.sin(t * 5.3 + i * 0.7)) * (this.rush || 1); // `rush`: how much harder the air comes at a run
         var flutter = 110 * Math.sin(t * 9 - i * 0.9) * (i / this.n);
         this.x[i] += vx + dir * gust * h * h;
         this.y[i] += vy + (70 + flutter) * h * h;
